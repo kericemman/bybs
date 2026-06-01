@@ -38,29 +38,29 @@ const charityMerchRoutes = require("./routes/admin/charityMerchRoutes");
 
 const app = express();
 
-// const allowedOrigins = [
-//   "http://localhost:5173",
-//   "https://buildyourbestselfblog.com",
-//   "https://www.buildyourbestselfblog.com",
-//   "www.buildyourbestselfblog.com",
-// ];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://buildyourbestselfblog.com",
+  "https://www.buildyourbestselfblog.com",
+  "www.buildyourbestselfblog.com",
+];
 
-
-// app.use(cors({
-//   origin: function(origin, callback) {
-//     if (!origin || allowedOrigins.includes(origin)) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error("CORS blocked"));
-//     }
-//   },
-//   credentials: true
-// }));
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS blocked"));
+    }
+  },
   credentials: true
 }));
+
+// app.use(cors({
+//   origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+//   credentials: true
+// }));
 
 // Core middlewares
 app.use(cookieParser());
