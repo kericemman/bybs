@@ -20,7 +20,7 @@ export default function CoachingSuccess() {
 
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/api/coaching/verify`,
+          `${import.meta.env.VITE_API_URL}/coaching/verify`,
           { reference }
         );
 

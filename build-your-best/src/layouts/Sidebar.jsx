@@ -66,6 +66,12 @@ const Sidebar = () => {
       icon: <DollarSign className="w-5 h-5" />,
     
     },
+
+    {
+      path: "/admin/charity-merch",
+      label: "Charity Merch",
+      icon: <Heart className="w-5 h-5" />,
+    },
    
    
     {

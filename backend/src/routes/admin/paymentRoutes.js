@@ -2,6 +2,7 @@ const express = require("express");
 const protect = require("../../middleware/auth.middleware");
 const {
   createOrder,
+  createCartOrder,
   handleWebhook,
   verifyPayment,
   getOrders,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public
 router.post("/orders", createOrder);
+router.post("/cart-order", createCartOrder);
 router.get("/verify/:reference", verifyPayment);
 router.post("/webhook", handleWebhook);
 

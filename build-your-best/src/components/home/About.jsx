@@ -1,92 +1,67 @@
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
+
+const pillars = ["Inspire", "Heal", "Evolve"];
 
 const AboutSection = () => {
   return (
-    <section className="min-h-screen bg-white py-5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Content Side */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="space-y-8"
+    <section className="public-section bg-white">
+      <div className="public-container">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_0.9fr] gap-12 lg:gap-16 items-center">
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
           >
-            <div>
-              <h1 className="text-4xl md:text-5xl font-light text-[#00337C] mb-8 leading-tight">
-                About Us
-              </h1>
-              <div className="w-20 h-1 bg-[#B76E79] mb-8"></div>
-            </div>
+            <p className="public-eyebrow mb-5">About BYBS</p>
+            <h2 className="public-heading text-3xl md:text-5xl mb-6">
+              A movement for inner wholeness and practical growth.
+            </h2>
 
-            <p className="text-lg text-gray-700 font-light leading-relaxed">
-              BYBS is a personal and professional development movement that helps women and youth 
-              <span className="font-medium text-[#00337C]"> reconnect with who they are</span>, 
-              <span className="font-medium text-[#00337C]"> heal what holds them back</span>, and 
-              <span className="font-medium text-[#00337C]"> grow into the best version of themselves</span> , from the inside out.
-            </p>
-
-            <div className="space-y-2">
-              <p className="text-gray-600 leading-relaxed">
-                We believe true success comes from wholeness. That's why we don't just teach people how to succeed, 
-                we help them become whole first, then build from there.
+            <div className="space-y-5 public-copy text-lg">
+              <p>
+                BYBS helps women and youth reconnect with who they are, heal
+                what holds them back, and grow into the best version of
+                themselves.
               </p>
-              {/* <a href="/our-story" className="text-[#00337C] font-medium underline">Click here to Download Our Guide</a> */}
-              
-              
+              <p>
+                We believe true success comes from wholeness. That is why our
+                work starts inside, then moves outward into purpose, leadership,
+                relationships, and meaningful action.
+              </p>
             </div>
 
-            {/* Values */}
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-6 pt-3 md:pt-6">
-              <div className="text-center">
-                <div className="w-8 h-8 bg-[#00337C] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-white font-semibold">1</span>
+            <div className="grid grid-cols-3 gap-3 mt-8">
+              {pillars.map((pillar, index) => (
+                <div
+                  key={pillar}
+                  className="border border-gray-100 rounded-lg px-4 py-5 text-center bg-[#F7F9FC]"
+                >
+                  <div className="w-8 h-8 bg-[#00337C] text-white rounded-full flex items-center justify-center mx-auto mb-3 text-sm font-semibold">
+                    {index + 1}
+                  </div>
+                  <h3 className="font-semibold text-[#00337C]">{pillar}</h3>
                 </div>
-                <h3 className="font-medium text-[#00337C] mb-2">Inspire</h3>
-               
-              </div>
-              
-              <div className="text-center">
-                <div className="w-8 h-8 bg-[#00337C] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-white font-semibold">2</span>
-                </div>
-                <h3 className="font-medium text-[#00337C] mb-2">Heal</h3>
-                
-              </div>
-              
-              <div className="text-center">
-                <div className="w-8 h-8 bg-[#00337C] rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-white font-semibold">3</span>
-                </div>
-                <h3 className="font-medium text-[#00337C] mb-2">Evolve</h3>
-                
-              </div>
+              ))}
             </div>
-          </motion.div>
+          </Motion.div>
 
-          {/* Image Side */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.1 }}
             className="relative"
           >
-            <div className="aspect-square bg-white rounded-none overflow-hidden">
-              {/* Replace with your actual image */}
+            <div className="aspect-[4/5] overflow-hidden rounded-lg bg-gray-100">
               <img
-                src="/assets/abt.jpg" // Add your image path here
-                alt="Build Your Best Self - Personal Growth Journey"
-                className="w-full h-[500px] object-cover"
+                src="/assets/abt.jpg"
+                alt="Build Your Best Self personal growth journey"
+                className="w-full h-full object-cover"
               />
-              
-             
             </div>
-            
-            
-          </motion.div>
+          </Motion.div>
         </div>
-
-        
       </div>
     </section>
   );

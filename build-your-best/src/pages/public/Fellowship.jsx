@@ -206,7 +206,7 @@ export default function FellowshipLanding() {
                                 whileHover={{ y: -4 }}
                                 className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300"
                             >
-                                <div className={`h-2 ${pillar.color}`}></div>
+                              
                                 <div className="p-8">
                                     <div className={`w-12 h-12 rounded-full ${pillar.color} flex items-center justify-center text-white mb-6`}>
                                         {pillar.icon}

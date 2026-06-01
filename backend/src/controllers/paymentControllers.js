@@ -42,6 +42,93 @@ exports.createOrder = async (req, res) => {
   }
 };
 
+// ===============================
+// CREATE CART ORDER (MERCH CHECKOUT)
+// ===============================
+exports.createCartOrder = async (req, res) => {
+  try {
+    const { customer = {}, items = [] } = req.body;
+    const { name, email, phone, shippingAddress } = customer;
+
+    if (!name || !email || !shippingAddress) {
+      return res.status(400).json({
+        message: "Name, email, and delivery address are required",
+      });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    const productIds = items.map((item) => item.productId);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(
+      products.map((product) => [product._id.toString(), product])
+    );
+
+    const orderItems = [];
+    let amount = 0;
+
+    for (const item of items) {
+      const product = productMap.get(String(item.productId));
+      const quantity = Number(item.quantity || 0);
+
+      if (!product) {
+        return res.status(404).json({ message: "One or more products were not found" });
+      }
+
+      if (product.type !== "merch") {
+        return res.status(400).json({
+          message: "Cart checkout is only available for merchandise",
+        });
+      }
+
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({ message: "Invalid item quantity" });
+      }
+
+      if (typeof product.stock === "number" && product.stock < quantity) {
+        return res.status(400).json({
+          message: `${product.title} has only ${product.stock} left in stock`,
+        });
+      }
+
+      orderItems.push({
+        product: product._id,
+        title: product.title,
+        type: product.type,
+        quantity,
+        price: product.price,
+      });
+
+      amount += Number(product.price || 0) * quantity;
+    }
+
+    const reference = `BYBS-${Date.now()}`;
+
+    await Order.create({
+      product: orderItems[0].product,
+      items: orderItems,
+      name,
+      email,
+      phone,
+      shippingAddress,
+      amount,
+      reference,
+      status: "pending",
+    });
+
+    res.status(201).json({
+      reference,
+      amount,
+      email,
+    });
+  } catch (error) {
+    console.error("Create cart order error:", error);
+    res.status(500).json({ message: "Error creating cart order" });
+  }
+};
+
 
 // ===============================
 // 5️⃣ VERIFY PAYMENT (SUCCESS PAGE)
@@ -50,7 +137,9 @@ exports.verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const order = await Order.findOne({ reference }).populate("product");
+    const order = await Order.findOne({ reference })
+      .populate("product")
+      .populate("items.product");
 
     if (!order) {
       return res.status(404).json({
@@ -107,7 +196,9 @@ exports.handleWebhook = async (req, res) => {
 
       console.log("Looking for order:", reference);
 
-      const order = await Order.findOne({ reference }).populate("product");
+      const order = await Order.findOne({ reference })
+        .populate("product")
+        .populate("items.product");
 
       if (!order) {
         console.log("Order not found");
@@ -124,14 +215,26 @@ exports.handleWebhook = async (req, res) => {
 
       console.log("Order marked paid");
 
-      if (order.product.type === "merch") {
+      if (order.items && order.items.length > 0) {
+        for (const item of order.items) {
+          if (item.product && item.product.type === "merch") {
+            item.product.stock -= item.quantity;
+            await item.product.save();
+          }
+        }
+      } else if (order.product.type === "merch") {
         order.product.stock -= 1;
         await order.product.save();
       }
 
       const invoicePath = await generateInvoice(order);
 
-      if (order.product.type === "ebook") {
+      const hasMerchItems =
+        order.items?.length > 0
+          ? order.items.some((item) => item.type === "merch")
+          : order.product.type === "merch";
+
+      if (!hasMerchItems) {
         await sendEbookEmail(order, invoicePath);
       } else {
         await sendMerchEmail(order, invoicePath);
@@ -157,6 +260,7 @@ exports.getOrders = async (req, res) => {
   try {
     const orders = await Order.find()
       .populate("product", "title type")
+      .populate("items.product", "title type")
       .sort({ createdAt: -1 });
 
     res.json(orders);
@@ -209,7 +313,8 @@ exports.deleteOrder = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate("product");
+      .populate("product")
+      .populate("items.product");
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

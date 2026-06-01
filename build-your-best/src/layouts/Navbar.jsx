@@ -1,112 +1,163 @@
-import { useState, useEffect } from 'react';
-import { FiMenu, FiX, FiArrowRight } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { ArrowRight, Heart, Menu, X } from "lucide-react";
+import { Link, NavLink } from "react-router-dom";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const navItems = [
-    { name: 'Home', to: '/' },
-    { name: 'About', to: '/about' },
-    { name: 'Coaching', to: '/coaching' },
-    { name: 'Articles', to: '/articles' },
-    { name: 'Shop', to: '/shop' },
-    { name: 'Contact', to: '/contact' },
+    { name: "Home", to: "/" },
+    { name: "About", to: "/about" },
+    { name: "Coaching", to: "/coaching" },
+    { name: "Articles", to: "/articles" },
+    { name: "Shop", to: "/shop" },
+    { name: "Contact", to: "/contact" },
   ];
 
   return (
-    <nav className="bg-white shadow-sm sticky top-0 z-50 border-b border-[#F7D9D9]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          {/* Logo/Branding */}
-          <div className="flex items-center">
-            <Link to="/" className="flex flex-row items-center group">
-              <div className="text-3xl font-bold tracking-tighter text-gray-900 group-hover:text-[#00337C] transition-colors duration-200">
-                BYBS
-              </div>
-              
-              <div className="h-8 w-px bg-gray-400 mx-4"></div>
-              
-              <div className="text-xs lowercase tracking-[0.3em] text-left text-gray-600 whitespace-nowrap group-hover:text-[#00337C] transition-colors duration-200">
-                <span>Build Your</span> <br/>
-                <span className="ml-1">Best Self</span>
+    <>
+      <div className="bg-[#00337C] text-white text-sm relative z-50">
+        <div className="public-container py-2.5 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
+          <p className="text-white/90">
+            BYBS Charity Campaign: supporting Divine Mercy Charity Home through
+            merchandise purchases.
+          </p>
+
+          <Link
+            to="/charity-merch"
+            className="inline-flex items-center gap-2 bg-white text-[#00337C] hover:bg-[#FFD166] px-4 py-1.5 rounded-full font-semibold transition-colors text-xs sm:text-sm"
+          >
+            Support the mission
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      <nav
+        className={`bg-white/95 backdrop-blur sticky top-0 z-40 border-b transition-shadow ${
+          scrolled
+            ? "border-gray-200 shadow-sm"
+            : "border-gray-100"
+        }`}
+      >
+        <div className="public-container">
+          <div className="flex justify-between h-18 md:h-20 items-center">
+            <Link to="/" className="flex items-center gap-4 group">
+             
+
+              <div>
+                <div className="text-lg font-semibold text-gray-950 group-hover:text-[#00337C] transition-colors">
+                  Build Your Best Self
+                </div>
+                <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
+                  Inspire. Heal. Evolve.
+                </div>
               </div>
             </Link>
-          </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2">
-            {navItems.map((item) => (
+            <div className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      isActive
+                        ? "text-[#00337C] bg-[#F5F9FF]"
+                        : "text-gray-600 hover:text-[#00337C] hover:bg-gray-50"
+                    }`
+                  }
+                >
+                  {item.name}
+                </NavLink>
+              ))}
+            </div>
+
+            <div className="hidden lg:flex items-center gap-3">
               <Link
-                key={item.name}
-                to={item.to}
-                className="relative px-4 py-2 text-[#3A3A3A] hover:text-[#00337C] font-medium rounded-lg transition-all duration-200 group"
+                to="/charity-merch"
+                className="inline-flex items-center justify-center w-10 h-10 border border-gray-200 rounded-lg text-[#B76E79] hover:border-[#B76E79]/40 hover:bg-[#FFF7F8] transition-colors"
+                aria-label="Charity campaign"
               >
-                {item.name}
-                <span className="absolute bottom-1 left-1/2 w-0 h-0.5 bg-[#C66D02] group-hover:w-4/5 group-hover:left-[10%] transition-all duration-300"></span>
+                <Heart className="w-5 h-5" />
               </Link>
-            ))}
-            <div className="ml-2 pl-4 border-l border-gray-200">
+
               <a
                 href="https://calendly.com/buildyourbestselfblog-info"
-                className="flex items-center gap-2 bg-gradient-to-r from-[#00337C] to-[#1E40AF] hover:from-[#1E40AF] hover:to-[#00337C] text-white px-5 py-2.5 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg hover:scale-[1.02]"
+                className="public-button-primary px-5 py-2.5 text-sm"
               >
-                Book Session
-                <FiArrowRight className="transition-transform group-hover:translate-x-1" />
+                Book session
+                <ArrowRight className="w-4 h-4" />
               </a>
             </div>
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-[#3A3A3A] hover:text-[#C66D02] focus:outline-none transition-all duration-200"
-              aria-expanded="false"
+              className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-700 hover:text-[#00337C] hover:bg-gray-50 transition-colors"
+              aria-label="Toggle menu"
             >
-              <span className="sr-only">Open main menu</span>
               {isOpen ? (
-                <FiX className="block h-6 w-6" />
+                <X className="h-6 w-6" />
               ) : (
-                <FiMenu className="block h-6 w-6" />
+                <Menu className="h-6 w-6" />
               )}
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Navigation */}
-      <div className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="pt-2 pb-6 px-4 space-y-2 bg-white shadow-lg">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.to}
-              className="block px-4 py-3 text-[#3A3A3A] hover:text-[#00337C] hover:bg-gray-50 rounded-lg font-medium transition-colors duration-200 border-b border-gray-100"
-              onClick={() => setIsOpen(false)}
-            >
-              {item.name}
-            </Link>
-          ))}
-          <a
-            href="https://calendly.com/buildyourbestselfblog-info"
-            className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-[#00337C] to-[#1E40AF] text-white px-4 py-3.5 rounded-lg font-medium mt-2 shadow-md hover:shadow-lg transition-all duration-300"
-            onClick={() => setIsOpen(false)}
-          >
-            Book a Session
-            <FiArrowRight />
-          </a>
+        <div
+          className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden ${
+            isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="px-4 pb-5 bg-white border-t border-gray-100">
+            <div className="public-container py-3 space-y-1">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.name}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `block px-4 py-3 rounded-lg font-medium transition-colors ${
+                      isActive
+                        ? "text-[#00337C] bg-[#F5F9FF]"
+                        : "text-gray-700 hover:text-[#00337C] hover:bg-gray-50"
+                    }`
+                  }
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.name}
+                </NavLink>
+              ))}
+
+              <Link
+                to="/charity-merch"
+                className="flex items-center justify-center gap-2 w-full bg-[#FFF7F8] text-[#B76E79] px-4 py-3 rounded-lg font-semibold mt-3"
+                onClick={() => setIsOpen(false)}
+              >
+                <Heart className="w-4 h-4" />
+                Support charity campaign
+              </Link>
+
+              <a
+                href="https://calendly.com/buildyourbestselfblog-info"
+                className="public-button-primary w-full px-4 py-3 mt-2"
+                onClick={() => setIsOpen(false)}
+              >
+                Book a session
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }

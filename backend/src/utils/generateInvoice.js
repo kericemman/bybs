@@ -18,26 +18,49 @@ exports.generateInvoice = async (order) => {
   // Python requires escaped backslashes on Windows
   const safeInvoicePath = invoicePath.replace(/\\/g, "\\\\");
 
+  const invoiceItems = order.items?.length
+    ? order.items.map((item) => ({
+        title: item.title,
+        quantity: item.quantity,
+        price: item.price,
+      }))
+    : [
+        {
+          title: order.product.title,
+          quantity: 1,
+          price: order.amount,
+        },
+      ];
+
+  const invoiceData = {
+    reference: order.reference,
+    name: order.name,
+    email: order.email,
+    amount: order.amount,
+    items: invoiceItems,
+  };
+
   const pythonScript = `
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
+import json
 
 doc = SimpleDocTemplate("${safeInvoicePath}", pagesize=A4)
 elements = []
 
 styles = getSampleStyleSheet()
+invoice = json.loads(${JSON.stringify(JSON.stringify(invoiceData))})
 
 elements.append(Paragraph("<b>Build Your Best Self (BYBS)</b>", styles['Title']))
 elements.append(Spacer(1, 12))
 
 data = [
-    ["Invoice Reference", "${order.reference}"],
-    ["Customer Name", "${order.name}"],
-    ["Customer Email", "${order.email}"],
-    ["Product", "${order.product.title}"],
-    ["Amount", "$${order.amount}"],
+    ["Invoice Reference", invoice["reference"]],
+    ["Customer Name", invoice["name"]],
+    ["Customer Email", invoice["email"]],
+    ["Amount", "$" + format(invoice["amount"], ".2f")],
     ["Status", "Paid"]
 ]
 
@@ -49,6 +72,27 @@ table.setStyle(TableStyle([
 ]))
 
 elements.append(table)
+elements.append(Spacer(1, 18))
+elements.append(Paragraph("<b>Items</b>", styles['Heading2']))
+
+item_data = [["Product", "Qty", "Price", "Subtotal"]]
+for item in invoice["items"]:
+    qty = item["quantity"]
+    price = item["price"]
+    item_data.append([
+        item["title"],
+        str(qty),
+        "$" + format(price, ".2f"),
+        "$" + format(price * qty, ".2f")
+    ])
+
+item_table = Table(item_data, colWidths=[250, 50, 90, 90])
+item_table.setStyle(TableStyle([
+    ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
+    ('GRID', (0,0), (-1,-1), 1, colors.grey),
+]))
+
+elements.append(item_table)
 
 doc.build(elements)
 `;

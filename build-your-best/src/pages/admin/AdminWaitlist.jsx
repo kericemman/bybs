@@ -178,7 +178,7 @@ const AdminWaitlist = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-light text-[#00337C]">Waitlist Management</h1>
+            <h1 className="text-3xl font-light mt-10 text-[#00337C]">Waitlist Management</h1>
             <p className="text-gray-600 mt-1">Manage interested participants and their information</p>
           </div>
           

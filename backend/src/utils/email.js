@@ -2,7 +2,7 @@ const { Resend } = require("resend");
 const fs = require("fs");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@updates.buildyourbestselfblog.com>";
+const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@campaign.buildyourbestself.org>";
 
 // ======================================================
 // Base HTML Layout
@@ -54,6 +54,12 @@ const sendEmail = async ({ to, subject, content, attachmentPath }) => {
 // 1️⃣ Ebook Purchase Email
 // ======================================================
 exports.sendEbookEmail = async (order, invoicePath) => {
+  const ebookItem = order.items?.length
+    ? order.items.find((item) => item.type === "ebook")
+    : null;
+  const ebookTitle = ebookItem?.title || order.product.title;
+  const ebookUrl = ebookItem?.product?.fileUrl || order.product.fileUrl;
+
   const content = `
     <h3 style="color:#00337C;">Thank You For Your Purchase 🎉</h3>
 
@@ -61,11 +67,11 @@ exports.sendEbookEmail = async (order, invoicePath) => {
 
     <p>Your payment has been successfully received for:</p>
 
-    <p style="font-weight:bold; font-size:16px;">${order.product.title}</p>
+    <p style="font-weight:bold; font-size:16px;">${ebookTitle}</p>
 
     <p style="margin: 20px 0;">
       <a 
-        href="${order.product.fileUrl}" 
+        href="${ebookUrl}" 
         style="background:#00337C; color:#ffffff; padding:12px 20px; text-decoration:none; border-radius:6px; display:inline-block;">
         Download Ebook
       </a>
@@ -83,7 +89,7 @@ exports.sendEbookEmail = async (order, invoicePath) => {
 
   await sendEmail({
     to: order.email,
-    subject: `Your Ebook: ${order.product.title}`,
+    subject: `Your Ebook: ${ebookTitle}`,
     content,
     attachmentPath: invoicePath,
   });
@@ -93,6 +99,25 @@ exports.sendEbookEmail = async (order, invoicePath) => {
 // 2️⃣ Merch Order Confirmation Email
 // ======================================================
 exports.sendMerchEmail = async (order, invoicePath) => {
+  const merchItems = order.items?.length
+    ? order.items
+    : [
+        {
+          title: order.product.title,
+          quantity: 1,
+          price: order.amount,
+        },
+      ];
+
+  const itemList = merchItems
+    .map(
+      (item) =>
+        `<li>${item.title} &times; ${item.quantity} - $${(
+          item.price * item.quantity
+        ).toFixed(2)}</li>`
+    )
+    .join("");
+
   const content = `
     <h3 style="color:#00337C;">Order Confirmed 🛍️</h3>
 
@@ -100,7 +125,9 @@ exports.sendMerchEmail = async (order, invoicePath) => {
 
     <p>Your order has been successfully placed:</p>
 
-    <p style="font-weight:bold; font-size:16px;">${order.product.title}</p>
+    <ul style="padding-left:18px;">${itemList}</ul>
+
+    <p><strong>Total:</strong> $${order.amount.toFixed(2)}</p>
 
     <p><strong>Shipping Address:</strong><br/>${order.shippingAddress}</p>
 
@@ -118,7 +145,7 @@ exports.sendMerchEmail = async (order, invoicePath) => {
 
   await sendEmail({
     to: order.email,
-    subject: `Order Confirmation - ${order.product.title}`,
+    subject: `Order Confirmation - ${order.reference}`,
     content,
     attachmentPath: invoicePath,
   });

@@ -1,5 +1,15 @@
 import { useState } from "react";
-import { X, AlertCircle, Loader, ShoppingBag, Package } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  CheckCircle,
+  CreditCard,
+  Loader,
+  Mail,
+  Package,
+  User,
+  X,
+} from "lucide-react";
 import api from "../../utils/axios";
 
 const CheckoutModal = ({ product, onClose }) => {
@@ -54,9 +64,23 @@ const CheckoutModal = ({ product, onClose }) => {
         }),
       });
 
+      const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+      if (!publicKey) {
+        setError("Payment is not configured yet. Please contact support.");
+        setLoading(false);
+        return;
+      }
+
+      if (!window.PaystackPop) {
+        setError("Payment service is still loading. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
+
       // Initialize Paystack payment
       const handler = window.PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+        key: publicKey,
         email: data.email,
         amount: data.amount * 100, // Convert to kobo/cents
         currency: "USD", // Add currency
@@ -95,157 +119,181 @@ const CheckoutModal = ({ product, onClose }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field when user starts typing
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop */}
-        
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-white px-11 py-3.5 text-sm outline-none transition focus:ring-4 focus:ring-[#00337C]/10 ${
+      errors[field]
+        ? "border-red-300 bg-red-50 focus:border-red-400"
+        : "border-gray-200 focus:border-[#00337C]"
+    }`;
 
-        {/* Modal */}
-        <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
-          {/* Header */}
-          <div className="px-6 py-4 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] flex justify-between items-center">
-            <div className="flex items-center">
-              {product.type === "ebook" ? (
-                <ShoppingBag className="w-5 h-5 text-white mr-2" />
-              ) : (
-                <Package className="w-5 h-5 text-white mr-2" />
-              )}
-              <h2 className="text-xl font-light text-white">
-                Complete Your Purchase
-              </h2>
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 px-4 py-6">
+      <div className="min-h-full flex items-center justify-center">
+        <div className="bg-white text-left shadow-2xl w-full max-w-lg">
+          <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-start">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#00337C]/10 flex items-center justify-center flex-shrink-0">
+                {product.type === "ebook" ? (
+                  <BookOpen className="w-5 h-5 text-[#00337C]" />
+                ) : (
+                  <Package className="w-5 h-5 text-[#00337C]" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-[#B76E79]">
+                  {product.type === "ebook" ? "Digital checkout" : "Merch checkout"}
+                </p>
+                <h2 className="text-2xl font-light text-[#00337C]">
+                  Complete purchase
+                </h2>
+              </div>
             </div>
+
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-gray-900 transition-colors"
               aria-label="Close"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
 
-          {/* Product Summary */}
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-            <div className="flex items-center">
-              <div className="flex-1">
-                <p className="text-sm text-gray-600">You're purchasing:</p>
-                <p className="font-medium text-[#00337C]">{product.title}</p>
+          <div className="px-6 py-5 bg-[#F7F9FC] border-b border-gray-100">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                  You are purchasing
+                </p>
+                <p className="font-medium text-[#00337C] truncate">
+                  {product.title}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {product.type === "ebook"
+                    ? "Download link sent after payment"
+                    : "Delivery details required"}
+                </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-xl font-light text-[#B76E79]">
-                  ${product.price?.toFixed(2)}
+              <div className="text-right flex-shrink-0">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                  Total
+                </p>
+                <p className="text-2xl font-light text-[#B76E79]">
+                  ${Number(product.price || 0).toFixed(2)}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleCheckout} className="p-6">
-            <div className="space-y-4">
-              {/* Error Message */}
-              {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start">
-                  <AlertCircle className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start mb-5">
+                <AlertCircle className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  name="name"
-                  type="text"
-                  required
-                  placeholder="John Doe"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all ${
-                    errors.name
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 focus:border-[#00337C]"
-                  }`}
-                  value={form.name}
-                  onChange={handleInputChange}
-                />
+            <div className="space-y-4">
+              <label className="block">
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Full name
+                </span>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="name"
+                    type="text"
+                    required
+                    placeholder="Your name"
+                    className={inputClass("name")}
+                    value={form.name}
+                    onChange={handleInputChange}
+                  />
+                </div>
                 {errors.name && (
                   <p className="mt-1 text-xs text-red-600">{errors.name}</p>
                 )}
-              </div>
+              </label>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all ${
-                    errors.email
-                      ? "border-red-300 bg-red-50"
-                      : "border-gray-300 focus:border-[#00337C]"
-                  }`}
-                  value={form.email}
-                  onChange={handleInputChange}
-                />
+              <label className="block">
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Email address
+                </span>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className={inputClass("email")}
+                    value={form.email}
+                    onChange={handleInputChange}
+                  />
+                </div>
                 {errors.email && (
                   <p className="mt-1 text-xs text-red-600">{errors.email}</p>
                 )}
                 <p className="mt-1 text-xs text-gray-500">
-                  We'll send your receipt and {product.type === "ebook" ? "download link" : "shipping confirmation"} to this email
+                  Receipt and {product.type === "ebook" ? "download link" : "shipping confirmation"} will be sent here.
                 </p>
-              </div>
+              </label>
 
-              {/* Shipping Address (Merch only) */}
-              {product.type === "merch" && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Shipping Address <span className="text-red-500">*</span>
-                  </label>
+              {product.type === "ebook" ? (
+                <div className="rounded-xl bg-green-50 border border-green-100 p-4 flex gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-800">
+                    Your ebook access is delivered by email after payment is confirmed.
+                  </p>
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="block text-sm font-medium text-gray-700 mb-2">
+                    Shipping address
+                  </span>
                   <textarea
                     name="shippingAddress"
                     required
-                    placeholder="Street address, City, State, Postal code, Country"
+                    placeholder="Street address, city, country"
                     rows="3"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all ${
+                    className={`w-full rounded-xl border px-4 py-3.5 text-sm outline-none transition focus:ring-4 focus:ring-[#00337C]/10 ${
                       errors.shippingAddress
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-300 focus:border-[#00337C]"
+                        ? "border-red-300 bg-red-50 focus:border-red-400"
+                        : "border-gray-200 focus:border-[#00337C]"
                     }`}
                     value={form.shippingAddress}
                     onChange={handleInputChange}
                   />
                   {errors.shippingAddress && (
-                    <p className="mt-1 text-xs text-red-600">{errors.shippingAddress}</p>
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors.shippingAddress}
+                    </p>
                   )}
-                </div>
+                </label>
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-8 space-y-3">
+            <div className="mt-6 space-y-3">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-6 py-4 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white font-medium rounded-lg hover:opacity-90 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="w-full px-6 py-4 bg-[#00337C] text-white font-medium rounded-lg hover:bg-[#1E4B9E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
-                    <Loader className="w-5 h-5 mr-2 animate-spin" />
-                    Processing...
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Processing
                   </>
                 ) : (
-                  `Pay $${product.price?.toFixed(2)}`
+                  <>
+                    <CreditCard className="w-5 h-5" />
+                    Pay ${Number(product.price || 0).toFixed(2)}
+                  </>
                 )}
               </button>
 
@@ -255,26 +303,16 @@ const CheckoutModal = ({ product, onClose }) => {
                 disabled={loading}
                 className="w-full px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                Keep shopping
               </button>
             </div>
 
-            {/* Security Badge */}
-            <div className="mt-6 text-center">
-              <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                  <span>Secure Payment</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                  <span>SSL Encrypted</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                  <span>Paystack Verified</span>
-                </div>
-              </div>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs text-gray-500">
+              <span>Secure payment</span>
+              <span className="w-1 h-1 rounded-full bg-gray-300" />
+              <span>Paystack verified</span>
+              <span className="w-1 h-1 rounded-full bg-gray-300" />
+              <span>Email confirmation</span>
             </div>
           </form>
         </div>

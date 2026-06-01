@@ -38,6 +38,9 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import ProductDetails from "./pages/public/ProductDetails";
 import AdminSubscribers from "./pages/admin/AdminSubcribers";
 import PaymentSuccess from "./pages/public/Successpage";
+import CharityMerchLanding from "./pages/public/CharityMerchLanding";
+import AdminCharityMerchOrders from "./pages/admin/AdminCharityMerchOrders";
+import Checkout from "./pages/public/Checkout";
 
 
 export default function AppRoutes() {
@@ -57,7 +60,8 @@ export default function AppRoutes() {
           <Route path="/about" element={<Founder />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/discovery" element={<QuizResults />} />
-         
+          <Route path="/charity-merch" element={<CharityMerchLanding />} />
+          <Route path="/checkout" element={<Checkout />} />
           
           <Route path="/faqs" element={<FAQPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -165,6 +169,15 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute>
                 <AdminOrders />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/charity-merch"
+            element={
+              <ProtectedRoute>
+                <AdminCharityMerchOrders />
               </ProtectedRoute>
             }
           />

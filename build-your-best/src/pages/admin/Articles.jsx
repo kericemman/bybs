@@ -149,7 +149,7 @@ const Articles = () => {
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-light text-gray-900">Articles</h1>
+                <h1 className="text-2xl mt-10 sm:text-3xl font-light text-gray-900">Articles</h1>
                 <p className="text-gray-600 mt-1 text-sm sm:text-base">
                   Manage and publish your content
                 </p>

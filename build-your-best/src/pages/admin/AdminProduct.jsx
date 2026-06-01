@@ -54,7 +54,7 @@ const AdminProducts = () => {
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-light text-[#00337C] mb-2">
+          <h1 className="text-3xl mt-10 font-light text-[#00337C] mb-2">
             Products
           </h1>
           <p className="text-gray-600">
@@ -67,7 +67,7 @@ const AdminProducts = () => {
             setEditingProduct(null);
             setOpenForm(true);
           }}
-          className="inline-flex items-center px-6 py-3 bg-[#00337C] text-white rounded-lg hover:bg-[#1E4B9E] transition-colors"
+          className="inline-flex text-sm items-center px-6 py-2 bg-[#00337C] text-white rounded-lg hover:bg-[#1E4B9E] transition-colors"
         >
           Add Product
         </button>

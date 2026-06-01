@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,13 +6,10 @@ import {
   AlertCircle,
   Mail,
   MessageCircle,
-  Clock,
-  ShoppingBag,
   Package,
   BookOpen,
   ArrowLeft,
   Copy,
-  Download
 } from "lucide-react";
 import api from "../../utils/axios";
 
@@ -24,8 +21,8 @@ const PaymentSuccess = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [orderDetails, setOrder] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(300);
+  const verifyStartedAt = useRef(Date.now());
 
   // =============================
   // VERIFY PAYMENT
@@ -51,7 +48,10 @@ const PaymentSuccess = () => {
 
       } catch (error) {
 
-        if (error.response?.status === 400) {
+        if (
+          error.response?.status === 400 &&
+          Date.now() - verifyStartedAt.current < 300000
+        ) {
           // Webhook may still be processing
           setTimeout(verifyPayment, 2000);
         } else {
@@ -83,13 +83,6 @@ const PaymentSuccess = () => {
   }, [timeLeft]);
 
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-
   // =============================
   // COPY REFERENCE
   // =============================
@@ -97,11 +90,6 @@ const PaymentSuccess = () => {
     if (!reference) return;
 
     navigator.clipboard.writeText(reference);
-    setCopied(true);
-
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
   };
 
 
@@ -126,38 +114,6 @@ const PaymentSuccess = () => {
     )}`;
 
     window.open(whatsappUrl, "_blank");
-  };
-
-
-  // =============================
-  // DOWNLOAD RECEIPT
-  // =============================
-  const handleDownloadReceipt = async () => {
-
-    if (!reference) return;
-
-    try {
-
-      const response = await api.get(`/payments/invoice/${reference}`, {
-        responseType: "blob"
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `receipt-${reference}.pdf`);
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
-
-    } catch (error) {
-      console.error("Error downloading receipt:", error);
-    }
-
   };
 
 
@@ -248,25 +204,46 @@ const PaymentSuccess = () => {
           {/* ORDER SUMMARY */}
           <div className="p-8 border-b border-gray-100">
 
-            <div className="flex items-center mb-4">
+            <div className="space-y-4 mb-4">
+              {(orderDetails?.items?.length
+                ? orderDetails.items
+                : [
+                    {
+                      product: orderDetails?.product,
+                      title: orderDetails?.product?.title,
+                      type: orderDetails?.product?.type,
+                      quantity: 1,
+                      price: orderDetails?.amount,
+                    },
+                  ]
+              ).map((item, index) => (
+                <div key={item.product?._id || item.product || index} className="flex items-center">
+                  {item.type === "ebook" ? (
+                    <BookOpen className="w-8 h-8 text-blue-500 mr-3" />
+                  ) : (
+                    <Package className="w-8 h-8 text-purple-500 mr-3" />
+                  )}
 
-              {orderDetails?.product?.type === "ebook"
-                ? <BookOpen className="w-8 h-8 text-blue-500 mr-3"/>
-                : <Package className="w-8 h-8 text-purple-500 mr-3"/>}
+                  <div className="flex-1">
+                    <p className="font-medium">
+                      {item.title || item.product?.title}
+                    </p>
+                    <p className="text-sm text-gray-500 capitalize">
+                      {item.type}
+                      {item.quantity > 1 ? ` x ${item.quantity}` : ""}
+                    </p>
+                  </div>
 
-              <div className="flex-1">
-                <p className="font-medium">
-                  {orderDetails?.product?.title}
-                </p>
-                <p className="text-sm text-gray-500 capitalize">
-                  {orderDetails?.product?.type}
-                </p>
-              </div>
+                  <p className="text-lg font-medium text-[#B76E79]">
+                    ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
 
-              <p className="text-lg font-medium text-[#B76E79]">
-                ${orderDetails?.amount?.toFixed(2)}
-              </p>
-
+            <div className="flex justify-between text-lg font-medium text-gray-900 border-t border-gray-100 pt-4 mb-4">
+              <span>Total</span>
+              <span>${orderDetails?.amount?.toFixed(2)}</span>
             </div>
 
 
@@ -330,7 +307,7 @@ const PaymentSuccess = () => {
               Continue Shopping
             </button>
 
-            {orderDetails?.product?.type === "ebook" && (
+            {orderDetails?.product?.type === "ebook" && !orderDetails?.items?.length && (
               <a
                 href={orderDetails?.product?.fileUrl}
                 className="text-[#00337C] font-medium"

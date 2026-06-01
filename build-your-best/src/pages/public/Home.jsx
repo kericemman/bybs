@@ -7,6 +7,7 @@ import ServicesProducts from '../../components/home/Services'
 import WhoWeServe from '../../components/home/Who'
 import Testimonials from '../../components/home/Testimonials'
 import FeaturedProducts from '../../components/home/FeatureProduct'
+import FloatingCharityBanner from '../../components/home/FloatingCharity';
 
 const Home = () => {
   useEffect(() => {
@@ -21,6 +22,7 @@ const Home = () => {
       <ServicesProducts/>
       <FeaturedProducts/>
       <Testimonials/>
+       <FloatingCharityBanner />
     </div>
   )
 }

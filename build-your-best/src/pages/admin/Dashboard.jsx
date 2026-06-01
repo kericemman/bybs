@@ -43,7 +43,7 @@ const Dashboard = () => {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-light text-gray-900">
+            <h1 className="text-2xl mt-10 md:text-3xl font-light text-gray-900">
               Welcome back, <span className="font-medium text-[#00337C]">{data.admin.name}</span>
             </h1>
             <p className="text-gray-600 mt-1">{data.admin.email}</p>

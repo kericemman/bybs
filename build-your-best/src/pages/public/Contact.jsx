@@ -1,14 +1,15 @@
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  FaCalendarAlt,
-  FaEnvelope,
-  FaFacebook,
-  FaInstagram,
-  FaTiktok,
-  FaWhatsapp,
-} from "react-icons/fa";
+  CalendarDays,
+  CheckCircle,
+  Facebook,
+  Instagram,
+  Mail,
+  MessageCircle,
+  Send,
+} from "lucide-react";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -29,10 +30,7 @@ export default function ContactPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -49,15 +47,9 @@ export default function ContactPage() {
       if (res.data.success) {
         setSubmitStatus({
           success: true,
-          message: "Your message has been sent successfully!",
+          message: "Your message has been sent successfully.",
         });
-
-        setFormData({
-          name: "",
-          email: "",
-          subject: "",
-          message: "",
-        });
+        setFormData({ name: "", email: "", subject: "", message: "" });
       } else {
         setSubmitStatus({
           success: false,
@@ -75,206 +67,221 @@ export default function ContactPage() {
     }
   };
 
+  const inputClass =
+    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-sm outline-none transition focus:border-[#00337C] focus:ring-4 focus:ring-[#00337C]/10";
+
+  const contactCards = [
+    {
+      title: "Book a session",
+      description:
+        "Schedule a discovery call or coaching session when you are ready for support.",
+      href: "https://calendly.com/buildyourbestselfblog-info",
+      label: "View availability",
+      icon: CalendarDays,
+    },
+    {
+      title: "Email directly",
+      description: "Prefer a direct note? Send us a message by email.",
+      href: "mailto:info@buildyourbestself.org",
+      label: "info@buildyourbestself.org",
+      icon: Mail,
+    },
+    {
+      title: "WhatsApp",
+      description: "Reach the team for quick support and order questions.",
+      href: "https://wa.me/211921650576",
+      label: "Message on WhatsApp",
+      icon: MessageCircle,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Minimal Header */}
-      <section className="py-20 bg-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+    <div className="bg-white">
+      <section className="public-section bg-[#F7F9FC]">
+        <div className="public-container text-center max-w-3xl">
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-light text-[#00337C] mb-4 tracking-tight"
+            transition={{ duration: 0.6 }}
           >
-            Get in Touch
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed"
-          >
-            Have questions or ready to begin your journey? I'm here to help.
-          </motion.p>
+            <p className="public-eyebrow mb-5">Contact</p>
+            <h1 className="public-heading text-4xl md:text-6xl mb-6">
+              Let’s talk about your next step.
+            </h1>
+            <p className="public-copy text-lg">
+              Have a question, partnership idea, product issue, or coaching
+              inquiry? Send a message and the BYBS team will respond.
+            </p>
+          </Motion.div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <section className="pb-20 bg-white">
-        <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12">
-          {/* Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
+      <section className="public-section bg-white">
+        <div className="public-container grid lg:grid-cols-[1fr_0.85fr] gap-10 lg:gap-14 items-start">
+          <Motion.form
+            onSubmit={handleSubmit}
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
             viewport={{ once: true }}
-            className="space-y-8"
+            transition={{ duration: 0.5 }}
+            className="public-card p-6 md:p-8"
           >
-            <div>
-              <h2 className="text-2xl font-light text-[#00337C] mb-2">Send a Message</h2>
-              <p className="text-gray-600">I'll get back to you within 24 hours.</p>
-            </div>
+            <h2 className="text-2xl font-light text-[#00337C] mb-2">
+              Send a message
+            </h2>
+            <p className="text-gray-500 mb-6">
+              We usually respond within 24 hours.
+            </p>
 
             {submitStatus.message && (
               <div
-                className={`p-4 border-l-4 ${
+                className={`mb-5 p-4 rounded-xl border flex items-start gap-3 ${
                   submitStatus.success
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-red-500 bg-red-50 text-red-700"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700"
                 }`}
               >
-                {submitStatus.message}
+                <CheckCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">{submitStatus.message}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <label>
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Name
+                </span>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  placeholder="Your Name"
+                  placeholder="Your name"
                   required
-                  className="w-full px-4 py-3 border-b border-gray-300 focus:border-[#00337C] focus:outline-none transition-colors"
+                  className={inputClass}
                 />
-              </div>
+              </label>
 
-              <div>
+              <label>
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </span>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Email Address"
+                  placeholder="you@example.com"
                   required
-                  className="w-full px-4 py-3 border-b border-gray-300 focus:border-[#00337C] focus:outline-none transition-colors"
+                  className={inputClass}
                 />
-              </div>
+              </label>
 
-              <div>
+              <label className="md:col-span-2">
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Topic
+                </span>
                 <select
                   name="subject"
                   value={formData.subject}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border-b border-gray-300 focus:border-[#00337C] focus:outline-none transition-colors bg-white"
+                  className={inputClass}
                 >
                   <option value="">Select a topic</option>
-                  <option value="coaching">Coaching Inquiry</option>
-                  <option value="workshop">Workshop Question</option>
-                  <option value="product">Product Support</option>
+                  <option value="coaching">Coaching inquiry</option>
+                  <option value="workshop">Workshop question</option>
+                  <option value="product">Product support</option>
                   <option value="other">Other</option>
                 </select>
-              </div>
+              </label>
 
-              <div>
+              <label className="md:col-span-2">
+                <span className="block text-sm font-medium text-gray-700 mb-2">
+                  Message
+                </span>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleInputChange}
-                  placeholder="How can I help you?"
-                  rows="4"
+                  placeholder="How can we help?"
+                  rows="5"
                   required
-                  className="w-full px-4 py-3 border-b border-gray-300 focus:border-[#00337C] focus:outline-none transition-colors resize-none"
-                ></textarea>
-              </div>
+                  className={`${inputClass} resize-none`}
+                />
+              </label>
+            </div>
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full px-6 py-3 bg-[#00337C] text-white font-medium transition-colors hover:bg-[#1E4B9E] disabled:opacity-50"
-              >
-                {loading ? "Sending..." : "Send Message"}
-              </motion.button>
-            </form>
-          </motion.div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="public-button-primary w-full px-6 py-3.5 mt-6 disabled:opacity-50"
+            >
+              <Send className="w-4 h-4" />
+              {loading ? "Sending" : "Send message"}
+            </button>
+          </Motion.form>
 
-          {/* Contact Information */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
             viewport={{ once: true }}
-            className="space-y-8"
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="space-y-4"
           >
-            {/* Booking */}
-            <div className="border border-gray-200 p-6">
-              <div className="flex items-center mb-4">
-                <FaCalendarAlt className="text-[#00337C] mr-3" />
-                <h3 className="text-lg font-medium text-[#00337C]">Book a Session</h3>
-              </div>
-              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Ready to take the next step? Schedule a free discovery call or coaching session.
-              </p>
-              <motion.a
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                href="https://calendly.com/buildyourbestselfblog-info"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 border border-[#00337C] text-[#00337C] hover:bg-[#00337C] hover:text-white transition-colors text-sm"
-              >
-                <FaCalendarAlt className="mr-2" />
-                View Availability
-              </motion.a>
-            </div>
+            {contactCards.map((card) => {
+              const Icon = card.icon;
 
-            {/* Email */}
-            <div className="border border-gray-200 p-6">
-              <div className="flex items-center mb-4">
-                <FaEnvelope className="text-[#00337C] mr-3" />
-                <h3 className="text-lg font-medium text-[#00337C]">Email Directly</h3>
-              </div>
-              <p className="text-gray-600 mb-2 text-sm">Prefer to email directly?</p>
-              <a
-                href="mailto:info@buildyourbestselfblog.com"
-                className="text-[#00337C] hover:text-[#1E4B9E] transition-colors text-sm break-all"
-              >
-                info@buildyourbestselfblog.com
-              </a>
-            </div>
+              return (
+                <a
+                  key={card.title}
+                  href={card.href}
+                  target={card.href.startsWith("http") ? "_blank" : undefined}
+                  rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                  className="public-card p-5 flex gap-4 hover:border-[#00337C]/25 transition-colors"
+                >
+                  <div className="w-11 h-11 rounded-lg bg-[#00337C]/10 text-[#00337C] flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#00337C] mb-1">
+                      {card.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-6 mb-2">
+                      {card.description}
+                    </p>
+                    <p className="text-sm font-semibold text-[#B76E79]">
+                      {card.label}
+                    </p>
+                  </div>
+                </a>
+              );
+            })}
 
-            {/* Social Media */}
-            <div className="border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-[#00337C] mb-4">Connect</h3>
-              <div className="flex space-x-3">
+            <div className="public-card p-5">
+              <h3 className="font-semibold text-[#00337C] mb-4">Connect</h3>
+              <div className="flex gap-3">
                 <a
                   href="https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 text-gray-600 hover:text-[#00337C] transition-colors"
+                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
+                  aria-label="Instagram"
                 >
-                  <FaInstagram className="text-xl" />
+                  <Instagram className="w-5 h-5" />
                 </a>
                 <a
                   href="https://www.facebook.com/share/15rD2aArYn/?mibextid=wwXIfr"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 text-gray-600 hover:text-[#00337C] transition-colors"
+                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
+                  aria-label="Facebook"
                 >
-                  <FaFacebook className="text-xl" />
-                </a>
-                <a
-                  href="https://wa.me/211921650576"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-gray-600 hover:text-[#00337C] transition-colors"
-                >
-                  <FaWhatsapp className="text-xl" />
-                </a>
-                <a
-                  href="https://www.tiktok.com/@buildyourbestselfblog"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-gray-600 hover:text-[#00337C] transition-colors"
-                >
-                  <FaTiktok className="text-xl" />
+                  <Facebook className="w-5 h-5" />
                 </a>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         </div>
       </section>
     </div>

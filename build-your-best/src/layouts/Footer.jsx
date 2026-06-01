@@ -1,131 +1,152 @@
-import { FaInstagram, FaFacebook, FaTiktok, FaWhatsapp } from 'react-icons/fa';
-import { HiOutlineMail } from 'react-icons/hi';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { FaFacebook, FaInstagram, FaTiktok, FaWhatsapp } from "react-icons/fa";
+import { HiOutlineMail } from "react-icons/hi";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
+  const quickLinks = [
+    { label: "About", to: "/about" },
+    { label: "Coaching", to: "/coaching" },
+    { label: "Articles", to: "/articles" },
+    { label: "Shop", to: "/shop" },
+    { label: "Contact", to: "/contact" },
+  ];
 
- 
+  const resources = [
+    { label: "FAQs", to: "/faqs" },
+    { label: "Privacy", to: "/privacy" },
+    { label: "Terms", to: "/terms" },
+  ];
 
-   
+  const socialLinks = [
+    {
+      label: "Instagram",
+      href: "https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk",
+      icon: FaInstagram,
+    },
+    {
+      label: "Facebook",
+      href: "https://www.facebook.com/share/15rD2aArYn/?mibextid=wwXIfr",
+      icon: FaFacebook,
+    },
+    {
+      label: "TikTok",
+      href: "https://www.tiktok.com/@buildyourbestselfblog?_t=ZM-8yf0LRoJoT2&_r=1",
+      icon: FaTiktok,
+    },
+    {
+      label: "WhatsApp",
+      href: "https://wa.me/211921650576",
+      icon: FaWhatsapp,
+    },
+    {
+      label: "Email",
+      href: "mailto:info@buildyourbestselfblog.com",
+      icon: HiOutlineMail,
+    },
+  ];
 
   return (
-    <footer className="bg-gray-800 text-[#F5EFE7]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Column 1: About */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">About BYBS</h3>
-            <p className="text-sm">
-              Helping women reclaim their power and build the life they deserve through purpose-led coaching and practical tools.
-            </p>
-            <div className="pt-2">
-              <span className="text-2xl font-bold text-white">Build Your Best Self</span>
-            </div>
-            <p className="italic text-[#B89CA5]">
-              "Build your best self, from the inside out."
-            </p>
-          </div>
-
-          {/* Column 2: Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">Quick Links</h3>
-            <ul className="space-y-2">
-              {['About', 'Coaching', 'Shop', 'Blogs', 'Contact'].map((item) => (
-                <li key={item}>
-                  <Link
-                    to={`/${item.toLowerCase()}`}
-                    className="text-sm hover:text-[#1E40AF] transition-colors duration-200"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 3: Resources */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">Resources</h3>
-            <ul className="space-y-2">
-              {['FAQs', 'Privacy', 'Terms'].map((item) => (
-                <li key={item}>
-                  <Link
-                    to={`/${item.toLowerCase().replace(' ', '-').replace('&', 'and')}`}
-                    className="text-sm hover:text-[#1E40AF] transition-colors duration-200"
-                  >
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Column 4: Stay Connected */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">Stay Connected</h3>
-            
-            <div className="pt-4">
-              <h4 className="text-sm font-medium text-[#F7D9D9] mb-3">Connect with us</h4>
-              <div className="flex space-x-4">
-                <a 
-                  href="https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk" 
-                  className="text-[#F7D9D9] hover:text-[#1E40AF] transition-colors duration-200"
-                  aria-label="Instagram"
-                >
-                  <FaInstagram size={20} />
-                </a>
-                <a 
-                  href="https://www.facebook.com/share/15rD2aArYn/?mibextid=wwXIfr" 
-                  className="text-[#F7D9D9] hover:text-[#1E40AF] transition-colors duration-200"
-                  aria-label="Facebook"
-                >
-                  <FaFacebook size={20} />
-                </a>
-                <a 
-                  href="https://www.tiktok.com/@buildyourbestselfblog?_t=ZM-8yf0LRoJoT2&_r=1" 
-                  className="text-[#F7D9D9] hover:text-[#1E40AF] transition-colors duration-200"
-                  aria-label="TikTok"
-                >
-                  <FaTiktok size={20} />
-                </a>
-                <a 
-                  href="https://wa.me/211921650576" 
-                  className="text-[#F7D9D9] hover:text-[#1E40AF] transition-colors duration-200"
-                  aria-label="WhatsApp"
-                >
-                  <FaWhatsapp size={20} />
-                </a>
-                <a 
-                  href="mailto:info@buildyourbestselfblog.com" 
-                  className="text-[#F7D9D9] hover:text-[#1E40AF] transition-colors duration-200"
-                  aria-label="Email"
-                >
-                  <HiOutlineMail size={20} />
-                </a>
+    <footer className="bg-[#07111F] text-white">
+      <div className="public-container py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr_1fr_1.2fr] gap-10">
+          <div>
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-11 h-11 bg-white text-[#00337C] rounded-lg flex items-center justify-center font-bold">
+                BY
               </div>
+              <div>
+                <h3 className="font-semibold">Build Your Best Self</h3>
+                <p className="text-xs uppercase tracking-[0.18em] text-white/50">
+                  Inspire. Heal. Evolve.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm leading-7 text-white/70 max-w-sm">
+              Helping women and youth reclaim their power, build inner
+              wholeness, and create lives rooted in purpose.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/60 mb-4">
+              Explore
+            </h3>
+            <ul className="space-y-3">
+              {quickLinks.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    to={item.to}
+                    className="text-sm text-white/75 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/60 mb-4">
+              Resources
+            </h3>
+            <ul className="space-y-3">
+              {resources.map((item) => (
+                <li key={item.label}>
+                  <Link
+                    to={item.to}
+                    className="text-sm text-white/75 hover:text-white transition-colors"
+                  >
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-white/60 mb-4">
+              Stay connected
+            </h3>
+            <p className="text-sm text-white/70 leading-7 mb-5">
+              Follow the work, join the conversations, and reach out when you
+              are ready to begin.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
+
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    className="w-10 h-10 rounded-lg border border-white/10 text-white/75 flex items-center justify-center hover:bg-white hover:text-[#00337C] transition-colors"
+                    aria-label={social.label}
+                  >
+                    <Icon size={18} />
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer Bottom */}
-      <div className="bg-gray-300 py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center text-sm">
-            <div className="flex flex-col md:flex-row md:space-x-4 text-center md:text-left">
-              <p className='text-gray-900'>© {currentYear} Build Your Best — All rights reserved.</p>
-              <div className="hidden md:block text-gray-900">|</div>
-              <a href="/privacy" className="text-gray-900 transition-colors duration-200">Privacy Policy</a>
-              <div className="hidden md:block text-gray-900">|</div>
-              <a href="/terms" className="text-gray-900 transition-colors duration-200">Terms of Service</a>
-            </div>
-            <p className="mt-2 md:mt-0 text-gray-900">
-              Designed by <a href="https://www.linkedin.com/in/emmanuelkerich/">Emmanuel Kerich 😉</a>
-            </p>
-          </div>
+      <div className="border-t border-white/10">
+        <div className="public-container py-5 flex flex-col md:flex-row justify-between gap-3 text-sm text-white/55">
+          <p>© {currentYear} Build Your Best Self. All rights reserved.</p>
+          <p>
+            Designed by{" "}
+            <a
+              href="https://www.linkedin.com/in/emmanuelkerich/"
+              className="text-white/80 hover:text-white"
+            >
+              Emmanuel Kerich
+            </a>
+          </p>
         </div>
       </div>
     </footer>

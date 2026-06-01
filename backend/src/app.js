@@ -26,10 +26,7 @@ const publicWaitlistRoutes = require("./routes/public/publicWaitlistRoutes");
 const waitlistRoutes = require("./routes/admin/waitlistRoutes");
 const productRoutes = require("./routes/admin/productRoutes");
 const subscriberRoutes = require("./routes/admin/subscriberRoutes");
-
-
-
-
+const charityMerchRoutes = require("./routes/admin/charityMerchRoutes");
 
 
 
@@ -41,21 +38,27 @@ const subscriberRoutes = require("./routes/admin/subscriberRoutes");
 
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://buildyourbestselfblog.com",
-  "https://www.buildyourbestselfblog.com",
-  "www.buildyourbestselfblog.com",
-];
+// const allowedOrigins = [
+//   "http://localhost:5173",
+//   "https://buildyourbestselfblog.com",
+//   "https://www.buildyourbestselfblog.com",
+//   "www.buildyourbestselfblog.com",
+// ];
+
+
+// app.use(cors({
+//   origin: function(origin, callback) {
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error("CORS blocked"));
+//     }
+//   },
+//   credentials: true
+// }));
 
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS blocked"));
-    }
-  },
+  origin: process.env.CORS_ORIGIN || "http://localhost:5173",
   credentials: true
 }));
 
@@ -63,6 +66,13 @@ app.use(cors({
 app.use(cookieParser());
 app.use(helmet());
 app.use(compression());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
+
+app.use(limiter);
 
 /*
 IMPORTANT: webhook raw body parser FIRST
@@ -96,6 +106,7 @@ app.use("/api/waitlist", publicWaitlistRoutes);
 app.use("/api/admin/waitlist", waitlistRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/subscribers", subscriberRoutes);
+app.use("/api/charity-merch", charityMerchRoutes);
 
 
 
@@ -104,12 +115,6 @@ app.use("/api/subscribers", subscriberRoutes);
 
 
 app.use(express.json({ limit: "20mb" }));
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-});
-
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err);
