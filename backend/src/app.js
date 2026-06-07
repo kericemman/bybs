@@ -28,27 +28,32 @@ const productRoutes = require("./routes/admin/productRoutes");
 const subscriberRoutes = require("./routes/admin/subscriberRoutes");
 const charityMerchRoutes = require("./routes/admin/charityMerchRoutes");
 
-
-
-
-
-
-
-
-
 const app = express();
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://buildyourbestselfblog.com",
-  "https://www.buildyourbestselfblog.com",
-  "www.buildyourbestselfblog.com",
-];
+const isProduction = process.env.NODE_ENV === "production";
+const envOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN,
+  process.env.CORS_ORIGINS,
+]
+  .filter(Boolean)
+  .flatMap((origin) => origin.split(","))
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
+const allowedOrigins = new Set([
+  ...envOrigins,
+  ...(isProduction
+    ? []
+    : ["http://localhost:5173", "http://127.0.0.1:5173"]),
+]);
+
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.has(origin)) {
       callback(null, true);
     } else {
       callback(new Error("CORS blocked"));
@@ -57,14 +62,11 @@ app.use(cors({
   credentials: true
 }));
 
-// app.use(cors({
-//   origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-//   credentials: true
-// }));
-
 // Core middlewares
 app.use(cookieParser());
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(compression());
 
 const limiter = rateLimit({
@@ -108,25 +110,31 @@ app.use("/api/products", productRoutes);
 app.use("/api/subscribers", subscriberRoutes);
 app.use("/api/charity-merch", charityMerchRoutes);
 
-
-
-
-
-
-
-app.use(express.json({ limit: "20mb" }));
-
-app.use((err, req, res, next) => {
-  console.error("GLOBAL ERROR:", err);
-  res.status(500).json({
-    message: err.message,
+const healthCheck = (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "bybs-api",
+    uptime: process.uptime(),
   });
-});
-
+};
 
 app.get("/", (req, res) => {
   res.send("BYBS backend running");
 });
 
+app.get("/health", healthCheck);
+app.get("/api/health", healthCheck);
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+app.use((err, req, res, _next) => {
+  console.error("GLOBAL ERROR:", err);
+
+  res.status(err.status || 500).json({
+    message: isProduction ? "Internal server error" : err.message,
+  });
+});
 
 module.exports = app;

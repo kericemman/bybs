@@ -13,6 +13,8 @@ BYBS is a full-stack MERN platform powering:
 
 This project is production-ready and built with scalability, security, and modular architecture in mind.
 
+For Hostinger VPS deployment steps, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ---
 
 ## Tech Stack
