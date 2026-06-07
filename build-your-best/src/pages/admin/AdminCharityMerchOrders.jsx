@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import api from "../../utils/axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { 
   Mail, 
   Phone, 
@@ -109,9 +109,12 @@ const AdminCharityMerchOrders = () => {
   const getPackageBadge = (packageType) => {
     switch(packageType) {
       case 'single':
+      case 'basic':
         return { label: 'Single Pack', color: 'bg-purple-100 text-purple-700' };
       case 'normal':
         return { label: 'Normal Pack', color: 'bg-indigo-100 text-indigo-700' };
+      case 'premium':
+        return { label: 'Premium Pack', color: 'bg-orange-100 text-orange-700' };
       case 'bundle':
         return { label: 'Bundle Pack', color: 'bg-pink-100 text-pink-700' };
       default:
@@ -180,7 +183,7 @@ const AdminCharityMerchOrders = () => {
           { label: 'Contacted', value: stats.contacted, icon: <MessageCircle className="w-5 h-5" />, color: 'from-yellow-500 to-yellow-600' },
           { label: 'Fulfilled', value: stats.fulfilled, icon: <CheckCircle className="w-5 h-5" />, color: 'from-green-500 to-green-600' }
         ].map((stat, index) => (
-          <motion.div
+          <Motion.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,7 +199,7 @@ const AdminCharityMerchOrders = () => {
                 {stat.icon}
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         ))}
       </div>
 
@@ -271,7 +274,7 @@ const AdminCharityMerchOrders = () => {
                   const packageBadge = getPackageBadge(order.packageType);
                   
                   return (
-                    <motion.tr
+                    <Motion.tr
                       key={order._id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -338,7 +341,7 @@ const AdminCharityMerchOrders = () => {
                           </button>
                         </div>
                       </td>
-                    </motion.tr>
+                    </Motion.tr>
                   );
                 })}
               </tbody>
@@ -363,7 +366,7 @@ const AdminCharityMerchOrders = () => {
             <div className="flex items-center justify-center min-h-screen px-4">
               <div className="fixed inset-0 bg-black/50" onClick={() => setViewModalOpen(false)}></div>
               
-              <motion.div
+              <Motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -467,7 +470,7 @@ const AdminCharityMerchOrders = () => {
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </Motion.div>
             </div>
           </div>
         )}

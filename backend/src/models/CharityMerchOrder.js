@@ -8,7 +8,7 @@ const charityMerchOrderSchema = new mongoose.Schema(
     phone: String,
     packageType: {
       type: String,
-      enum: ["single", "normal", "bundle"],
+      enum: ["single", "basic", "normal", "premium", "bundle"],
       required: true,
     },
     message: String,

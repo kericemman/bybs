@@ -25,6 +25,11 @@ exports.createCharityMerchOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Charity merch order error:", error);
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+
     res.status(500).json({ message: "Server error" });
   }
 };
