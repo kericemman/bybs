@@ -3,9 +3,10 @@ import {
     createArticle,
     updateArticle,
   } from "../../api/articles.api";  
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { X, Image as ImageIcon, Globe, Eye, Save } from "lucide-react";
 import RichTextEditor from "../../layouts/RichEditor";
+import { compressImageFile } from "../../utils/imageCompression";
 
 const ArticleForm = ({ article, onClose, onSaved }) => {
   const [title, setTitle] = useState(article?.title || "");
@@ -14,7 +15,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
   const [status, setStatus] = useState(article?.status || "draft");
   const [slug, setSlug] = useState(article?.slug || "");
   const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(article?.coverImage || "");
+  const [imagePreview, setImagePreview] = useState(article?.coverImage?.url || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
@@ -34,15 +35,38 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
     }
   }, [title, slug]);
 
-  const handleImageChange = (e) => {
+  useEffect(() => {
+    setTitle(article?.title || "");
+    setContent(article?.content || "");
+    setExcerpt(article?.excerpt || article?.description || "");
+    setStatus(article?.status || "draft");
+    setSlug(article?.slug || "");
+    setImage(null);
+    setImagePreview(article?.coverImage?.url || "");
+    setError("");
+  }, [article]);
+
+  const hasContent = (html) => {
+    const text = html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim();
+    return text.length > 0 || /<img\s/i.test(html);
+  };
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setError("");
+        const compressedFile = await compressImageFile(file);
+        setImage(compressedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        console.error("Image compression failed:", error);
+        setError("Could not process this image. Please try another image.");
+      }
     }
   };
 
@@ -52,10 +76,23 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
     setLoading(true);
 
     try {
+      if (!title.trim()) {
+        throw new Error("Article title is required.");
+      }
+
+      if (!hasContent(content)) {
+        throw new Error("Article content is required.");
+      }
+
+      if (!article && !image) {
+        throw new Error("Cover image is required.");
+      }
+
       const formData = new FormData();
       formData.append("title", title.trim());
       formData.append("content", content);
       formData.append("excerpt", excerpt.trim());
+      formData.append("description", excerpt.trim());
       formData.append("status", status);
       formData.append("slug", slug.trim());
       
@@ -73,7 +110,11 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
       onClose();
     } catch (err) {
       console.error("Error saving article:", err);
-      setError(err.message || "Failed to save article. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to save article. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -88,7 +129,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
   return (
     <AnimatePresence>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
@@ -277,7 +318,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
                       <span className="capitalize">{status}</span>
                       {status === 'published' && (
                         <a
-                          href={`/blog/${slug}`}
+                          href={`/articles/${slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="ml-3 text-[#00337C] hover:text-[#1E4B9E] flex items-center text-sm"
@@ -305,7 +346,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || !title || !content}
+                  disabled={loading || !title.trim() || !hasContent(content)}
                   className="px-6 py-3 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white rounded-lg hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {loading ? (
@@ -323,7 +364,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
               </div>
             </div>
           </form>
-        </motion.div>
+        </Motion.div>
       </div>
     </AnimatePresence>
   );

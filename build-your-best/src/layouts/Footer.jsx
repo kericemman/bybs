@@ -27,7 +27,7 @@ export default function Footer() {
     },
     {
       label: "Facebook",
-      href: "https://www.facebook.com/share/15rD2aArYn/?mibextid=wwXIfr",
+      href: "https://www.facebook.com/share/176ZP54B6X/",
       icon: FaFacebook,
     },
     {

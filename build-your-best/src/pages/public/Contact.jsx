@@ -6,10 +6,13 @@ import {
   CheckCircle,
   Facebook,
   Instagram,
+  InstagramIcon,
+  Linkedin,
   Mail,
   MessageCircle,
   Send,
 } from "lucide-react";
+import { BsTiktok } from "react-icons/bs";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -105,9 +108,7 @@ export default function ContactPage() {
             transition={{ duration: 0.6 }}
           >
             <p className="public-eyebrow mb-5">Contact</p>
-            <h1 className="public-heading text-4xl md:text-6xl mb-6">
-              Let’s talk about your next step.
-            </h1>
+            
             <p className="public-copy text-lg">
               Have a question, partnership idea, product issue, or coaching
               inquiry? Send a message and the BYBS team will respond.
@@ -271,13 +272,43 @@ export default function ContactPage() {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://www.facebook.com/share/15rD2aArYn/?mibextid=wwXIfr"
+                  href="https://www.facebook.com/share/176ZP54B6X/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
                   aria-label="Facebook"
                 >
                   <Facebook className="w-5 h-5" />
+                </a>
+
+                <a
+                  href="https://www.tiktok.com/@buildyourbestselfblog?_t=ZM-8yf0LRoJoT2&_r=1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
+                  aria-label="TikTok"
+                >
+                  <BsTiktok className="w-5 h-5" />
+                </a>
+
+                <a
+                  href="https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
+                  aria-label="instagram"
+                >
+                  <InstagramIcon className="w-5 h-5" />
+                </a>
+
+                <a
+                  href="https://www.linkedin.com/company/109732355"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-5 h-5" />
                 </a>
               </div>
             </div>

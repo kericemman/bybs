@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import { fetchArticles as fetchArticlesAPI, deleteArticle } from "../../api/articles.api";
 import ArticleForm from "../admin/ArticleForm";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Edit,
@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   Loader2,
   X,
+  Archive,
 } from "lucide-react";
 
 const Articles = () => {
@@ -102,6 +103,11 @@ const Articles = () => {
         icon: <Clock className="w-4 h-4" />,
         label: "Draft"
       },
+      archived: {
+        color: "bg-gray-100 text-gray-700 border border-gray-200",
+        icon: <Archive className="w-4 h-4" />,
+        label: "Archived"
+      },
     };
 
     const config = map[status] || map.draft;
@@ -123,6 +129,14 @@ const Articles = () => {
       day: "numeric",
     });
 
+  const getArticlePreview = (article, maxLength = 150) => {
+    const source = article.excerpt || article.description || article.content || "";
+    const plainText = source.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+    if (plainText.length <= maxLength) return plainText;
+    return `${plainText.slice(0, maxLength).trim()}...`;
+  };
+
   // 🔹 Pagination
   const totalPages = Math.ceil(filteredArticles.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -134,12 +148,13 @@ const Articles = () => {
     total: articles.length,
     published: articles.filter(a => a.status === 'published').length,
     drafts: articles.filter(a => a.status === 'draft').length,
+    archived: articles.filter(a => a.status === 'archived').length,
   };
 
   return (
     <AdminLayout>
       <div className="min-h-screen bg-gray-50">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -231,6 +246,7 @@ const Articles = () => {
                     <option value="all">All Status</option>
                     <option value="published">Published</option>
                     <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
                   </select>
                 </div>
 
@@ -330,7 +346,7 @@ const Articles = () => {
                                 {article.title}
                               </h3>
                               <p className="text-sm text-gray-500 line-clamp-2 mt-1">
-                                {article.content?.slice(0, 150)}…
+                                {getArticlePreview(article)}
                               </p>
                             </div>
                           </td>
@@ -406,11 +422,11 @@ const Articles = () => {
                         </div>
 
                         <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                          {article.content?.slice(0, 200)}…
+                          {getArticlePreview(article, 200)}
                         </p>
 
                         {mobileMenuOpen === article._id && (
-                          <motion.div
+                          <Motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -450,7 +466,7 @@ const Articles = () => {
                                 Delete
                               </button>
                             </div>
-                          </motion.div>
+                          </Motion.div>
                         )}
                       </div>
                     ))}
@@ -530,7 +546,7 @@ const Articles = () => {
               </button>
             </div>
           )}
-        </motion.div>
+        </Motion.div>
       </div>
     </AdminLayout>
   );

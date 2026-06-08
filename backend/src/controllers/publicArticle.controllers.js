@@ -1,22 +1,109 @@
 const Article = require("../models/Article");
 
+const ACTIVE_READER_TTL_MS = 45 * 1000;
+const articleReaders = new Map();
+
+const createExcerpt = (html = "", maxLength = 160) => {
+  const plainText = html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (plainText.length <= maxLength) return plainText;
+  return `${plainText.slice(0, maxLength).trim()}...`;
+};
+
+const getActiveReaderCount = (slug) => {
+  const now = Date.now();
+  const readers = articleReaders.get(slug);
+
+  if (!readers) return 0;
+
+  for (const [sessionId, lastSeen] of readers.entries()) {
+    if (now - lastSeen > ACTIVE_READER_TTL_MS) {
+      readers.delete(sessionId);
+    }
+  }
+
+  if (readers.size === 0) {
+    articleReaders.delete(slug);
+    return 0;
+  }
+
+  return readers.size;
+};
+
 exports.getPublishedArticles = async (req, res) => {
   const articles = await Article.find({ status: "published" })
     .sort({ createdAt: -1 })
-    .select("title slug coverImage createdAt");
+    .select("title slug excerpt description tags content coverImage createdAt")
+    .lean();
 
-  res.status(200).json(articles);
+  const articlesWithExcerpt = articles.map((article) => {
+    const excerpt =
+      article.excerpt || article.description || createExcerpt(article.content);
+
+    return {
+      ...article,
+      excerpt,
+      description: article.description || excerpt,
+    };
+  });
+
+  res.status(200).json(articlesWithExcerpt);
 };
 
 exports.getArticleBySlug = async (req, res) => {
   const article = await Article.findOne({
     slug: req.params.slug,
     status: "published",
-  });
+  }).lean();
 
   if (!article) {
     return res.status(404).json({ message: "Article not found" });
   }
 
-  res.status(200).json(article);
+  const excerpt =
+    article.excerpt || article.description || createExcerpt(article.content, 180);
+
+  res.status(200).json({
+    ...article,
+    excerpt,
+    description: article.description || excerpt,
+    activeReaders: getActiveReaderCount(article.slug),
+  });
+};
+
+exports.trackArticleReader = async (req, res) => {
+  const { slug } = req.params;
+  const { sessionId } = req.body;
+
+  if (!sessionId) {
+    return res.status(400).json({ message: "Reader session is required" });
+  }
+
+  const article = await Article.findOne({ slug, status: "published" })
+    .select("_id slug")
+    .lean();
+
+  if (!article) {
+    return res.status(404).json({ message: "Article not found" });
+  }
+
+  if (!articleReaders.has(slug)) {
+    articleReaders.set(slug, new Map());
+  }
+
+  articleReaders.get(slug).set(sessionId, Date.now());
+
+  res.status(200).json({
+    activeReaders: getActiveReaderCount(slug),
+  });
+};
+
+exports.getArticleReaderCount = async (req, res) => {
+  res.status(200).json({
+    activeReaders: getActiveReaderCount(req.params.slug),
+  });
 };

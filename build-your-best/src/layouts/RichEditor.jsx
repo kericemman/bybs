@@ -27,9 +27,9 @@ import {
   Quote,
   Palette
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const MenuBar = ({ editor, onImageUpload }) => {
+const MenuBar = ({ editor }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
@@ -60,6 +60,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
       {/* Basic Formatting */}
       <div className="flex flex-wrap items-center gap-1 mb-3">
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`p-2 rounded ${editor.isActive('bold') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Bold"
@@ -68,6 +69,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
           className={`p-2 rounded ${editor.isActive('italic') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Italic"
@@ -76,6 +78,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           className={`p-2 rounded ${editor.isActive('underline') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Underline"
@@ -87,6 +90,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Headings */}
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           className={`p-2 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Heading 1"
@@ -95,6 +99,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           className={`p-2 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Heading 2"
@@ -103,6 +108,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           className={`p-2 rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Heading 3"
@@ -114,6 +120,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Lists */}
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           className={`p-2 rounded ${editor.isActive('bulletList') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Bullet List"
@@ -122,6 +129,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           className={`p-2 rounded ${editor.isActive('orderedList') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Numbered List"
@@ -133,6 +141,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Block Elements */}
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           className={`p-2 rounded ${editor.isActive('blockquote') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Quote"
@@ -141,6 +150,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           className={`p-2 rounded ${editor.isActive('codeBlock') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Code Block"
@@ -152,6 +162,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Alignment */}
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign('left').run()}
           className={`p-2 rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Align Left"
@@ -160,6 +171,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign('center').run()}
           className={`p-2 rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Align Center"
@@ -168,6 +180,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().setTextAlign('right').run()}
           className={`p-2 rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Align Right"
@@ -179,6 +192,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Link */}
         <button
+          type="button"
           onClick={() => setShowLinkInput(!showLinkInput)}
           className={`p-2 rounded ${editor.isActive('link') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
           title="Add Link"
@@ -188,6 +202,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* Image */}
         <button
+          type="button"
           onClick={() => setShowImageInput(!showImageInput)}
           className="p-2 rounded text-gray-600 hover:bg-gray-100"
           title="Add Image"
@@ -199,6 +214,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
         {/* History */}
         <button
+          type="button"
           onClick={() => editor.chain().focus().undo().run()}
           className="p-2 rounded text-gray-600 hover:bg-gray-100"
           title="Undo"
@@ -207,6 +223,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         </button>
         
         <button
+          type="button"
           onClick={() => editor.chain().focus().redo().run()}
           className="p-2 rounded text-gray-600 hover:bg-gray-100"
           title="Redo"
@@ -227,12 +244,14 @@ const MenuBar = ({ editor, onImageUpload }) => {
               className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm"
             />
             <button
+              type="button"
               onClick={addLink}
               className="px-3 py-1 bg-[#00337C] text-white rounded text-sm hover:bg-[#1E4B9E]"
             >
               Add
             </button>
             <button
+              type="button"
               onClick={() => {
                 editor.chain().focus().unsetLink().run();
                 setShowLinkInput(false);
@@ -257,12 +276,14 @@ const MenuBar = ({ editor, onImageUpload }) => {
               className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm"
             />
             <button
+              type="button"
               onClick={addImage}
               className="px-3 py-1 bg-[#00337C] text-white rounded text-sm hover:bg-[#1E4B9E]"
             >
               Add
             </button>
             <button
+              type="button"
               onClick={() => setShowImageInput(false)}
               className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
             >
@@ -314,16 +335,50 @@ const RichTextEditor = ({ content, onChange }) => {
         editorProps: {
           attributes: {
             class:
-              'prose prose-lg max-w-none focus:outline-none p-4 min-h-[400px]',
+              'rich-editor-content prose prose-lg max-w-none focus:outline-none p-4 min-h-[400px]',
           },
         },
       });
+
+    useEffect(() => {
+      if (!editor) return;
+
+      const currentHtml = editor.getHTML();
+      const nextHtml = content || "<p></p>";
+
+      if (nextHtml !== currentHtml) {
+        editor.commands.setContent(nextHtml, false);
+      }
+    }, [content, editor]);
       
 
   return (
     <div className="flex flex-col">
       <MenuBar editor={editor} />
       <EditorContent editor={editor} />
+      <style>{`
+        .rich-editor-content ul {
+          list-style-type: disc;
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+
+        .rich-editor-content ol {
+          list-style-type: decimal;
+          padding-left: 1.5rem;
+          margin: 1rem 0;
+        }
+
+        .rich-editor-content li {
+          display: list-item;
+          margin: 0.35rem 0;
+          padding-left: 0.25rem;
+        }
+
+        .rich-editor-content li p {
+          margin: 0;
+        }
+      `}</style>
       
       {/* Character Count */}
       {editor && (

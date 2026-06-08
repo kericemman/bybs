@@ -1,54 +1,98 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { 
-  Calendar, 
-  Clock, 
-  ArrowLeft, 
-  BookOpen, 
-  Share2, 
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { motion as Motion } from "framer-motion";
+import {
+  ArrowLeft,
+  BookOpen,
   Bookmark,
-  User,
-  Tag,
+  Calendar,
+  Clock,
+  Hash,
   Menu,
-  ChevronRight,
-  Hash
+  Share2,
+  Tag,
+  Users,
 } from "lucide-react";
-import { fetchArticleBySlug } from "../../api/pubclicArticle.api";
+import {
+  fetchArticleBySlug,
+  trackArticleReader,
+} from "../../api/pubclicArticle.api";
+
+const stripHtml = (value = "") =>
+  value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getReadingTime = (content) => {
+  if (!content) return "3 min read";
+  const wordCount = stripHtml(content).split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
+};
+
+const getExcerpt = (article, maxLength = 190) => {
+  const source = article?.excerpt || article?.description || article?.content || "";
+  const plainText = stripHtml(source);
+
+  if (!plainText) return "";
+  if (plainText.length <= maxLength) return plainText;
+  return `${plainText.slice(0, maxLength).trim()}...`;
+};
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+};
 
 const ArticleDetails = () => {
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
   const { slug } = useParams();
   const navigate = useNavigate();
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const [headings, setHeadings] = useState([]);
   const [activeHeading, setActiveHeading] = useState("");
+  const [activeReaders, setActiveReaders] = useState(0);
+  const [readingProgress, setReadingProgress] = useState(0);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const loadArticle = async () => {
       try {
         setLoading(true);
         const { data } = await fetchArticleBySlug(slug);
-        setArticle(data);
-        
-        // Extract headings from content for table of contents
+
         if (data.content) {
-          const tempDiv = document.createElement('div');
+          const tempDiv = document.createElement("div");
           tempDiv.innerHTML = data.content;
-          const h2s = Array.from(tempDiv.querySelectorAll('h2, h3'));
-          const headingData = h2s.map((h, i) => ({
-            id: `heading-${i}`,
-            text: h.textContent,
-            level: h.tagName.toLowerCase(),
-            element: h
-          }));
+          const headingNodes = Array.from(tempDiv.querySelectorAll("h2, h3"));
+          const headingData = headingNodes.map((heading, index) => {
+            const id = `heading-${index}`;
+            heading.id = id;
+
+            return {
+              id,
+              text: heading.textContent,
+              level: heading.tagName.toLowerCase(),
+            };
+          });
+
+          data.content = tempDiv.innerHTML;
           setHeadings(headingData);
+        } else {
+          setHeadings([]);
         }
+
+        setArticle(data);
+        setActiveReaders(data.activeReaders || 0);
       } catch (error) {
         console.error("Error loading article:", error);
       } finally {
@@ -59,7 +103,52 @@ const ArticleDetails = () => {
     loadArticle();
   }, [slug]);
 
-  // Intersection Observer for active heading highlight
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const availableHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+
+      if (availableHeight <= 0) {
+        setReadingProgress(0);
+        return;
+      }
+
+      setReadingProgress(
+        Math.min(100, Math.max(0, Math.round((scrollTop / availableHeight) * 100)))
+      );
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!slug || !article) return;
+
+    const storageKey = "bybs_article_reader_session";
+    const sessionId =
+      localStorage.getItem(storageKey) || crypto.randomUUID?.() || `${Date.now()}`;
+
+    localStorage.setItem(storageKey, sessionId);
+
+    const sendHeartbeat = async () => {
+      try {
+        const { data } = await trackArticleReader(slug, sessionId);
+        setActiveReaders(data.activeReaders || 0);
+      } catch (error) {
+        console.error("Reader heartbeat failed:", error);
+      }
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 15000);
+
+    return () => clearInterval(interval);
+  }, [slug, article]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -69,10 +158,10 @@ const ArticleDetails = () => {
           }
         });
       },
-      { rootMargin: '-20% 0% -70% 0%' }
+      { rootMargin: "-20% 0% -70% 0%" }
     );
 
-    headings.forEach(heading => {
+    headings.forEach((heading) => {
       const element = document.getElementById(heading.id);
       if (element) observer.observe(element);
     });
@@ -80,24 +169,19 @@ const ArticleDetails = () => {
     return () => observer.disconnect();
   }, [headings]);
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const scrollToHeading = (id) => {
+    const element = document.getElementById(id);
+    if (!element) return;
 
-  const getReadingTime = (content) => {
-    if (!content) return '3 min read';
-    const wordsPerMinute = 200;
-    const wordCount = content.split(/\s+/).length;
-    const readingTime = Math.ceil(wordCount / wordsPerMinute);
-    return `${readingTime} min read`;
+    const offset = 96;
+    const top = element.getBoundingClientRect().top + window.pageYOffset - offset;
+
+    window.scrollTo({ top, behavior: "smooth" });
   };
 
   const handleShare = async () => {
+    if (!article) return;
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -106,40 +190,65 @@ const ArticleDetails = () => {
           url: window.location.href,
         });
       } catch (error) {
-        console.log('Sharing cancelled:', error);
+        console.log("Sharing cancelled:", error);
       }
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      return;
     }
+
+    navigator.clipboard.writeText(window.location.href);
+    alert("Link copied to clipboard!");
   };
 
-  const toggleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-  };
+  const tocContent = (
+    <>
+      <div className="mb-5 flex items-center gap-3">
+        <Menu className="w-5 h-5 text-[#00337C]" />
+        <h2 className="text-lg font-light text-[#00337C]">
+          Table of contents
+        </h2>
+      </div>
 
-  const scrollToHeading = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 100; // Adjust for fixed header
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
+      {headings.length > 0 ? (
+        <nav className="space-y-2">
+          {headings.map((heading) => (
+            <button
+              key={heading.id}
+              onClick={() => scrollToHeading(heading.id)}
+              className={`flex w-full items-start rounded-lg px-3 py-2 text-left transition ${
+                activeHeading === heading.id
+                  ? "bg-[#00337C] text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <Hash
+                className={`mt-1 h-3 w-3 flex-shrink-0 ${
+                  activeHeading === heading.id ? "text-white" : "text-slate-400"
+                }`}
+              />
+              <span
+                className={`ml-2 text-sm leading-5 ${
+                  heading.level === "h3" ? "pl-3" : ""
+                }`}
+              >
+                {heading.text}
+              </span>
+            </button>
+          ))}
+        </nav>
+      ) : (
+        <p className="text-sm text-slate-500">
+          This article does not have section headings yet.
+        </p>
+      )}
+    </>
+  );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-            <p className="text-gray-600">Loading article...</p>
-          </div>
+        <div className="public-container text-center">
+          <div className="w-16 h-16 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+          <p className="text-slate-600">Loading article...</p>
         </div>
       </div>
     );
@@ -148,15 +257,19 @@ const ArticleDetails = () => {
   if (!article) {
     return (
       <div className="min-h-screen bg-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-          <h1 className="text-2xl font-light text-gray-700 mb-4">Article not found</h1>
-          <p className="text-gray-500 mb-8">The article you're looking for doesn't exist or has been moved.</p>
+        <div className="public-container text-center">
+          <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-6" />
+          <h1 className="text-2xl font-light text-slate-700 mb-4">
+            Article not found
+          </h1>
+          <p className="text-slate-500 mb-8">
+            The article you are looking for does not exist or has been moved.
+          </p>
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center px-6 py-3 bg-[#00337C] text-white rounded-lg hover:bg-[#1E4B9E] transition-colors"
+            className="public-button-primary px-6 py-3"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-4 h-4" />
             Back to Articles
           </button>
         </div>
@@ -164,14 +277,22 @@ const ArticleDetails = () => {
     );
   }
 
+  const excerpt = getExcerpt(article);
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Back Navigation */}
-      <div className="border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <main className="min-h-screen bg-white text-slate-950">
+      <div className="fixed left-0 right-0 top-0 z-40 h-1 bg-transparent">
+        <div
+          className="h-full bg-[#00337C] transition-all duration-200"
+          style={{ width: `${readingProgress}%` }}
+        />
+      </div>
+
+      <div className="border-b border-slate-100">
+        <div className="public-container py-4">
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center text-gray-600 hover:text-[#00337C] transition-colors"
+            className="inline-flex items-center text-sm font-medium text-slate-600 transition hover:text-[#00337C]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Articles
@@ -179,218 +300,197 @@ const ArticleDetails = () => {
         </div>
       </div>
 
-      {/* Hero Section - Image left, content right */}
-      <section className="py-16 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-start">
-            {/* Left Column - Image */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="relative"
+      <section className="border-b border-slate-100 bg-[#F7F9FC]">
+        <div className="public-container py-10 md:py-14">
+          <div className="grid gap-9 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <Motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
             >
-              {article.coverImage?.url ? (
-                <div className="relative overflow-hidden rounded-2xl bg-gray-100">
+              {article.tags?.length > 0 && (
+                <div className="mb-5 flex flex-wrap gap-2">
+                  {article.tags.slice(0, 3).map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm text-slate-600"
+                    >
+                      <Tag className="w-3 h-3 mr-1" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <h1 className="public-heading text-4xl md:text-6xl mb-5">
+                {article.title}
+              </h1>
+
+              {excerpt && (
+                <p className="public-copy text-lg md:text-xl max-w-2xl mb-7">
+                  {excerpt}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-5 text-sm text-slate-500">
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {formatDate(article.createdAt)}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {getReadingTime(article.content)}
+                </span>
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  {activeReaders || 1} reading now
+                </span>
+              </div>
+            </Motion.div>
+
+            <Motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.08 }}
+            >
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
+                {article.coverImage?.url ? (
                   <img
                     src={article.coverImage.url}
                     alt={article.title}
-                    className="w-full h-[250px] lg:h-[400px] object-cover"
+                    className="h-[280px] w-full object-cover md:h-[430px]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
-                </div>
-              ) : (
-                <div className="w-full h-[400px] lg:h-[500px] bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
-                  <BookOpen className="w-24 h-24 text-gray-300" />
-                </div>
-              )}
-            </motion.div>
-
-            {/* Right Column - Title and Description */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col justify-between h-full"
-            >
-              <div>
-                {/* Tags */}
-                {article.tags && article.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {article.tags.slice(0, 3).map((tag, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
-                      >
-                        <Tag className="w-3 h-3 mr-1" />
-                        {tag}
-                      </span>
-                    ))}
+                ) : (
+                  <div className="flex h-[280px] w-full items-center justify-center md:h-[430px]">
+                    <BookOpen className="w-20 h-20 text-slate-300" />
                   </div>
                 )}
-
-                {/* Title */}
-                <h1 className="text-2xl lg:text-3xl lg:text-4xl font-light text-[#00337C] mb-6 leading-tight tracking-tight">
-                  {article.title}
-                </h1>
-
-                {/* Description */}
-                {article.description && (
-                  <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                    {article.description}
-                  </p>
-                )}
-
-                {/* Meta Info */}
-                <div className="space-y-4 mb-8">
-                  <div className="flex items-center space-x-6 text-gray-600">
-                    <div className="flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      {formatDate(article.createdAt)}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-2" />
-                      {getReadingTime(article.content)}
-                    </div>
-                    {article.author && (
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2" />
-                        {article.author}
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-4 pt-6 border-t border-gray-100">
-                <button
-                  onClick={toggleBookmark}
-                  className={`flex items-center px-6 py-3 rounded-lg transition-colors ${
-                    isBookmarked 
-                      ? 'bg-[#FFD166] text-gray-900' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <Bookmark className={`w-5 h-5 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                  {isBookmarked ? 'Saved' : 'Save for later'}
-                </button>
-                
-                <button
-                  onClick={handleShare}
-                  className="flex items-center px-6 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <Share2 className="w-5 h-5 mr-2" />
-                  Share
-                </button>
-              </div>
-            </motion.div>
+            </Motion.div>
           </div>
         </div>
       </section>
 
-      {/* Main Content with Table of Contents */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid lg:grid-cols-3 gap-12">
-          {/* Article Content - 70% width */}
-          <article className="lg:col-span-2">
-            <motion.div
+      <div className="public-container py-8 lg:hidden">
+        <details className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <summary className="cursor-pointer text-base font-semibold text-[#00337C]">
+            Table of contents
+          </summary>
+          <div className="mt-5">{tocContent}</div>
+        </details>
+      </div>
+
+      <section className="public-container py-10 md:py-14">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+          <article className="min-w-0">
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.12 }}
             >
-              {/* Article Content with headings */}
-              <div 
+              <div
                 className="article-content"
-                dangerouslySetInnerHTML={{ 
-                  __html: article.content.replace(
-                    /<(h2|h3)([^>]*)>/g, 
-                    (match, tag, attrs) => {
-                      const index = (article.content.match(new RegExp(`<${tag}`, 'g')) || []).length - 1;
-                      return `<${tag} id="heading-${index}"${attrs}>`;
-                    }
-                  )
-                }}
+                dangerouslySetInnerHTML={{ __html: article.content }}
               />
-              
-              {/* Custom styling for the article content */}
+
               <style>{`
+                .article-content {
+                  max-width: 46rem;
+                }
+
                 .article-content h2 {
                   font-size: 1.5rem;
                   font-weight: 300;
                   color: #00337C;
                   margin-top: 3rem;
-                  margin-bottom: 1.5rem;
-                  line-height: 1.3;
-                  padding-top: 0.2rem;
-                  
+                  margin-bottom: 1.25rem;
+                  line-height: 1.25;
                 }
-                
+
                 .article-content h2:first-of-type {
-                  border-top: none;
                   margin-top: 0;
-                  padding-top: 0;
                 }
-                
+
                 .article-content h3 {
                   font-size: 1rem;
-                  font-weight: 400;
+                  font-weight: 500;
                   color: #1E4B9E;
-                  margin-top: 2.5rem;
+                  margin-top: 2.25rem;
                   margin-bottom: 1rem;
                 }
-                
+
                 .article-content p {
-                  font-size: 1.125rem;
-                  line-height: 1.5;
+                  font-size: 1.075rem;
+                  line-height: 1.8;
                   color: #374151;
-                  margin-bottom: 1.5rem;
+                  margin-bottom: 1.35rem;
                 }
-                
-                .article-content ul, 
+
+                .article-content ul,
                 .article-content ol {
-                  margin-bottom: 1.5rem;
+                  margin-bottom: 1rem;
                   padding-left: 1.5rem;
+                  color: #374151;
                 }
-                
+
+                .article-content ul {
+                  list-style-type: disc;
+                }
+
+                .article-content ol {
+                  list-style-type: decimal;
+                }
+
                 .article-content li {
-                  margin-bottom: 0.5rem;
-                  line-height: 1.7;
+                  display: list-item;
+                  margin-bottom: 0.1rem;
+                  line-height: 1.75;
+                  padding-left: 0.25rem;
                 }
-                
+
+                .article-content li p {
+                  margin-bottom: 0;
+                }
+
                 .article-content blockquote {
                   border-left: 4px solid #B76E79;
-                  padding-left: 1.5rem;
+                  padding-left: 1.25rem;
                   margin: 2rem 0;
-                  font-style: italic;
-                  color: #6B7280;
-                  font-size: 1.25rem;
-                  line-height: 1.6;
+                  color: #4B5563;
+                  font-size: 1.2rem;
+                  line-height: 1.65;
                 }
-                
+
                 .article-content a {
                   color: #00337C;
                   text-decoration: underline;
-                  text-underline-offset: 2px;
+                  text-underline-offset: 3px;
                 }
-                
-                .article-content a:hover {
-                  color: #1E4B9E;
-                }
-                
+
                 .article-content img {
-                  border-radius: 0.75rem;
+                  border-radius: 0.5rem;
                   margin: 2rem 0;
                   max-width: 100%;
                   height: auto;
                 }
-                
+
+                .article-content strong {
+                  font-weight: 700;
+                  color: #111827;
+                }
+
+                .article-content u {
+                  text-decoration-thickness: 1px;
+                  text-underline-offset: 3px;
+                }
+
                 .article-content code {
                   background-color: #F3F4F6;
                   padding: 0.2rem 0.4rem;
                   border-radius: 0.25rem;
-                  font-size: 0.875rem;
+                  font-size: 0.9rem;
                 }
-                
+
                 .article-content pre {
                   background-color: #1F2937;
                   color: #F9FAFB;
@@ -399,44 +499,51 @@ const ArticleDetails = () => {
                   overflow-x: auto;
                   margin: 2rem 0;
                 }
-              `}</style>
-            </motion.div>
 
-            {/* Article Footer */}
-            <div className="mt-16 pt-8 border-t border-gray-100">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
+                @media (max-width: 767px) {
+                  .article-content h2 {
+                    font-size: 1.45rem;
+                  }
+
+                  .article-content p {
+                    font-size: 1rem;
+                  }
+                }
+
+              `}</style>
+            </Motion.div>
+
+            <div className="mt-14 border-t border-slate-100 pt-8">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={toggleBookmark}
-                    className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                      isBookmarked 
-                        ? 'bg-[#FFD166] text-gray-900' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    onClick={() => setIsBookmarked((value) => !value)}
+                    className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition ${
+                      isBookmarked
+                        ? "bg-[#FFD166] text-slate-900"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
-                    <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                    {isBookmarked ? 'Saved' : 'Save Article'}
+                    <Bookmark
+                      className={`w-4 h-4 mr-2 ${
+                        isBookmarked ? "fill-current" : ""
+                      }`}
+                    />
+                    {isBookmarked ? "Saved" : "Save"}
                   </button>
-                  
+
                   <button
                     onClick={handleShare}
-                    className="flex items-center px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="inline-flex items-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
                   >
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
                   </button>
                 </div>
-                
-                <div className="text-sm text-gray-500">
-                  {article.views ? `${article.views} views` : 'Thanks for reading!'}
-                </div>
-              </div>
 
-              {/* Back to Articles */}
-              <div className="mt-8">
                 <Link
                   to="/articles"
-                  className="inline-flex items-center text-[#00337C] hover:text-[#1E4B9E] transition-colors"
+                  className="inline-flex items-center text-sm font-semibold text-[#00337C] hover:text-[#1E4B9E]"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Back to all articles
@@ -445,102 +552,98 @@ const ArticleDetails = () => {
             </div>
           </article>
 
-          {/* Table of Contents Sidebar - 30% width */}
-          <aside className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="sticky top-24"
-            >
-              <div className="bg-gradient-to-b from-gray-50 to-white rounded-xl p-6 border border-gray-100">
-                <div className="flex items-center mb-6">
-                  <Menu className="w-5 h-5 text-[#00337C] mr-3" />
-                  <h3 className="text-lg font-light text-[#00337C]">Table of Contents</h3>
-                </div>
+          <aside 
+            className="hidden lg:block lg:self-start" 
+            aria-label="Article table of contents"
+            style={{ position: "sticky", top: "96px" }}
+          >
+            <div className="max-h-[calc(100vh-7rem)] overflow-y-auto rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              {tocContent}
 
-                {headings.length > 0 ? (
-                  <nav className="space-y-2">
-                    {headings.map((heading) => (
-                      <button
-                        key={heading.id}
-                        onClick={() => scrollToHeading(heading.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-start ${
-                          activeHeading === heading.id
-                            ? 'bg-[#00337C] text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        <Hash className={`w-3 h-3 mt-1 mr-2 flex-shrink-0 ${
-                          activeHeading === heading.id ? 'text-white' : 'text-gray-400'
-                        }`} />
-                        <span className={`text-sm ${heading.level === 'h3' ? 'ml-4' : ''}`}>
-                          {heading.text}
-                        </span>
-                      </button>
-                    ))}
-                  </nav>
-                ) : (
-                  <p className="text-gray-500 text-sm">
-                    No headings available for this article.
-                  </p>
-                )}
-
-                {/* Reading Progress */}
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span className="text-gray-600">Reading progress</span>
-                    <span className="text-[#00337C] font-medium">0%</span>
+              <div className="mt-7 border-t border-slate-100 pt-5">
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div className="rounded-lg bg-[#F7F9FC] p-3">
+                    <p className="text-xl font-light text-[#00337C]">
+                      {getReadingTime(article.content).split(" ")[0]}
+                    </p>
+                    <p className="text-xs text-slate-500">Min read</p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-[#00337C] to-[#1E4B9E] h-2 rounded-full transition-all duration-300"
-                      style={{ width: '0%' }}
-                    ></div>
+                  <div className="rounded-lg bg-[#F7F9FC] p-3">
+                    <p className="text-xl font-light text-[#00337C]">
+                      {headings.length}
+                    </p>
+                    <p className="text-xs text-slate-500">Sections</p>
+                  </div>
+                  <div className="rounded-lg bg-[#F7F9FC] p-3">
+                    <p className="text-xl font-light text-[#00337C]">
+                      {activeReaders || 1}
+                    </p>
+                    <p className="text-xs text-slate-500">Reading now</p>
                   </div>
                 </div>
-
-                {/* Quick Stats */}
-                <div className="mt-8 pt-6 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="text-2xl font-light text-[#00337C] mb-1">
-                        {getReadingTime(article.content).split(' ')[0]}
-                      </div>
-                      <div className="text-xs text-gray-500">Read time</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-light text-[#00337C] mb-1">
-                        {headings.length}
-                      </div>
-                      <div className="text-xs text-gray-500">Sections</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {article.tags && article.tags.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">Article Tags</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {article.tags.map((tag, index) => (
-                        <Link
-                          key={index}
-                          to={`/articles?tag=${tag}`}
-                          className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-full hover:bg-gray-200 transition-colors"
-                        >
-                          {tag}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            </motion.div>
+
+              <div className="mt-6 rounded-lg bg-[#F7F9FC] p-4">
+                <p className="mb-3 text-sm font-semibold text-[#00337C]">
+                  Reading progress
+                </p>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-[#00337C] transition-all duration-200"
+                    style={{ width: `${readingProgress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  {readingProgress}% complete
+                </p>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                <button
+                  onClick={() => setIsBookmarked((value) => !value)}
+                  className={`inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition ${
+                    isBookmarked
+                      ? "bg-[#FFD166] text-slate-900"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <Bookmark
+                    className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-current" : ""}`}
+                  />
+                  {isBookmarked ? "Saved" : "Save article"}
+                </button>
+
+                <button
+                  onClick={handleShare}
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1E4B9E]"
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share article
+                </button>
+              </div>
+
+              {article.tags?.length > 0 && (
+                <div className="mt-6 border-t border-slate-100 pt-5">
+                  <p className="mb-3 text-sm font-semibold text-[#00337C]">
+                    Topics
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {article.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#F5F9FF] px-3 py-1 text-xs text-[#00337C]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </aside>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

@@ -1,6 +1,17 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
 
+const createExcerpt = (html = "", maxLength = 160) => {
+  const plainText = html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (plainText.length <= maxLength) return plainText;
+  return `${plainText.slice(0, maxLength).trim()}...`;
+};
+
 const articleSchema = new mongoose.Schema(
   {
     title: {
@@ -13,6 +24,21 @@ const articleSchema = new mongoose.Schema(
     slug: {
       type: String,
       unique: true,
+      trim: true,
+    },
+    excerpt: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    tags: {
+      type: [String],
+      default: [],
     },
     content: {
       type: String,
@@ -24,7 +50,7 @@ const articleSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["draft", "published"],
+      enum: ["draft", "published", "archived"],
       default: "draft",
     },
     createdBy: {
@@ -36,7 +62,28 @@ const articleSchema = new mongoose.Schema(
 );
 
 articleSchema.pre("save", function (next) {
-  this.slug = slugify(this.title, { lower: true });
+  if (this.isModified("slug") && this.slug) {
+    this.slug = slugify(this.slug, { lower: true, strict: true });
+  }
+
+  if (!this.slug || this.isModified("title")) {
+    this.slug = slugify(this.slug || this.title, { lower: true, strict: true });
+  }
+
+  if (this.excerpt && !this.description) {
+    this.description = this.excerpt;
+  }
+
+  if (this.description && !this.excerpt) {
+    this.excerpt = this.description;
+  }
+
+  if (!this.excerpt && !this.description && this.content) {
+    const generatedExcerpt = createExcerpt(this.content);
+    this.excerpt = generatedExcerpt;
+    this.description = generatedExcerpt;
+  }
+
   next();
 });
 

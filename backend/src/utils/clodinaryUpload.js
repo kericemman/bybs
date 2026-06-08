@@ -13,7 +13,13 @@ const storage = new CloudinaryStorage({
       };
     }
 
-   
+    if (file.fieldname === "coverImage" && req.originalUrl?.includes("/articles")) {
+      return {
+        folder: "bybs/articles",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      };
+    }
 
     // For cover images
     return {
