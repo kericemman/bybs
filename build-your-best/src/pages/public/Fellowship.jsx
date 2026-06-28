@@ -338,7 +338,7 @@ export default function FellowshipLanding() {
                         </p>
                         
                         <Link
-                                to="/fellowship/cohort-4"
+                                to="/fellowship/cohort-4/apply"
                                 className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                             >
                                 Start Application

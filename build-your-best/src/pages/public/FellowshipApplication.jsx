@@ -292,7 +292,7 @@ export default function FellowshipApplication() {
                     Private review
                   </div>
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Your application is reviewed only by BYBS admins.
+                    Your application is reviewed only by BYBS Teams.
                   </p>
                 </div>
               </div>

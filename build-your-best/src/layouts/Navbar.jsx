@@ -15,11 +15,12 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Home", to: "/" },
-    { name: "About", to: "/about" },
+    { name: "Cohorts", to: "/fellowship" },
     { name: "Coaching", to: "/coaching" },
-    { name: "Articles", to: "/articles" },
-    { name: "Shop", to: "/shop" },
-    { name: "Contact", to: "/contact" },
+    { name: "Updates", to: "/articles" },
+    { name: "Buy Merchandise", to: "/shop" },
+    
+    { name: "Contact Us", to: "/contact" },
   ];
 
   return (

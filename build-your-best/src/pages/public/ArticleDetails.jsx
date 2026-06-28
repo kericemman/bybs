@@ -387,7 +387,7 @@ const ArticleDetails = () => {
       </div>
 
       <section className="public-container py-8 md:py-12">
-        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[minmax(0,43rem)_17rem] lg:items-start lg:justify-center">
+        <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[minmax(0,43rem)_17rem] lg:items-start lg:justify-center">
           <article className="min-w-0">
             <Motion.div
               initial={{ opacity: 0, y: 20 }}
