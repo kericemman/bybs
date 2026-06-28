@@ -1,12 +1,9 @@
-import { motion } from 'framer-motion';
-import WaitlistModal from "../../components/modal/WaitlistModal";
-import { useState, useEffect } from 'react';
+import { motion as Motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Users, Calendar, Target, Heart, Star, Award, ChevronRight, Sparkles } from 'lucide-react';
 
 export default function FellowshipLanding() {
-    const [waitlistOpen, setWaitlistOpen] = useState(false);
-
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
@@ -96,7 +93,7 @@ export default function FellowshipLanding() {
                 </div>
 
                 <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
@@ -107,23 +104,23 @@ export default function FellowshipLanding() {
                         </div>
 
                         <h1 className="text-4xl md:text-5xl font-light mb-6 leading-tight">
-                            Applications Are Currently{' '}
+                            Cohort 4 Applications Are{' '}
                             <span className="font-bold bg-gradient-to-r from-[#FFD166] to-[#B76E79] bg-clip-text text-transparent">
-                                Closed
+                                Open
                             </span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-                            The next cohort will open soon. Join our waitlist and be the first to know when applications reopen.
+                            Apply for the next BYBS Fellowship cohort and join a guided 3-month journey of self-awareness, resilience, purpose, and intentional growth.
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button
-                                onClick={() => setWaitlistOpen(true)}
+                            <Link
+                                to="/fellowship/cohort-4/apply"
                                 className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                             >
-                                Join the Waitlist
-                            </button>
+                                Apply for Cohort 4
+                            </Link>
 
                             <Link
                                 to="/cohorts"
@@ -132,14 +129,14 @@ export default function FellowshipLanding() {
                                 View Previous Cohorts
                             </Link>
                         </div>
-                    </motion.div>
+                    </Motion.div>
                 </div>
             </section>
 
             {/* What Makes It Unique */}
             <section className="py-5 bg-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
@@ -154,12 +151,12 @@ export default function FellowshipLanding() {
                             A signature fellowship blending self-awareness, mindset re-alignment, emotional mastery, 
                             and purposeful living into an interactive learning journey.
                         </p>
-                    </motion.div>
+                    </Motion.div>
                     
                     {/* Benefits Grid */}
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {benefits.map((benefit, index) => (
-                            <motion.div
+                            <Motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -173,7 +170,7 @@ export default function FellowshipLanding() {
                                     </div>
                                     <p className="text-gray-700">{benefit}</p>
                                 </div>
-                            </motion.div>
+                            </Motion.div>
                         ))}
                     </div>
                 </div>
@@ -182,7 +179,7 @@ export default function FellowshipLanding() {
             {/* Four Pillars */}
             <section className="py-5 bg-gradient-to-b from-gray-50 to-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
@@ -193,11 +190,11 @@ export default function FellowshipLanding() {
                             The Four Pillars of Transformation
                         </h2>
                         <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mx-auto mb-8"></div>
-                    </motion.div>
+                    </Motion.div>
                     
                     <div className="grid md:grid-cols-2 gap-6">
                         {pillars.map((pillar, index) => (
-                            <motion.div
+                            <Motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -214,7 +211,7 @@ export default function FellowshipLanding() {
                                     <h3 className="text-xl font-medium text-gray-900 mb-3">{pillar.title}</h3>
                                     <p className="text-gray-600 leading-relaxed">{pillar.description}</p>
                                 </div>
-                            </motion.div>
+                            </Motion.div>
                         ))}
                     </div>
                 </div>
@@ -223,7 +220,7 @@ export default function FellowshipLanding() {
             {/* Journey Flow */}
             <section className="py-5 bg-white">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
@@ -234,11 +231,11 @@ export default function FellowshipLanding() {
                             Your 3-Month Journey
                         </h2>
                         <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mx-auto mb-8"></div>
-                    </motion.div>
+                    </Motion.div>
                     
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {journeyPhases.map((phase, index) => (
-                            <motion.div
+                            <Motion.div
                                 key={index}
                                 initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
@@ -254,7 +251,7 @@ export default function FellowshipLanding() {
                                 </div>
                                 <h3 className="text-lg font-medium text-gray-900 mb-2">{phase.title}</h3>
                                 <p className="text-sm text-gray-600">{phase.description}</p>
-                            </motion.div>
+                            </Motion.div>
                         ))}
                     </div>
                 </div>
@@ -263,7 +260,7 @@ export default function FellowshipLanding() {
             {/* Who It's For */}
             <section className="py-5 bg-gradient-to-br from-gray-50 to-[#F5F9FF]">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
@@ -277,10 +274,10 @@ export default function FellowshipLanding() {
                         <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
                             This program is designed for women and youth who are ready for deep transformation.
                         </p>
-                    </motion.div>
+                    </Motion.div>
                     
                     <div className="grid md:grid-cols-2 gap-8">
-                        <motion.div
+                        <Motion.div
                             initial={{ opacity: 0, x: -30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
@@ -298,9 +295,9 @@ export default function FellowshipLanding() {
                                     </li>
                                 ))}
                             </ul>
-                        </motion.div>
+                        </Motion.div>
                         
-                        <motion.div
+                        <Motion.div
                             initial={{ opacity: 0, x: 30 }}
                             whileInView={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.6 }}
@@ -319,7 +316,7 @@ export default function FellowshipLanding() {
                                     </li>
                                 ))}
                             </ul>
-                        </motion.div>
+                        </Motion.div>
                     </div>
                 </div>
             </section>
@@ -327,7 +324,7 @@ export default function FellowshipLanding() {
             {/* Final CTA */}
             <section className="py-5 bg-gradient-to-br from-[#00337C] via-[#1E4B9E] to-[#2A5BC0] text-white">
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <motion.div
+                    <Motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6 }}
@@ -337,28 +334,22 @@ export default function FellowshipLanding() {
                             Ready to Begin Your Transformation?
                         </h2>
                         <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-                            Apply for the next Cohort and take the first step towards building your best self.
+                            Apply for Cohort 4 and take the first step towards building your best self.
                         </p>
                         
-                        <button
-                                onClick={() => setWaitlistOpen(true)}
+                        <Link
+                                to="/fellowship/cohort-4"
                                 className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                             >
-                                Join the Waitlist
-                            </button>
+                                Start Application
+                            </Link>
                         
                         <p className="text-white/70 mt-6 text-sm">
-                            Limited spots available. Early registrants receive priority access.
+                            Limited spots available. Applications are reviewed by the BYBS team.
                         </p>
-                    </motion.div>
+                    </Motion.div>
                 </div>
             </section>
-
-            {/* Waitlist Modal */}
-            <WaitlistModal
-                open={waitlistOpen}
-                onClose={() => setWaitlistOpen(false)}
-            />
         </div>
     );
 }

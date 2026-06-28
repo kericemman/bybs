@@ -1,435 +1,717 @@
-import { motion } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
-import { ChevronRight, Users, Calendar, Award, Play, Pause, ChevronLeft, X } from 'lucide-react';
-import { Link } from "react-router-dom";
-import WaitlistModal from "../../components/modal/WaitlistModal";
+import { motion as Motion } from "framer-motion";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Award,
+  Calendar,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Image as ImageIcon,
+  MapPin,
+  Pause,
+  Play,
+  RefreshCw,
+  Users,
+} from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import api from "../../utils/axios";
+
+const formatDate = (value) => {
+  if (!value) return "Date to be announced";
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const formatDateRange = (startDate, endDate) => {
+  if (!startDate && !endDate) return "Dates to be announced";
+  if (startDate && !endDate) return formatDate(startDate);
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+};
+
+const statusStyles = {
+  upcoming: "bg-amber-50 text-amber-700",
+  ongoing: "bg-blue-50 text-blue-700",
+  completed: "bg-emerald-50 text-emerald-700",
+};
+
+const applicationStyles = {
+  open: "bg-emerald-50 text-emerald-700",
+  closed: "bg-gray-100 text-gray-600",
+  "invite-only": "bg-purple-50 text-purple-700",
+};
 
 export default function CohortsPage() {
-  const [currentImage, setCurrentImage] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-  const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const containerRef = useRef(null);
-  const galleryRef = useRef(null);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+  }, []);
+  const [cohorts, setCohorts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchCohorts = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const { data } = await api.get("/cohorts");
+      const incoming = Array.isArray(data) ? data : [];
+      setCohorts(incoming);
+    } catch (fetchError) {
+      console.error("Error fetching cohorts:", fetchError);
+      setError(fetchError.response?.data?.message || "Unable to load cohorts right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    // Check if mobile on mount and resize
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    // Auto-play slideshow
-    let interval;
-    if (isAutoPlaying) {
-      interval = setInterval(() => {
-        setCurrentImage((prev) => (prev + 1) % cohortImages.length);
-      }, 4000);
-    }
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, [isAutoPlaying]);
+    fetchCohorts();
+  }, []);
 
-  const cohortImages = [
-    { 
-      id: 1, 
-      title: "Opening Session", 
-      description: "Beginning the journey together",
-      image: "/assets/c1.jpeg"
-    },
-    { 
-      id: 2, 
-      title: "Group Workshop", 
-      description: "Deep conversations and breakthroughs",
-      image: "/assets/c2.jpeg"
-    },
-    { 
-      id: 3, 
-      title: "One-on-One Discussions", 
-      description: "Personalized guidance sessions",
-      image: "/assets/c3.jpeg"
-    },
-    { 
-      id: 4, 
-      
-      image: "/assets/c6.jpeg"
-    },
-    { 
-      id: 5, 
-     
-      image: "/assets/c4.jpeg"
-    },
-    { 
-      id: 6, 
-      
-      image: "/assets/c5.jpeg"
-    }
-  ];
+  const heroCohort = cohorts.find((cohort) => cohort.coverImage?.url) || cohorts[0] || null;
 
-  const cohortDetails = {
-    title: "First BYBS Fellowship Cohort",
-    date: "August - October 2025",
-    description: "The inaugural cohort that transformed vision into reality. What began as an idea became a shared journey of learning, unlearning, and becoming.",
-    highlights: [
-      { icon: <Users className="w-5 h-5" />, text: "20+ participants from diverse backgrounds" },
-      { icon: <Calendar className="w-5 h-5" />, text: "12 weeks of intensive personal growth" },
-      { icon: <Award className="w-5 h-5" />, text: "85% completion rate with transformative results" }
-    ],
-    achievements: [
-      "Personal breakthrough stories from every participant",
-      "Strong community bonds that continue beyond the program",
-      "Measurable mindset shifts and emotional growth",
-      "Practical life skills applied in real-world contexts"
-    ]
-  };
+  return (
+    <div className="min-h-screen bg-white">
+      <section className="relative overflow-hidden bg-[#061C3D] text-white">
+        <div className="absolute inset-0">
+          {heroCohort?.coverImage?.url && (
+            <img
+              src={heroCohort.coverImage.url}
+              alt={heroCohort.title}
+              className="h-full w-full object-cover opacity-20"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#061C3D] via-[#00337C]/96 to-[#1E4B9E]/86" />
+        </div>
 
-  const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % cohortImages.length);
-  };
+        <div className="relative public-container py-10 md:py-15">
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-4xl"
+          >
+            <p className="public-eyebrow mb-5 text-white/70">BYBS Cohorts</p>
+            <h1 className="text-4xl font-light leading-tight md:text-6xl">
+              Preview the journey of every BYBS cohort.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">
+              Browse cohort reflections, achievements, graduate stories, and galleries. Open each cohort
+              to see the full journey.
+            </p>
+          </Motion.div>
+        </div>
+      </section>
 
-  const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + cohortImages.length) % cohortImages.length);
-  };
+      <section className="public-section bg-[#F7FAFC]">
+        <div className="public-container">
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState message={error} onRetry={fetchCohorts} />
+          ) : cohorts.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {cohorts.map((cohort) => (
+                <CohortPreviewCard key={cohort._id} cohort={cohort} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
 
-  // Handle swipe gestures for mobile
+export function CohortDetailPage() {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  const { cohortSlug } = useParams();
+  const [cohort, setCohort] = useState(null);
+  const [currentImage, setCurrentImage] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
-  const minSwipeDistance = 50;
+  const fetchCohort = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const { data } = await api.get(`/cohorts/${cohortSlug}`);
+      setCohort(data);
+    } catch (fetchError) {
+      console.error("Error fetching cohort:", fetchError);
+      setError(fetchError.response?.data?.message || "Unable to load this cohort right now.");
+    } finally {
+      setLoading(false);
+    }
+  }, [cohortSlug]);
 
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchCohort();
+  }, [fetchCohort]);
+
+  const galleryImages = useMemo(() => {
+    if (!cohort) return [];
+    const gallery = cohort.gallery || [];
+    if (gallery.length) return gallery;
+    if (cohort.coverImage?.url) {
+      return [
+        {
+          _id: `${cohort._id}-cover`,
+          url: cohort.coverImage.url,
+          caption: cohort.title,
+        },
+      ];
+    }
+    return [];
+  }, [cohort]);
+
+  useEffect(() => {
+    setCurrentImage(0);
+  }, [cohort?._id]);
+
+  useEffect(() => {
+    if (!isAutoPlaying || galleryImages.length <= 1) return undefined;
+
+    const interval = setInterval(() => {
+      setCurrentImage((current) => (current + 1) % galleryImages.length);
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [galleryImages.length, isAutoPlaying]);
+
+  const nextImage = () => {
+    if (!galleryImages.length) return;
+    setCurrentImage((current) => (current + 1) % galleryImages.length);
   };
 
-  const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+  const prevImage = () => {
+    if (!galleryImages.length) return;
+    setCurrentImage((current) => (current - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  const onTouchStart = (event) => {
+    setTouchEnd(null);
+    setTouchStart(event.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (event) => {
+    setTouchEnd(event.targetTouches[0].clientX);
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      nextImage();
-    }
-    if (isRightSwipe) {
-      prevImage();
-    }
+    if (distance > 50) nextImage();
+    if (distance < -50) prevImage();
   };
 
   return (
-    <div className="min-h-screen bg-white" ref={containerRef}>
-      {/* Hero Section - Responsive */}
-      <section className="relative pt-16 md:pt-24 pb-12 md:pb-24 bg-gradient-to-br from-[#00337C] via-[#1E4B9E] to-[#2A5BC0] text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-64 md:w-80 h-64 md:h-80 bg-[#B76E79] rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-72 md:w-96 h-72 md:h-96 bg-[#FFD166] rounded-full blur-3xl"></div>
+    <div className="min-h-screen bg-white">
+      <section className="relative overflow-hidden bg-[#061C3D] text-white">
+        <div className="absolute inset-0">
+          {cohort?.coverImage?.url && (
+            <img
+              src={cohort.coverImage.url}
+              alt={cohort.title}
+              className="h-full w-full object-cover opacity-20"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#061C3D] via-[#00337C]/96 to-[#1E4B9E]/86" />
         </div>
-        
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
+
+        <div className="relative public-container py-12 md:py-20">
+          <Link to="/cohorts" className="mb-8 inline-flex items-center gap-2 text-sm text-white/75 hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Cohorts
+          </Link>
+
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center px-2 md:px-0"
+            className="max-w-4xl"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light mb-4 md:mb-6 leading-tight">
-              BYBS <span className="font-bold bg-gradient-to-r from-[#FFD166] to-[#B76E79] bg-clip-text text-transparent">Cohorts</span>
+            <p className="public-eyebrow mb-5 text-white/70">Cohort Details</p>
+            <h1 className="text-4xl font-light leading-tight md:text-6xl">
+              {cohort?.title || "Cohort reflection"}
             </h1>
-            
-            <p className="text-base sm:text-lg md:text-xl text-white/90 mb-4 md:mb-8 max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
-              Shared journeys of growth, transformation, and intentional living.
-            </p>
-            
-            <p className="text-sm sm:text-base md:text-lg text-white/80 max-w-2xl mx-auto px-2 sm:px-0">
-              Each cohort is a chapter. Each participant, a story. Together, we rise.
-            </p>
-          </motion.div>
+            {cohort?.tagline && <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">{cohort.tagline}</p>}
+          </Motion.div>
         </div>
       </section>
 
-      {/* Content & Gallery Section - Responsive Grid */}
-      <section className="py-8 md:py-12 lg:py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-6 md:gap-8 lg:gap-12">
-            {/* Left Column: Cohort Content - Responsive Width */}
-            <div className="w-full lg:w-1/2">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="space-y-6 md:space-y-8"
-              >
-                <div>
-                  <div className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 bg-[#00337C]/10 text-[#00337C] rounded-full text-xs md:text-sm mb-3 md:mb-4">
-                    <Calendar className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2 flex-shrink-0" />
-                    <span className="truncate">Graduated • {cohortDetails.date}</span>
-                  </div>
-                  
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-[#00337C] mb-4 md:mb-6 break-words">
-                    {cohortDetails.title}
-                  </h2>
-                  
-                  <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed mb-6 md:mb-8">
-                    {cohortDetails.description}
-                  </p>
-                </div>
-
-                {/* Highlights */}
-                <div className="space-y-4 md:space-y-6">
-                  <h3 className="text-lg md:text-xl font-light text-[#00337C]">Cohort Highlights</h3>
-                  <div className="space-y-3 md:space-y-4">
-                    {cohortDetails.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-start gap-3 md:gap-4">
-                        
-                        <p className="text-sm md:text-base text-gray-700 pt-1 flex-1">{highlight.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Achievements */}
-                <div className="pt-4 md:pt-6 border-t border-gray-100">
-                  <h3 className="text-lg md:text-xl font-light text-[#00337C] mb-3 md:mb-4">Key Achievements</h3>
-                  <ul className="space-y-2 md:space-y-3">
-                    {cohortDetails.achievements.map((achievement, index) => (
-                      <li key={index} className="flex items-start text-sm md:text-base text-gray-700">
-                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-[#B76E79] rounded-full mt-2 md:mt-2.5 mr-2 md:mr-3 flex-shrink-0"></div>
-                        <span className="flex-1">{achievement}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Impact Quote */}
-                <div className="bg-gradient-to-r from-[#F5F9FF] to-[#FFF0F0] p-4 md:p-6 rounded-xl border-l-4 border-[#00337C] mt-4 md:mt-6">
-                  <p className="text-sm md:text-base text-gray-700 italic leading-relaxed">
-                    "This fellowship was never about perfection. It was about presence,
-                    showing up honestly, doing the inner work, and choosing growth even when it felt uncomfortable."
-                  </p>
-                </div>
-              </motion.div>
+      <section className="public-section bg-[#F7FAFC]">
+        <div className="public-container">
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState message={error} onRetry={fetchCohort} />
+          ) : !cohort ? (
+            <EmptyState />
+          ) : (
+            <div className="space-y-8">
+              <CohortDetails cohort={cohort} />
+              <CohortTrackRecord cohort={cohort} />
+              <CohortAudience cohort={cohort} />
+              <SuccessStories cohort={cohort} />
+              <CohortGallery
+                cohort={cohort}
+                images={galleryImages}
+                currentImage={currentImage}
+                setCurrentImage={setCurrentImage}
+                isAutoPlaying={isAutoPlaying}
+                setIsAutoPlaying={setIsAutoPlaying}
+                nextImage={nextImage}
+                prevImage={prevImage}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              />
+              <ProgramDetails cohort={cohort} />
             </div>
+          )}
+        </div>
+      </section>
 
-            {/* Right Column: Gallery - Responsive Width */}
-            <div className="w-full lg:w-1/2 mt-8 lg:mt-0">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-                className="space-y-4 md:space-y-6"
-                ref={galleryRef}
-              >
-                {/* Gallery Title - Mobile Only */}
-                <div className="lg:hidden">
-                  <h3 className="text-lg font-light text-[#00337C] mb-2">Gallery</h3>
-                </div>
-
-                {/* Main Gallery Image - Responsive */}
-                <div 
-                  className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl md:rounded-2xl overflow-hidden shadow-lg md:shadow-xl w-full"
-                  onTouchStart={onTouchStart}
-                  onTouchMove={onTouchMove}
-                  onTouchEnd={onTouchEnd}
-                >
-                  {/* Maintain aspect ratio container */}
-                  <div className="relative pt-[75%] md:pt-[75%]">
-                    {/* Actual Image */}
-                    <img
-                      src={cohortImages[currentImage].image}
-                      alt={cohortImages[currentImage].title}
-                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        const fallback = e.target.parentElement?.parentElement?.querySelector('.image-fallback');
-                        if (fallback) fallback.style.display = 'flex';
-                      }}
-                    />
-                    
-                    {/* Fallback if image fails to load */}
-                    <div className="image-fallback hidden absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                      <div className="text-center px-4">
-                        <div className="text-3xl md:text-4xl lg:text-6xl mb-2 md:mb-3 lg:mb-4 text-gray-300">📸</div>
-                        <div className="text-base md:text-lg lg:text-2xl font-light text-gray-700 mb-1 md:mb-2">
-                          {cohortImages[currentImage].title}
-                        </div>
-                        <div className="text-xs md:text-sm lg:text-base text-gray-600">
-                          {cohortImages[currentImage].description}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Image Info Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 md:p-4 lg:p-6 text-white">
-                      <div className="text-sm md:text-base lg:text-lg font-medium truncate">
-                        {cohortImages[currentImage].title}
-                      </div>
-                      <div className="text-xs md:text-sm text-white/80 mt-0.5 truncate">
-                        {cohortImages[currentImage].description}
-                      </div>
-                    </div>
-                    
-                    {/* Navigation Controls */}
-                    <div className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center gap-2">
-                      <button
-                        onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-                        className="bg-black/40 hover:bg-black/60 text-white p-1.5 md:p-2 rounded-full transition-colors"
-                        aria-label={isAutoPlaying ? "Pause slideshow" : "Play slideshow"}
-                      >
-                        {isAutoPlaying ? (
-                          <Pause className="w-3 h-3 md:w-4 md:h-4" />
-                        ) : (
-                          <Play className="w-3 h-3 md:w-4 md:h-4" />
-                        )}
-                      </button>
-                    </div>
-                    
-                    {/* Navigation Arrows - Always Visible on Mobile, Hover on Desktop */}
-                    <button
-                      onClick={prevImage}
-                      className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 md:p-2 rounded-full transition-colors lg:opacity-0 lg:group-hover:opacity-100"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                    </button>
-                    <button
-                      onClick={nextImage}
-                      className="absolute right-2 md:right-4 top-1/2 transform -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 md:p-2 rounded-full transition-colors lg:opacity-0 lg:group-hover:opacity-100"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                    </button>
-                    
-                    {/* Image Navigation Dots */}
-                    <div className="absolute bottom-2 md:bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1.5 md:gap-2">
-                      {cohortImages.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentImage(index)}
-                          className={`rounded-full transition-all duration-300 ${
-                            currentImage === index 
-                              ? 'bg-white w-4 md:w-6 lg:w-8 h-1.5 md:h-2' 
-                              : 'bg-white/50 hover:bg-white/75 w-1.5 md:w-2 h-1.5 md:h-2'
-                          }`}
-                          aria-label={`Go to image ${index + 1}`}
-                        />
-                      ))}
-                    </div>
-                    
-                    {/* Current Image Indicator */}
-                    <div className="absolute top-2 md:top-3 left-2 md:left-3 bg-black/40 text-white px-2 py-0.5 md:px-3 md:py-1 rounded-full text-xs md:text-sm">
-                      {currentImage + 1} / {cohortImages.length}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gallery Thumbnails - Responsive Grid */}
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
-                  {cohortImages.map((image, index) => (
-                    <button
-                      key={image.id}
-                      onClick={() => setCurrentImage(index)}
-                      className={`relative rounded-lg md:rounded-xl overflow-hidden transition-all duration-300 ${
-                        currentImage === index 
-                          ? 'ring-2 ring-[#00337C]' 
-                          : 'opacity-75 hover:opacity-100 hover:ring-1 hover:ring-[#00337C]/50'
-                      }`}
-                      aria-label={`View ${image.title}`}
-                    >
-                      {/* Maintain square aspect ratio */}
-                      <div className="relative pt-[100%]">
-                        <img
-                          src={image.image}
-                          alt={`Thumbnail: ${image.title}`}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            const fallback = e.target.parentElement?.querySelector('.thumbnail-fallback');
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                        
-                        {/* Thumbnail Fallback */}
-                        <div className="thumbnail-fallback hidden absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-base md:text-xl text-gray-400">📸</div>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Gallery Description */}
-                <div className="text-center text-xs md:text-sm text-gray-600 pt-1 md:pt-2">
-                  <p className="truncate">Click thumbnails to navigate • Swipe on mobile</p>
-                </div>
-              </motion.div>
+      {cohort && (
+        <section className="bg-[#00337C] py-14 text-white md:py-20">
+          <div className="public-container">
+            <div className="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur md:flex md:items-center md:justify-between md:p-8">
+              <div>
+                <h2 className="text-3xl font-light">Ready to apply?</h2>
+                <p className="mt-3 max-w-2xl text-white/75">
+                  When applications are open, you can continue to the full application form.
+                </p>
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row md:mt-0">
+                {cohort.applicationStatus === "open" && cohort.slug ? (
+                  <Link to={`/cohorts/${cohort.slug}/apply`} className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-[#00337C]">
+                    Continue to Application
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <span className="rounded-lg border border-white/20 px-6 py-3 font-semibold text-white/80">
+                    Apply Now
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section - Responsive */}
-      <section className="py-12 md:py-16 lg:py-24 bg-gradient-to-br from-[#00337C] to-[#1E4B9E] text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-            className="text-center"
-          >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-light mb-4 md:mb-6 px-2 sm:px-0">
-              Ready for Your Transformation?
-            </h2>
-            
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 mb-6 md:mb-8 lg:mb-10 max-w-2xl mx-auto leading-relaxed px-2 sm:px-0">
-              New cohorts open periodically. If you feel the pull toward growth and community, 
-              it's probably meant for you.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4 sm:px-0">
-            <button
-                onClick={() => setWaitlistOpen(true)}
-                className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
-            >
-                Join the Waitlist
-            </button>
-              <Link
-                to="/contact"
-                className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-3 lg:px-10 lg:py-4 border-2 border-white text-white font-medium rounded-lg hover:bg-white/10 transition-all duration-300 active:scale-95 text-sm md:text-base lg:text-lg w-full sm:w-auto"
-              >
-                Support Us
-              </Link>
-            </div>
-            
-            <p className="text-white/70 mt-4 md:mt-6 text-xs md:text-sm px-4 sm:px-0">
-              Limited spots available for meaningful growth journeys
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Waitlist Modal */}
-      <WaitlistModal
-          open={waitlistOpen}
-          onClose={() => setWaitlistOpen(false)}
-      />
+        </section>
+      )}
     </div>
+  );
+}
 
-  
+function CohortPreviewCard({ cohort }) {
+  const reflectionCount =
+    (cohort.previousCohorts?.length || 0) +
+    (cohort.achievements?.length || 0) +
+    (cohort.impactHighlights?.length || 0);
+
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="h-56 bg-gray-100">
+        {cohort.coverImage?.url ? (
+          <img src={cohort.coverImage.url} alt={cohort.title} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-gray-300">
+            <ImageIcon className="h-12 w-12" />
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}>
+            {cohort.status || "completed"}
+          </span>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}>
+            Applications {cohort.applicationStatus || "closed"}
+          </span>
+        </div>
+
+        <h2 className="text-2xl font-light text-[#00337C]">{cohort.title}</h2>
+        {cohort.tagline && <p className="mt-2 text-sm font-medium text-[#B76E79]">{cohort.tagline}</p>}
+        <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">
+          {cohort.description || cohort.overview || "Open the cohort details to read the reflection."}
+        </p>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+          <InfoCard icon={<Calendar className="h-4 w-4" />} label="Dates" value={formatDateRange(cohort.startDate, cohort.endDate)} />
+          <InfoCard icon={<Users className="h-4 w-4" />} label="Graduates" value={cohort.capacity ? `${cohort.capacity}` : "TBC"} />
+         
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <Link to={`/cohorts/${cohort.slug}`} className="public-button-primary justify-center px-5 py-3">
+            View details
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          {cohort.applicationStatus === "open" && (
+            <Link to={`/cohorts/${cohort.slug}/apply`} className="public-button-secondary justify-center px-5 py-3">
+              Apply
+            </Link>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CohortDetails({ cohort }) {
+  if (!cohort) return null;
+
+  const canApply = cohort.applicationStatus === "open";
+
+  return (
+    <article className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+      {cohort.coverImage?.url && (
+        <img src={cohort.coverImage.url} alt={cohort.title} className="h-72 w-full object-cover" />
+      )}
+
+      <div className="p-5 md:p-7">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}>
+            {cohort.status || "draft"}
+          </span>
+          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}>
+            Applications {cohort.applicationStatus || "closed"}
+          </span>
+        </div>
+
+        <h2 className="text-3xl font-light text-[#00337C] md:text-4xl">{cohort.title}</h2>
+        {cohort.tagline && <p className="mt-3 text-lg font-medium text-[#B76E79]">{cohort.tagline}</p>}
+        <p className="mt-5 whitespace-pre-line text-base leading-8 text-gray-700">
+          {cohort.overview || cohort.description || "Details for this cohort will be added soon."}
+        </p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <InfoCard icon={<Calendar className="h-4 w-4" />} label="Dates" value={formatDateRange(cohort.startDate, cohort.endDate)} />
+          <InfoCard icon={<Clock className="h-4 w-4" />} label="Deadline" value={formatDate(cohort.applicationDeadline)} />
+          <InfoCard icon={<Users className="h-4 w-4" />} label="Capacity" value={cohort.capacity ? `${cohort.capacity} spots` : "To be confirmed"} />
+          <InfoCard icon={<MapPin className="h-4 w-4" />} label="Format" value={[cohort.format, cohort.location].filter(Boolean).join(" • ") || "To be confirmed"} />
+        </div>
+
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          {canApply ? (
+            <Link to={`/cohorts/${cohort.slug}/apply`} className="public-button-primary justify-center px-6 py-3">
+              Open Full Application
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CohortAudience({ cohort }) {
+  if (!cohort) return null;
+
+  const sections = [
+    { title: "Who is it for?", items: cohort.whoIsItFor || [] },
+    { title: "Who can apply?", items: cohort.whoCanApply || [] },
+    { title: "Commitment", items: cohort.commitment || [] },
+  ].filter((section) => section.items.length);
+
+  if (!sections.length) return null;
+
+  return (
+    <section className="grid gap-5 md:grid-cols-3">
+      {sections.map((section) => (
+        <div key={section.title} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h3 className="text-lg font-semibold text-[#00337C]">{section.title}</h3>
+          <div className="mt-4 space-y-3">
+            {section.items.map((item) => (
+              <div key={item} className="flex gap-3 text-sm leading-6 text-gray-700">
+                <Check className="mt-1 h-4 w-4 flex-none text-[#00337C]" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CohortTrackRecord({ cohort }) {
+  if (!cohort) return null;
+
+  const sections = [
+    {
+      title: "Previous cohort reflections",
+      description: "Notes from earlier fellowship seasons and the growth they shaped.",
+      items: cohort.previousCohorts || [],
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Journey achievements",
+      description: "Milestones and proof points gathered across the fellowship journey.",
+      items: cohort.achievements || [],
+      icon: <Award className="h-5 w-5" />,
+    },
+    {
+      title: "Impact moments",
+      description: "Visible growth, alumni stories, and community wins worth carrying forward.",
+      items: cohort.impactHighlights || [],
+      icon: <Check className="h-5 w-5" />,
+    },
+  ].filter((section) => section.items.length);
+
+  if (!sections.length) return null;
+
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+      <p className="public-eyebrow mb-3">Our Journey So Far</p>
+      <h2 className="text-2xl font-light text-[#00337C]">Reflections from previous cohorts</h2>
+      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+        A living record of what BYBS has learned, built, and witnessed through earlier fellowship cohorts.
+      </p>
+
+      <div className="mt-6 grid gap-5 lg:grid-cols-3">
+        {sections.map((section) => (
+          <article key={section.title} className="rounded-xl border border-gray-100 bg-[#F7FAFC] p-5">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-white text-[#00337C] shadow-sm">
+              {section.icon}
+            </div>
+            <h3 className="text-lg font-semibold text-[#10233F]">{section.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-gray-500">{section.description}</p>
+            <ul className="mt-4 space-y-3">
+              {section.items.map((item) => (
+                <li key={item} className="flex gap-3 text-sm leading-6 text-gray-700">
+                  <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#B76E79]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SuccessStories({ cohort }) {
+  if (!cohort?.successStories?.length) return null;
+
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+      <p className="public-eyebrow mb-3">Success Stories</p>
+      <h2 className="text-2xl font-light text-[#00337C]">What graduates carry forward</h2>
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        {cohort.successStories.map((story) => (
+          <blockquote key={story} className="rounded-xl bg-[#F7FAFC] p-5 text-sm leading-7 text-gray-700">
+            "{story}"
+          </blockquote>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CohortGallery({
+  cohort,
+  images,
+  currentImage,
+  setCurrentImage,
+  isAutoPlaying,
+  setIsAutoPlaying,
+  nextImage,
+  prevImage,
+  onTouchStart,
+  onTouchMove,
+  onTouchEnd,
+}) {
+  const activeImage = images[currentImage];
+
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-7">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <p className="public-eyebrow mb-2">Graduate Gallery</p>
+          <h2 className="text-2xl font-light text-[#00337C]">{cohort?.title}</h2>
+        </div>
+        {images.length > 1 && (
+          <button
+            onClick={() => setIsAutoPlaying((current) => !current)}
+            className="rounded-full border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
+            aria-label={isAutoPlaying ? "Pause slideshow" : "Play slideshow"}
+          >
+            {isAutoPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+
+      {activeImage ? (
+        <>
+          <div
+            className="relative overflow-hidden rounded-xl bg-gray-100"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <img src={activeImage.url} alt={activeImage.caption || cohort?.title} className="aspect-[4/3] w-full object-cover" />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white hover:bg-black/60"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 p-2 text-white hover:bg-black/60"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div className="absolute bottom-3 left-3 rounded-full bg-black/45 px-3 py-1 text-sm text-white">
+                  {currentImage + 1} / {images.length}
+                </div>
+              </>
+            )}
+          </div>
+
+          {images.length > 1 && (
+            <div className="mt-4 grid grid-cols-4 gap-3 md:grid-cols-6">
+              {images.map((image, index) => (
+                <button
+                  key={image._id || image.url}
+                  onClick={() => setCurrentImage(index)}
+                  className={`overflow-hidden rounded-lg border ${
+                    currentImage === index ? "border-[#00337C] ring-2 ring-[#00337C]/20" : "border-gray-100"
+                  }`}
+                >
+                  <img src={image.url} alt={image.caption || "Gallery thumbnail"} className="aspect-square w-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex min-h-72 items-center justify-center rounded-xl bg-gray-50 text-center">
+          <div>
+            <ImageIcon className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+            <p className="font-medium text-gray-600">No gallery images yet</p>
+            <p className="mt-1 text-sm text-gray-400">Images added in the admin cohort gallery will appear here.</p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ProgramDetails({ cohort }) {
+  if (!cohort) return null;
+
+  const sections = [
+    { title: "Features", items: cohort.features || [], icon: <Award className="h-4 w-4" /> },
+    { title: "Eligibility", items: cohort.eligibility || [], icon: <Users className="h-4 w-4" /> },
+    { title: "Curriculum", items: cohort.curriculum || [], icon: <Calendar className="h-4 w-4" /> },
+    { title: "Outcomes", items: cohort.outcomes || [], icon: <Award className="h-4 w-4" /> },
+  ].filter((section) => section.items.length);
+
+  if (!sections.length && !cohort.facilitators?.length && !cohort.schedule) return null;
+
+  return (
+    <section className="grid gap-5 md:grid-cols-2">
+      {sections.map((section) => (
+        <div key={section.title} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2 text-[#00337C]">
+            {section.icon}
+            <h3 className="font-semibold">{section.title}</h3>
+          </div>
+          <ul className="space-y-3">
+            {section.items.map((item) => (
+              <li key={item} className="flex gap-3 text-sm leading-6 text-gray-700">
+                <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-[#B76E79]" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      {cohort.facilitators?.length > 0 && (
+        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2 text-[#00337C]">
+            <Users className="h-4 w-4" />
+            <h3 className="font-semibold">Facilitators</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {cohort.facilitators.map((facilitator) => (
+              <span key={facilitator} className="rounded-full bg-[#EAF1FF] px-3 py-1 text-sm font-medium text-[#00337C]">
+                {facilitator}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function InfoCard({ icon, label, value }) {
+  return (
+    <div className="rounded-lg bg-[#F7FAFC] p-4">
+      <div className="mb-2 flex items-center gap-2 text-[#00337C]">
+        {icon}
+        <span className="text-xs font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-sm font-medium text-gray-700">{value}</p>
+    </div>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className="flex h-72 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
+      <div className="text-center">
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#00337C] border-t-transparent" />
+        <p className="text-gray-600">Loading cohorts...</p>
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message, onRetry }) {
+  return (
+    <div className="rounded-xl border border-red-100 bg-white p-8 text-center shadow-sm">
+      <p className="text-red-600">{message}</p>
+      <button onClick={onRetry} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white">
+        <RefreshCw className="h-4 w-4" />
+        Try Again
+      </button>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-8 text-center shadow-sm">
+      <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+      <h2 className="text-2xl font-light text-[#00337C]">No cohorts published yet</h2>
+      <p className="mx-auto mt-3 max-w-xl leading-7 text-gray-600">
+        Once a cohort is marked as published in the admin dashboard, it will appear here automatically.
+      </p>
+    </div>
   );
 }

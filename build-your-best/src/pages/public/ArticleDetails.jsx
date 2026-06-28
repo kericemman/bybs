@@ -201,28 +201,33 @@ const ArticleDetails = () => {
 
   const tocContent = (
     <>
-      <div className="mb-5 flex items-center gap-3">
-        <Menu className="w-5 h-5 text-[#00337C]" />
-        <h2 className="text-lg font-light text-[#00337C]">
-          Table of contents
+      <div className="mb-5">
+        <div className="mb-2 flex items-center gap-2 text-[#00337C]">
+          <Menu className="h-4 w-4" />
+          <p className="text-xs font-semibold uppercase tracking-wide">
+            On this page
+          </p>
+        </div>
+        <h2 className="text-lg font-light text-slate-900">
+          Article sections
         </h2>
       </div>
 
       {headings.length > 0 ? (
-        <nav className="space-y-2">
+        <nav className="space-y-1.5">
           {headings.map((heading) => (
             <button
               key={heading.id}
               onClick={() => scrollToHeading(heading.id)}
-              className={`flex w-full items-start rounded-lg px-3 py-2 text-left transition ${
+              className={`flex w-full items-start border-l-2 px-3 py-2 text-left transition ${
                 activeHeading === heading.id
-                  ? "bg-[#00337C] text-white"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "border-[#00337C] bg-[#F5F9FF] text-[#00337C]"
+                  : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800"
               }`}
             >
               <Hash
                 className={`mt-1 h-3 w-3 flex-shrink-0 ${
-                  activeHeading === heading.id ? "text-white" : "text-slate-400"
+                  activeHeading === heading.id ? "text-[#00337C]" : "text-slate-300"
                 }`}
               />
               <span
@@ -280,7 +285,7 @@ const ArticleDetails = () => {
   const excerpt = getExcerpt(article);
 
   return (
-    <main className="min-h-screen bg-white text-slate-950">
+    <main className="min-h-screen bg-[#FBFCFE] text-slate-950">
       <div className="fixed left-0 right-0 top-0 z-40 h-1 bg-transparent">
         <div
           className="h-full bg-[#00337C] transition-all duration-200"
@@ -288,7 +293,7 @@ const ArticleDetails = () => {
         />
       </div>
 
-      <div className="border-b border-slate-100">
+      <div className="border-b border-slate-100 bg-white">
         <div className="public-container py-4">
           <button
             onClick={() => navigate(-1)}
@@ -300,39 +305,60 @@ const ArticleDetails = () => {
         </div>
       </div>
 
-      <section className="border-b border-slate-100 bg-[#F7F9FC]">
-        <div className="public-container py-10 md:py-14">
-          <div className="grid gap-9 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <Motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              {article.tags?.length > 0 && (
-                <div className="mb-5 flex flex-wrap gap-2">
-                  {article.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center rounded-full bg-white px-3 py-1 text-sm text-slate-600"
-                    >
-                      <Tag className="w-3 h-3 mr-1" />
-                      {tag}
-                    </span>
-                  ))}
+      <section className="border-b border-slate-100 bg-white">
+        <div className="public-container py-7 md:py-10">
+          <Motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)] lg:items-center"
+          >
+            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
+              {article.coverImage?.url ? (
+                <img
+                  src={article.coverImage.url}
+                  alt={article.title}
+                  className="aspect-[16/10] w-full object-cover lg:aspect-[4/3] lg:min-h-[420px]"
+                />
+              ) : (
+                <div className="flex aspect-[16/10] w-full items-center justify-center lg:aspect-[4/3] lg:min-h-[420px]">
+                  <BookOpen className="w-20 h-20 text-slate-300" />
                 </div>
               )}
+            </div>
 
-              <h1 className="public-heading text-4xl md:text-6xl mb-5">
+            <div>
+              <div className="mb-6 flex flex-wrap items-center gap-3">
+                {article.tags?.length > 0 && (
+                  <>
+                    {article.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center rounded-full border border-[#00337C]/10 bg-[#F5F9FF] px-3 py-1 text-sm text-[#00337C]"
+                      >
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                      </span>
+                    ))}
+                  </>
+                )}
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-500">
+                  <Users className="h-3.5 w-3.5" />
+                  {activeReaders || 1} reading now
+                </span>
+              </div>
+
+              <h1 className="max-w-3xl text-3xl font-light leading-tight text-[#00337C] sm:text-4xl lg:text-5xl">
                 {article.title}
               </h1>
 
               {excerpt && (
-                <p className="public-copy text-lg md:text-xl max-w-2xl mb-7">
+                <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
                   {excerpt}
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-5 text-sm text-slate-500">
+              <div className="mt-6 flex flex-wrap items-center gap-5 border-t border-slate-100 pt-5 text-sm text-slate-500">
                 <span className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {formatDate(article.createdAt)}
@@ -342,36 +368,16 @@ const ArticleDetails = () => {
                   {getReadingTime(article.content)}
                 </span>
                 <span className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  {activeReaders || 1} reading now
+                  <BookOpen className="w-4 h-4" />
+                  {headings.length} sections
                 </span>
               </div>
-            </Motion.div>
-
-            <Motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.08 }}
-            >
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
-                {article.coverImage?.url ? (
-                  <img
-                    src={article.coverImage.url}
-                    alt={article.title}
-                    className="h-[280px] w-full object-cover md:h-[430px]"
-                  />
-                ) : (
-                  <div className="flex h-[280px] w-full items-center justify-center md:h-[430px]">
-                    <BookOpen className="w-20 h-20 text-slate-300" />
-                  </div>
-                )}
-              </div>
-            </Motion.div>
-          </div>
+            </div>
+          </Motion.div>
         </div>
       </section>
 
-      <div className="public-container py-8 lg:hidden">
+      <div className="public-container py-6 lg:hidden">
         <details className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <summary className="cursor-pointer text-base font-semibold text-[#00337C]">
             Table of contents
@@ -380,8 +386,8 @@ const ArticleDetails = () => {
         </details>
       </div>
 
-      <section className="public-container py-10 md:py-14">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <section className="public-container py-8 md:py-12">
+        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[minmax(0,43rem)_17rem] lg:items-start lg:justify-center">
           <article className="min-w-0">
             <Motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -395,16 +401,17 @@ const ArticleDetails = () => {
 
               <style>{`
                 .article-content {
-                  max-width: 46rem;
+                  max-width: 100%;
+                  color: #1f2937;
                 }
 
                 .article-content h2 {
-                  font-size: 1.5rem;
-                  font-weight: 300;
+                  font-size: 1.65rem;
+                  font-weight: 400;
                   color: #00337C;
                   margin-top: 3rem;
                   margin-bottom: 1.25rem;
-                  line-height: 1.25;
+                  line-height: 1.2;
                 }
 
                 .article-content h2:first-of-type {
@@ -412,25 +419,25 @@ const ArticleDetails = () => {
                 }
 
                 .article-content h3 {
-                  font-size: 1rem;
-                  font-weight: 500;
+                  font-size: 1.175rem;
+                  font-weight: 600;
                   color: #1E4B9E;
-                  margin-top: 2.25rem;
+                  margin-top: 2.5rem;
                   margin-bottom: 1rem;
                 }
 
                 .article-content p {
                   font-size: 1.075rem;
-                  line-height: 1.8;
-                  color: #374151;
-                  margin-bottom: 1.35rem;
+                  line-height: 1.9;
+                  color: #334155;
+                  margin-bottom: 1.45rem;
                 }
 
                 .article-content ul,
                 .article-content ol {
-                  margin-bottom: 1rem;
+                  margin: 1.5rem 0 1.75rem;
                   padding-left: 1.5rem;
-                  color: #374151;
+                  color: #334155;
                 }
 
                 .article-content ul {
@@ -443,9 +450,10 @@ const ArticleDetails = () => {
 
                 .article-content li {
                   display: list-item;
-                  margin-bottom: 0.1rem;
-                  line-height: 1.75;
+                  margin-bottom: 0.6rem;
+                  line-height: 1.8;
                   padding-left: 0.25rem;
+                  font-size: 1.075rem;
                 }
 
                 .article-content li p {
@@ -454,11 +462,13 @@ const ArticleDetails = () => {
 
                 .article-content blockquote {
                   border-left: 4px solid #B76E79;
-                  padding-left: 1.25rem;
-                  margin: 2rem 0;
-                  color: #4B5563;
-                  font-size: 1.2rem;
-                  line-height: 1.65;
+                  background: #F7F9FC;
+                  border-radius: 0 0.5rem 0.5rem 0;
+                  padding: 1.25rem 1.5rem;
+                  margin: 2.25rem 0;
+                  color: #334155;
+                  font-size: 1.15rem;
+                  line-height: 1.75;
                 }
 
                 .article-content a {
@@ -469,9 +479,10 @@ const ArticleDetails = () => {
 
                 .article-content img {
                   border-radius: 0.5rem;
-                  margin: 2rem 0;
+                  margin: 2.25rem 0;
                   max-width: 100%;
                   height: auto;
+                  border: 1px solid #E5E7EB;
                 }
 
                 .article-content strong {
@@ -502,10 +513,15 @@ const ArticleDetails = () => {
 
                 @media (max-width: 767px) {
                   .article-content h2 {
-                    font-size: 1.45rem;
+                    font-size: 1.55rem;
                   }
 
                   .article-content p {
+                    font-size: 1rem;
+                    line-height: 1.8;
+                  }
+
+                  .article-content li {
                     font-size: 1rem;
                   }
                 }
@@ -552,38 +568,35 @@ const ArticleDetails = () => {
             </div>
           </article>
 
-          <aside 
-            className="hidden lg:block lg:self-start" 
+          <aside
+            className="hidden lg:sticky lg:top-24 lg:block lg:h-fit lg:self-start"
             aria-label="Article table of contents"
-            style={{ position: "sticky", top: "96px" }}
           >
-            <div className="max-h-[calc(100vh-7rem)] overflow-y-auto rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="border-l border-slate-200 pl-5">
               {tocContent}
 
-              <div className="mt-7 border-t border-slate-100 pt-5">
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div className="rounded-lg bg-[#F7F9FC] p-3">
-                    <p className="text-xl font-light text-[#00337C]">
-                      {getReadingTime(article.content).split(" ")[0]}
-                    </p>
-                    <p className="text-xs text-slate-500">Min read</p>
-                  </div>
-                  <div className="rounded-lg bg-[#F7F9FC] p-3">
-                    <p className="text-xl font-light text-[#00337C]">
-                      {headings.length}
-                    </p>
-                    <p className="text-xs text-slate-500">Sections</p>
-                  </div>
-                  <div className="rounded-lg bg-[#F7F9FC] p-3">
-                    <p className="text-xl font-light text-[#00337C]">
-                      {activeReaders || 1}
-                    </p>
-                    <p className="text-xs text-slate-500">Reading now</p>
-                  </div>
-                </div>
+              <div className="mt-7 space-y-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
+                <p className="flex items-center justify-between gap-4">
+                  <span>Read time</span>
+                  <span className="font-medium text-slate-800">
+                    {getReadingTime(article.content)}
+                  </span>
+                </p>
+                <p className="flex items-center justify-between gap-4">
+                  <span>Sections</span>
+                  <span className="font-medium text-slate-800">
+                    {headings.length}
+                  </span>
+                </p>
+                <p className="flex items-center justify-between gap-4">
+                  <span>Reading now</span>
+                  <span className="font-medium text-slate-800">
+                    {activeReaders || 1}
+                  </span>
+                </p>
               </div>
 
-              <div className="mt-6 rounded-lg bg-[#F7F9FC] p-4">
+              <div className="mt-6">
                 <p className="mb-3 text-sm font-semibold text-[#00337C]">
                   Reading progress
                 </p>
@@ -598,7 +611,7 @@ const ArticleDetails = () => {
                 </p>
               </div>
 
-              <div className="mt-6 grid gap-3">
+              <div className="mt-6 grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setIsBookmarked((value) => !value)}
                   className={`inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition ${
@@ -610,7 +623,7 @@ const ArticleDetails = () => {
                   <Bookmark
                     className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-current" : ""}`}
                   />
-                  {isBookmarked ? "Saved" : "Save article"}
+                  {isBookmarked ? "Saved" : "Save"}
                 </button>
 
                 <button
@@ -618,7 +631,7 @@ const ArticleDetails = () => {
                   className="inline-flex w-full items-center justify-center rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1E4B9E]"
                 >
                   <Share2 className="mr-2 h-4 w-4" />
-                  Share article
+                  Share
                 </button>
               </div>
 

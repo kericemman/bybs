@@ -9,13 +9,30 @@ const storage = new CloudinaryStorage({
     if (file.fieldname === "ebookFile") {
       return {
         folder: "bybs/ebooks",
-        resource_type: "raw", // 🔥 REQUIRED FOR PDF
+        resource_type: "raw",
+        allowed_formats: ["pdf"],
       };
     }
 
     if (file.fieldname === "coverImage" && req.originalUrl?.includes("/articles")) {
       return {
         folder: "bybs/articles",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      };
+    }
+
+    if (file.fieldname === "coverImage" && req.originalUrl?.includes("/cohorts")) {
+      return {
+        folder: "bybs/cohorts/covers",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      };
+    }
+
+    if (["gallery", "graduateGallery"].includes(file.fieldname)) {
+      return {
+        folder: "bybs/cohorts/gallery",
         resource_type: "image",
         allowed_formats: ["jpg", "jpeg", "png", "webp"],
       };

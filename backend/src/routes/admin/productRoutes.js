@@ -10,6 +10,21 @@ const{ createProduct, updateProduct,
 
 const router = express.Router();
 
+const productUpload = (req, res, next) => {
+  upload.fields([
+    { name: "coverImage", maxCount: 1 },
+    { name: "ebookFile", maxCount: 1 },
+  ])(req, res, (error) => {
+    if (!error) return next();
+
+    const message = error.code === "LIMIT_FILE_SIZE"
+      ? "File is too large. Please upload files under 20MB."
+      : error.message || "File upload failed. Please check the file type and try again.";
+
+    return res.status(400).json({ message });
+  });
+};
+
 
 // Public
 router.get("/", getPublicProducts);
@@ -20,20 +35,14 @@ router.get("/admin/all", protect, getAllProducts);
 router.post(
   "/admin",
   protect,
-  upload.fields([
-    { name: "coverImage", maxCount: 1 },
-    { name: "ebookFile", maxCount: 1 },
-  ]),
+  productUpload,
   createProduct
 );
 
 router.put(
   "/admin/:id",
   protect,
-  upload.fields([
-    { name: "coverImage", maxCount: 1 },
-    { name: "ebookFile", maxCount: 1 },
-  ]),
+  productUpload,
   updateProduct
 );
 

@@ -2,6 +2,56 @@ const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const slugify = require("slugify");
 
+const PRODUCT_TYPES = ["ebook", "merch"];
+
+const parsePositiveNumber = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+};
+
+const parseStock = (value) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
+};
+
+const getUpload = (req, fieldName) => req.files?.[fieldName]?.[0] || null;
+
+const buildCoverImage = (file) => ({
+  url: file.path,
+  public_id: file.filename,
+});
+
+const destroyCoverImage = async (publicId) => {
+  if (publicId) {
+    await cloudinary.uploader.destroy(publicId);
+  }
+};
+
+const destroyEbookFile = async (publicId) => {
+  if (publicId) {
+    await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+  }
+};
+
+const handleProductError = (res, error, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+
+  if (error?.code === 11000) {
+    return res.status(409).json({
+      message: "A product with this title already exists. Please use a different title.",
+    });
+  }
+
+  if (error?.name === "ValidationError") {
+    const message = Object.values(error.errors)
+      .map((entry) => entry.message)
+      .join(" ");
+    return res.status(400).json({ message: message || "Product details are invalid." });
+  }
+
+  return res.status(500).json({ message: fallbackMessage });
+};
+
 
 // ========================================
 // 1️⃣ CREATE PRODUCT (ADMIN)
@@ -16,55 +66,59 @@ exports.createProduct = async (req, res) => {
       stock,
     } = req.body;
 
-    if (!title || !type || !price) {
+    const cleanTitle = title?.trim();
+    const cleanDescription = description?.trim();
+    const parsedPrice = parsePositiveNumber(price);
+    const coverUpload = getUpload(req, "coverImage");
+    const ebookUpload = getUpload(req, "ebookFile");
+
+    if (!cleanTitle || !cleanDescription || !type || !parsedPrice) {
       return res.status(400).json({
-        message: "Title, type and price are required",
+        message: "Title, description, type and a valid price are required.",
       });
     }
 
-    if (!["ebook", "merch"].includes(type)) {
+    if (!PRODUCT_TYPES.includes(type)) {
       return res.status(400).json({
-        message: "Invalid product type",
+        message: "Invalid product type.",
       });
     }
 
-    let coverImage = null;
-    let fileUrl = null;
-
-    // Cover image upload
-    if (req.files?.coverImage?.length > 0) {
-      coverImage = {
-        url: req.files.coverImage[0].path,
-        public_id: req.files.coverImage[0].filename,
-      };
+    if (!coverUpload) {
+      return res.status(400).json({ message: "Cover image is required." });
     }
 
-    // Ebook file upload
-    if (type === "ebook" && req.files?.ebookFile?.length > 0) {
-      fileUrl = req.files.ebookFile[0].path;
+    let parsedStock;
+    if (type === "merch") {
+      parsedStock = parseStock(stock);
+      if (parsedStock === null) {
+        return res.status(400).json({
+          message: "Stock must be a whole number of 0 or more.",
+        });
+      }
+    }
+
+    if (type === "ebook" && !ebookUpload) {
+      return res.status(400).json({ message: "Ebook PDF file is required." });
     }
 
     const product = await Product.create({
-      title,
-      slug: slugify(title, { lower: true }),
-      description,
+      title: cleanTitle,
+      slug: slugify(cleanTitle, { lower: true, strict: true }),
+      description: cleanDescription,
       type,
-      price: Number(price),
-      stock: type === "merch" ? Number(stock) : undefined,
-      coverImage,
-      fileUrl,
+      price: parsedPrice,
+      stock: type === "merch" ? parsedStock : undefined,
+      coverImage: buildCoverImage(coverUpload),
+      fileUrl: type === "ebook" ? ebookUpload.path : undefined,
+      filePublicId: type === "ebook" ? ebookUpload.filename : undefined,
       createdBy: req.admin._id,
     });
 
     res.status(201).json(product);
 
   } catch (error) {
-    console.error("Create product error:");
-        console.error("Message:", error.message);
-        console.error("Stack:", error.stack);
-        console.error("Full object:", error);
-
-    res.status(500).json({ message: "Error creating product" });
+    handleProductError(res, error, "Error creating product");
   }
 };
 
@@ -84,37 +138,74 @@ exports.updateProduct = async (req, res) => {
     const {
       title,
       description,
+      type,
       price,
       stock,
     } = req.body;
 
-    if (title) {
-      product.title = title;
-      product.slug = slugify(title, { lower: true });
+    const nextType = type || product.type;
+
+    if (!PRODUCT_TYPES.includes(nextType)) {
+      return res.status(400).json({ message: "Invalid product type." });
     }
 
-    if (description) product.description = description;
-    if (price) product.price = Number(price);
+    if (title) {
+      product.title = title.trim();
+      product.slug = slugify(title, { lower: true, strict: true });
+    }
 
-    if (product.type === "merch" && stock !== undefined) {
-      product.stock = Number(stock);
+    if (description !== undefined) {
+      product.description = description.trim();
+    }
+
+    if (price !== undefined) {
+      const parsedPrice = parsePositiveNumber(price);
+      if (!parsedPrice) {
+        return res.status(400).json({ message: "Price must be greater than 0." });
+      }
+      product.price = parsedPrice;
+    }
+
+    product.type = nextType;
+
+    if (nextType === "merch") {
+      if (stock !== undefined) {
+        const parsedStock = parseStock(stock);
+        if (parsedStock === null) {
+          return res.status(400).json({
+            message: "Stock must be a whole number of 0 or more.",
+          });
+        }
+        product.stock = parsedStock;
+      } else if (product.stock === undefined || product.stock === null) {
+        return res.status(400).json({ message: "Stock is required for merchandise." });
+      }
+    } else {
+      product.stock = undefined;
     }
 
     // Replace cover image
-    if (req.files?.coverImage?.length > 0) {
-      if (product.coverImage?.public_id) {
-        await cloudinary.uploader.destroy(product.coverImage.public_id);
-      }
+    const coverUpload = getUpload(req, "coverImage");
+    if (coverUpload) {
+      await destroyCoverImage(product.coverImage?.public_id);
 
-      product.coverImage = {
-        url: req.files.coverImage[0].path,
-        public_id: req.files.coverImage[0].filename,
-      };
+      product.coverImage = buildCoverImage(coverUpload);
     }
 
     // Replace ebook file
-    if (product.type === "ebook" && req.files?.ebookFile?.length > 0) {
-      product.fileUrl = req.files.ebookFile[0].path;
+    const ebookUpload = getUpload(req, "ebookFile");
+    if (nextType === "ebook") {
+      if (ebookUpload) {
+        await destroyEbookFile(product.filePublicId);
+        product.fileUrl = ebookUpload.path;
+        product.filePublicId = ebookUpload.filename;
+      } else if (!product.fileUrl) {
+        return res.status(400).json({ message: "Ebook PDF file is required." });
+      }
+    } else if (product.fileUrl || product.filePublicId) {
+      await destroyEbookFile(product.filePublicId);
+      product.fileUrl = undefined;
+      product.filePublicId = undefined;
     }
 
     await product.save();
@@ -122,8 +213,7 @@ exports.updateProduct = async (req, res) => {
     res.json(product);
 
   } catch (error) {
-    console.error("Update product error:", error);
-    res.status(500).json({ message: "Error updating product" });
+    handleProductError(res, error, "Error updating product");
   }
 };
 
@@ -141,9 +231,8 @@ exports.deleteProduct = async (req, res) => {
     }
 
     // Delete cover image from Cloudinary
-    if (product.coverImage?.public_id) {
-      await cloudinary.uploader.destroy(product.coverImage.public_id);
-    }
+    await destroyCoverImage(product.coverImage?.public_id);
+    await destroyEbookFile(product.filePublicId);
 
     await product.deleteOne();
 

@@ -6,15 +6,23 @@ const {
   getCohorts,
   updateCohort,
   deleteCohort,
+  deleteCohortGalleryImage,
 } = require("../../controllers/cohort.controllers");
 
 const router = express.Router();
 
 router.use(protect);
 
+const cohortUpload = upload.fields([
+  { name: "coverImage", maxCount: 1 },
+  { name: "gallery", maxCount: 20 },
+  { name: "graduateGallery", maxCount: 20 },
+]);
+
 router.get("/", getCohorts);
-router.post("/", upload.array("gallery", 10), createCohort);
-router.put("/:id", upload.array("gallery", 10), updateCohort);
+router.post("/", cohortUpload, createCohort);
+router.put("/:id", cohortUpload, updateCohort);
+router.delete("/:id/gallery/:imageId", deleteCohortGalleryImage);
 router.delete("/:id", deleteCohort);
 
 module.exports = router;

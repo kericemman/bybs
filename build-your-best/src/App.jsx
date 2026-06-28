@@ -14,9 +14,11 @@ import Founder from "./pages/public/Founder";
 
 import CoachingSuccess from "./pages/public/CoachingSuccess";
 import FellowshipLanding from "./pages/public/Fellowship";
+
+import FellowshipApplication from "./pages/public/FellowshipApplication";
 import EmpowerHerInitiative from "./pages/public/EmpowerHer";
 import CommunityOutreach from "./pages/public/Outreach";
-import CohortsPage from "./pages/public/CohortPage";
+import CohortsPage, { CohortDetailPage } from "./pages/public/CohortPage";
 
 
 import PublicLayout from "./layouts/PublicLayout";
@@ -32,7 +34,6 @@ import ArticlesPage from "./pages/public/Articles";
 import ArticleDetails from "./pages/public/ArticleDetails";
 import AdminCohorts from "./pages/admin/AdminCohorts";
 import AdminWaitlist from "./pages/admin/AdminWaitlist";
-import AdminCohortForm from "./pages/admin/AdminCohortForm";
 import AdminProducts from "./pages/admin/AdminProduct";
 import AdminOrders from "./pages/admin/AdminOrders";
 import ProductDetails from "./pages/public/ProductDetails";
@@ -41,6 +42,7 @@ import PaymentSuccess from "./pages/public/Successpage";
 import CharityMerchLanding from "./pages/public/CharityMerchLanding";
 import AdminCharityMerchOrders from "./pages/admin/AdminCharityMerchOrders";
 import Checkout from "./pages/public/Checkout";
+import AdminFellowshipApplications from "./pages/admin/AdminFellowshipApplications";
 
 
 export default function AppRoutes() {
@@ -71,9 +73,15 @@ export default function AppRoutes() {
           
           <Route path="/coaching-success" element={<CoachingSuccess />} />
           <Route path="/fellowship" element={<FellowshipLanding />} />
+          {/* <Route path="/fellowship/cohort-4" element={<FellowshipCohort4 />} /> */}
+          <Route path="/fellowship/apply" element={<FellowshipApplication />} />
+          <Route path="/fellowship/:cohortSlug/apply" element={<FellowshipApplication />} />
+         
           <Route path="/empowerher" element={<EmpowerHerInitiative />} />
           <Route path="/outreach" element={<CommunityOutreach />} />
           <Route path="/cohorts" element={<CohortsPage />} />
+          <Route path="/cohorts/:cohortSlug" element={<CohortDetailPage />} />
+          <Route path="/cohorts/:cohortSlug/apply" element={<FellowshipApplication />} />
           <Route path="/articles" element={<ArticlesPage />}/>
           <Route path="/articles/:slug" element={<ArticleDetails />} />
         </Route>
@@ -131,7 +139,7 @@ export default function AppRoutes() {
             path="/admin/cohorts/new"
             element={
               <ProtectedRoute>
-                <AdminCohortForm />
+                <AdminCohorts />
               </ProtectedRoute>
             }
           />
@@ -140,7 +148,7 @@ export default function AppRoutes() {
             path="/admin/cohorts/:id/edit"
             element={
               <ProtectedRoute>
-                <AdminCohortForm />
+                <AdminCohorts />
               </ProtectedRoute>
             }
           />
@@ -178,6 +186,15 @@ export default function AppRoutes() {
             element={
               <ProtectedRoute>
                 <AdminCharityMerchOrders />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/fellowship-applications"
+            element={
+              <ProtectedRoute>
+                <AdminFellowshipApplications />
               </ProtectedRoute>
             }
           />

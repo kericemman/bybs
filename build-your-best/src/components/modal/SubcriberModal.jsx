@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, CheckCircle } from "lucide-react";
 import api from "../../utils/axios";
 
@@ -10,23 +10,31 @@ const SubscribeModal = ({ showOnArticles = false }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     const hasSubscribed = localStorage.getItem("bybs_subscribed");
     const dontShowUntil = localStorage.getItem("bybs_dont_show_until");
     
     if (hasSubscribed || (dontShowUntil && new Date(dontShowUntil) > new Date())) {
-      setMinimized(true);
+      setHidden(true);
       return;
     }
 
-    // Show immediately if on articles page, otherwise use delay
-    if (showOnArticles) {
+    setHidden(false);
+    setOpen(false);
+    setMinimized(false);
+
+    const timer = setTimeout(() => {
+      if (showOnArticles) {
+        setMinimized(true);
+        return;
+      }
+
       setOpen(true);
-    } else {
-      const timer = setTimeout(() => setOpen(true), 2000);
-      return () => clearTimeout(timer);
-    }
+    }, showOnArticles ? 5000 : 2500);
+
+    return () => clearTimeout(timer);
   }, [showOnArticles]);
 
   const handleSubscribe = async () => {
@@ -50,7 +58,8 @@ const SubscribeModal = ({ showOnArticles = false }) => {
       // Auto close after success
       setTimeout(() => {
         setOpen(false);
-        setMinimized(true);
+        setMinimized(false);
+        setHidden(true);
         setSuccess(false);
       }, 2000);
       
@@ -63,119 +72,143 @@ const SubscribeModal = ({ showOnArticles = false }) => {
     }
   };
 
+  if (hidden) return null;
+
   if (!open && minimized) {
     return (
-      <motion.button
+      <Motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 bg-[#00337C] text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center z-50"
+        className={`fixed bottom-6 right-6 z-50 flex h-12 items-center justify-center rounded-full bg-[#00337C] text-white shadow-lg transition hover:bg-[#1E4B9E] ${
+          showOnArticles
+            ? "w-auto gap-2 px-4 text-sm font-semibold lg:left-6 lg:right-auto lg:w-12 lg:px-0"
+            : "w-12"
+        }`}
+        aria-label="Open subscribe form"
       >
         <Mail className="w-5 h-5" />
-      </motion.button>
+        {showOnArticles && <span className="lg:hidden">Subscribe</span>}
+      </Motion.button>
     );
   }
+
+  const panel = (
+    <Motion.div
+      initial={showOnArticles ? { y: 24, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+      animate={showOnArticles ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
+      exit={showOnArticles ? { y: 24, opacity: 0 } : { scale: 0.9, opacity: 0 }}
+      className={`relative w-full max-w-sm rounded-xl bg-white p-6 shadow-xl ${
+        showOnArticles ? "border border-slate-200" : ""
+      }`}
+    >
+      <button
+        onClick={() => setOpen(false)}
+        className="absolute right-3 top-3 text-gray-400 transition hover:text-gray-600"
+        aria-label="Close subscribe form"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {success ? (
+        <div className="py-4 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+          </div>
+          <h3 className="mb-1 text-lg font-medium text-[#00337C]">
+            You are subscribed
+          </h3>
+          <p className="text-sm text-gray-600">
+            Thanks {formData.name || "for joining"}. Check your inbox.
+          </p>
+        </div>
+      ) : (
+        <>
+          <h3 className="mb-2 text-xl font-light text-[#00337C]">
+            {showOnArticles ? "Enjoying this read?" : "Join Our Community"}
+          </h3>
+
+          <p className="mb-4 text-sm leading-6 text-gray-600">
+            {showOnArticles
+              ? "Get thoughtful articles, BYBS updates, and new learning opportunities in your inbox."
+              : "Get updates on new content and offers."}
+          </p>
+
+          {error && <p className="mb-3 text-xs text-red-600">{error}</p>}
+
+          <div className="space-y-3">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Your name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-[#00337C] focus:ring-1 focus:ring-[#00337C]"
+              />
+            </div>
+
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                placeholder="Email address"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none transition focus:border-[#00337C] focus:ring-1 focus:ring-[#00337C]"
+              />
+            </div>
+
+            <button
+              onClick={handleSubscribe}
+              disabled={loading}
+              className="w-full rounded-lg bg-[#00337C] py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E] disabled:opacity-50"
+            >
+              {loading ? "Subscribing..." : "Subscribe"}
+            </button>
+
+            <button
+              onClick={() => {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                localStorage.setItem("bybs_dont_show_until", tomorrow.toISOString());
+                setOpen(false);
+                setMinimized(false);
+                setHidden(true);
+              }}
+              className="w-full text-xs text-gray-400 transition hover:text-gray-600"
+            >
+              Not now
+            </button>
+          </div>
+        </>
+      )}
+    </Motion.div>
+  );
 
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40"
-            onClick={() => setOpen(false)}
-          />
-          
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6"
-          >
-            <button
-              onClick={() => setOpen(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        showOnArticles ? (
+          <div className="fixed bottom-5 left-4 right-4 z-50 flex justify-center sm:left-auto sm:right-6 sm:justify-end lg:left-6 lg:right-auto lg:justify-start">
+            {panel}
+          </div>
+        ) : (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <Motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40"
+              onClick={() => {
+                setOpen(false);
+                setMinimized(true);
+              }}
+            />
 
-            {success ? (
-              <div className="text-center py-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <h3 className="text-lg font-medium text-[#00337C] mb-1">
-                  You're Subscribed! 🎉
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Thanks {formData.name || "for joining"}! Check your inbox.
-                </p>
-              </div>
-            ) : (
-              <>
-                <h3 className="text-xl font-light text-[#00337C] mb-2">
-                  {showOnArticles ? "Read This Article?" : "Join Our Community"}
-                </h3>
-                
-                <p className="text-sm text-gray-600 mb-4">
-                  {showOnArticles 
-                    ? "Subscribe to access this and other exclusive articles." 
-                    : "Get updates on new content and offers."}
-                </p>
-
-                {error && (
-                  <p className="text-xs text-red-600 mb-3">{error}</p>
-                )}
-
-                <div className="space-y-3">
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#00337C] focus:ring-1 focus:ring-[#00337C] outline-none"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="email"
-                      placeholder="Email address"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:border-[#00337C] focus:ring-1 focus:ring-[#00337C] outline-none"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleSubscribe}
-                    disabled={loading}
-                    className="w-full py-2 bg-[#00337C] text-white text-sm rounded-lg hover:bg-[#1E4B9E] transition-colors disabled:opacity-50"
-                  >
-                    {loading ? "Subscribing..." : showOnArticles ? "Subscribe to Read" : "Subscribe"}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const tomorrow = new Date();
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      localStorage.setItem("bybs_dont_show_until", tomorrow.toISOString());
-                      setOpen(false);
-                    }}
-                    className="w-full text-xs text-gray-400 hover:text-gray-600"
-                  >
-                    {showOnArticles ? "Maybe later" : "Not now"}
-                  </button>
-                </div>
-              </>
-            )}
-          </motion.div>
-        </div>
+            {panel}
+          </div>
+        )
       )}
     </AnimatePresence>
   );

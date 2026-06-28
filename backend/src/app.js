@@ -27,6 +27,8 @@ const waitlistRoutes = require("./routes/admin/waitlistRoutes");
 const productRoutes = require("./routes/admin/productRoutes");
 const subscriberRoutes = require("./routes/admin/subscriberRoutes");
 const charityMerchRoutes = require("./routes/admin/charityMerchRoutes");
+const fellowshipApplicationRoutes = require("./routes/public/fellowshipApplicationRoutes");
+const adminFellowshipApplicationRoutes = require("./routes/admin/fellowshipApplicationRoutes");
 
 const app = express();
 
@@ -47,13 +49,15 @@ const allowedOrigins = new Set([
     ? []
     : ["http://localhost:5173", "http://127.0.0.1:5173"]),
 ]);
+const isLocalDevelopmentOrigin = (origin) =>
+  !isProduction && /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) {
+    if (!origin || allowedOrigins.has(origin) || isLocalDevelopmentOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error("CORS blocked"));
@@ -106,6 +110,8 @@ app.use("/api/admin/cohorts", cohortRoutes);
 app.use("/api/cohorts", publicCohortRoutes);
 app.use("/api/waitlist", publicWaitlistRoutes);
 app.use("/api/admin/waitlist", waitlistRoutes);
+app.use("/api/fellowship-applications", fellowshipApplicationRoutes);
+app.use("/api/admin/fellowship-applications", adminFellowshipApplicationRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/subscribers", subscriberRoutes);
 app.use("/api/charity-merch", charityMerchRoutes);

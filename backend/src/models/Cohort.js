@@ -14,9 +14,16 @@ const cohortSchema = new mongoose.Schema(
     },
 
     description: String,
+    tagline: String,
+    overview: String,
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
 
     startDate: Date,
     endDate: Date,
+    applicationDeadline: Date,
 
     status: {
       type: String,
@@ -24,13 +31,43 @@ const cohortSchema = new mongoose.Schema(
       required: true,
     },
 
+    applicationStatus: {
+      type: String,
+      enum: ["open", "closed", "invite-only"],
+      default: "closed",
+    },
+
+    format: {
+      type: String,
+      enum: ["online", "hybrid", "in-person", "flexible"],
+      default: "online",
+    },
+
+    location: String,
+    schedule: String,
     capacity: Number,
 
     price: Number,
+    currency: {
+      type: String,
+      default: "USD",
+    },
 
     features: [String],
+    eligibility: [String],
+    curriculum: [String],
+    outcomes: [String],
+    whoIsItFor: [String],
+    whoCanApply: [String],
+    commitment: [String],
+    successStories: [String],
+    previousCohorts: [String],
+    achievements: [String],
+    impactHighlights: [String],
 
     facilitators: [String],
+    inviteSubject: String,
+    inviteMessage: String,
 
     coverImage: {
       url: String,
@@ -41,6 +78,7 @@ const cohortSchema = new mongoose.Schema(
       {
         url: String,
         public_id: String,
+        caption: String,
       },
     ],
 
@@ -53,7 +91,9 @@ const cohortSchema = new mongoose.Schema(
 );
 
 cohortSchema.pre("save", function (next) {
-  this.slug = slugify(this.title, { lower: true });
+  if (this.isModified("title") || !this.slug) {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
   next();
 });
 

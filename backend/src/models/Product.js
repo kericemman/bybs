@@ -22,7 +22,8 @@ const productSchema = new mongoose.Schema(
       public_id: String,
     },
 
-    fileUrl: String, // ebook download URL (Cloudinary private URL)
+    fileUrl: String, // ebook download URL
+    filePublicId: String,
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -33,7 +34,9 @@ const productSchema = new mongoose.Schema(
 );
 
 productSchema.pre("save", function (next) {
-  this.slug = slugify(this.title, { lower: true });
+  if (this.isModified("title") || !this.slug) {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
   next();
 });
 

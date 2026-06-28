@@ -17,9 +17,9 @@ const Services = () => {
       id: 2,
       title: "BYBS Fellowship",
       purpose:
-        "A guided transformation journey for women and youth ready to grow.",
-      cta: "About fellowship",
-      link: "/fellowship",
+        "Cohort 4 applications are open for women and youth ready to grow.",
+      cta: "Apply for Cohort 4",
+      link: "/fellowship/cohort-4",
       image: "/assets/fell.jpg",
     },
     {

@@ -4,6 +4,9 @@ import {
   updateProduct,
 } from "../../api/product.api";
 import { X, Upload, Loader } from "lucide-react";
+import { compressImageFile } from "../../utils/imageCompression";
+
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
 
 const AdminProductForm = ({ product, onClose, onSaved }) => {
   const isEdit = Boolean(product);
@@ -35,12 +38,49 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
       if (product.coverImage?.url) {
         setCoverPreview(product.coverImage.url);
       }
+      if (product.fileUrl) {
+        setEbookFileName("Existing PDF uploaded");
+      }
+    } else {
+      setForm({
+        title: "",
+        description: "",
+        type: "ebook",
+        price: "",
+        stock: "",
+      });
+      setCoverImage(null);
+      setCoverPreview("");
+      setEbookFile(null);
+      setEbookFileName("");
     }
   }, [product]);
 
-  const handleCoverImageChange = (e) => {
+  const handleCoverImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose a valid image for the cover.");
+      return;
+    }
+
+    setError("");
+
+    try {
+      const compressedFile = await compressImageFile(file);
+      if (compressedFile.size > MAX_UPLOAD_SIZE) {
+        setError("The cover image is too large. Please upload an image under 20MB.");
+        return;
+      }
+      setCoverImage(compressedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (error) {
+      console.error("Cover image compression failed:", error);
       setCoverImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -52,10 +92,21 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
 
   const handleEbookFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setEbookFile(file);
-      setEbookFileName(file.name);
+    if (!file) return;
+
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please choose a PDF file for the ebook.");
+      return;
     }
+
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setError("The ebook PDF is too large. Please upload a file under 20MB.");
+      return;
+    }
+
+    setError("");
+    setEbookFile(file);
+    setEbookFileName(file.name);
   };
 
   const validateForm = () => {
@@ -67,11 +118,11 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
       setError("Description is required");
       return false;
     }
-    if (!form.price) {
+    if (!form.price || Number(form.price) <= 0) {
       setError("Price is required");
       return false;
     }
-    if (form.type === "merch" && !form.stock) {
+    if (form.type === "merch" && (form.stock === "" || Number(form.stock) < 0)) {
       setError("Stock is required for merchandise");
       return false;
     }
@@ -203,9 +254,14 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                   value={form.type}
-                  onChange={(e) =>
-                    setForm({ ...form, type: e.target.value, stock: "" })
-                  }
+                  onChange={(e) => {
+                    const nextType = e.target.value;
+                    setForm({ ...form, type: nextType, stock: "" });
+                    if (nextType === "merch") {
+                      setEbookFile(null);
+                      setEbookFileName("");
+                    }
+                  }}
                 >
                   <option value="ebook">Ebook</option>
                   <option value="merch">Merchandise</option>

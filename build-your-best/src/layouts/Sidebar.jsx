@@ -1,6 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
   LogOut,
@@ -79,6 +79,11 @@ const Sidebar = () => {
       label: "Cohorts",
       icon: <GraduationCap className="w-5 h-5" />,
       
+    },
+    {
+      path: "/admin/fellowship-applications",
+      label: "Applications",
+      icon: <BookOpen className="w-5 h-5" />,
     },
     {
       path: "/admin/products",
@@ -200,7 +205,7 @@ const Sidebar = () => {
                 {/* Submenu */}
                 <AnimatePresence>
                   {item.children && expanded && (
-                    <motion.div
+                    <Motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
@@ -224,7 +229,7 @@ const Sidebar = () => {
                           {child.label}
                         </NavLink>
                       ))}
-                    </motion.div>
+                    </Motion.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -276,7 +281,7 @@ const Sidebar = () => {
       {/* Mobile Overlay */}
       <AnimatePresence>
         {isMobileOpen && isMobile && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -287,7 +292,7 @@ const Sidebar = () => {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.aside
+      <Motion.aside
         initial={false}
         animate={{
           x: isMobile && !isMobileOpen ? "-100%" : 0
@@ -298,7 +303,7 @@ const Sidebar = () => {
         }`}
       >
         <SidebarContent />
-      </motion.aside>
+      </Motion.aside>
     </>
   );
 };
