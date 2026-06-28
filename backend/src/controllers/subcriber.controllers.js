@@ -60,7 +60,7 @@ exports.sendCampaign = async (req, res) => {
     const emails = subscribers.map(s => s.email);
 
     await resend.emails.send({
-      from: "BYBS <noreply@bybs.com>",
+      from: "BYBS Updates <no-reply@updates.buildyourbestself.org>",
       to: emails,
       subject,
       html: `

@@ -139,12 +139,12 @@ export default function Footer() {
         <div className="public-container py-5 flex flex-col md:flex-row justify-between gap-3 text-sm text-white/55">
           <p>© {currentYear} Build Your Best Self. All rights reserved.</p>
           <p>
-            Designed by{" "}
+            Designed & maintained by{" "}
             <a
-              href="https://www.linkedin.com/in/emmanuelkerich/"
+              href="https://www.thedigitalagame.com"
               className="text-white/80 hover:text-white"
             >
-              Emmanuel Kerich
+              The Digital A-Game
             </a>
           </p>
         </div>
