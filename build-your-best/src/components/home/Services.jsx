@@ -19,7 +19,7 @@ const Services = () => {
       purpose:
         "Cohort 4 applications are open for women and youth ready to grow.",
       cta: "Apply for Cohort 4",
-      link: "/fellowship/cohort-4",
+      link: "/fellowship",
       image: "/assets/fell.jpg",
     },
     {
