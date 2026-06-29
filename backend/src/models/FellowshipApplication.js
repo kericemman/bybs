@@ -1,5 +1,27 @@
 const mongoose = require("mongoose");
 
+const currentStageOptions = [
+  "A student preparing for a career",
+  "A young professional building experience",
+  "A parent raising young children",
+  "Someone balancing work, family, and financial responsibilities",
+  "Someone going through pregnancy or family transition",
+  "Someone focusing on career growth, healing, stability, or personal development",
+  "Someone nearing retirement or reflecting on legacy",
+];
+
+const heardFromOptions = [
+  "Instagram",
+  "LinkedIn",
+  "Facebook",
+  "WhatsApp",
+  "A friend or family member",
+  "BYBS community or team member",
+  "An event, workshop, or webinar",
+  "Website or Google search",
+  "Other",
+];
+
 const fellowshipApplicationSchema = new mongoose.Schema(
   {
     cohort: {
@@ -62,6 +84,7 @@ const fellowshipApplicationSchema = new mongoose.Schema(
     },
     currentStage: {
       type: String,
+      enum: ["", ...currentStageOptions],
       trim: true,
     },
     motivation: {
@@ -95,6 +118,7 @@ const fellowshipApplicationSchema = new mongoose.Schema(
     focusAreas: [String],
     heardFrom: {
       type: String,
+      enum: ["", ...heardFromOptions],
       trim: true,
     },
     consent: {

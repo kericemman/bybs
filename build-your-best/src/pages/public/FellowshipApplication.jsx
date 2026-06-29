@@ -68,6 +68,28 @@ const focusAreaOptions = [
   "Discipline and consistency",
 ];
 
+const currentStageOptions = [
+  "A student preparing for a career",
+  "A young professional building experience",
+  "A parent raising young children",
+  "Someone balancing work, family, and financial responsibilities",
+  "Someone going through pregnancy or family transition",
+  "Someone focusing on career growth, healing, stability, or personal development",
+  "Someone nearing retirement or reflecting on legacy",
+];
+
+const heardFromOptions = [
+  "Instagram",
+  "LinkedIn",
+  "Facebook",
+  "WhatsApp",
+  "A friend or family member",
+  "BYBS community or team member",
+  "An event, workshop, or webinar",
+  "Website or Google search",
+  "Other",
+];
+
 const cohortSchedule = "Saturday and Sunday every week, 2:00 PM - 4:00 PM CAT";
 const cohortSlugAliases = {
   "cohort-4": "bybs-fellowship-cohort-4",
@@ -333,7 +355,15 @@ export default function FellowshipApplication() {
                     ]}
                   />
                   <Field label="Occupation / current role" value={form.occupation} onChange={(value) => updateField("occupation", value)} />
-                  <Field label="Current stage of life" value={form.currentStage} onChange={(value) => updateField("currentStage", value)} />
+                  <SelectField
+                    label="Current stage of life"
+                    value={form.currentStage}
+                    onChange={(value) => updateField("currentStage", value)}
+                    options={[
+                      ["", "Select current stage of life"],
+                      ...currentStageOptions.map((option) => [option, option]),
+                    ]}
+                  />
                 </div>
               )}
 
@@ -375,7 +405,15 @@ export default function FellowshipApplication() {
                         ["not-sure", "Not sure yet"],
                       ]}
                     />
-                    <Field label="How did you hear about this?" value={form.heardFrom} onChange={(value) => updateField("heardFrom", value)} />
+                    <SelectField
+                      label="How did you hear about us?"
+                      value={form.heardFrom}
+                      onChange={(value) => updateField("heardFrom", value)}
+                      options={[
+                        ["", "Select source"],
+                        ...heardFromOptions.map((option) => [option, option]),
+                      ]}
+                    />
                   </div>
 
                   <CheckboxGroup
@@ -413,7 +451,7 @@ export default function FellowshipApplication() {
                     ["Cohort schedule", cohortSchedule],
                     ["Can commit to the schedule", form.availability],
                     ["Growth focus areas", form.focusAreas.join(", ")],
-                    ["How did you hear about this?", form.heardFrom],
+                    ["How did you hear about us?", form.heardFrom],
                   ]} />
 
                   <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
