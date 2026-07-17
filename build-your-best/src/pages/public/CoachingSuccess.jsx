@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import axios from "axios";
+import { motion as Motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import api from "../../utils/axios";
 
 export default function CoachingSuccess() {
   const navigate = useNavigate();
@@ -19,10 +19,7 @@ export default function CoachingSuccess() {
       }
 
       try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/coaching/verify`,
-          { reference }
-        );
+        const res = await api.post("/coaching/verify", { reference });
 
         if (res.data.success) {
           setBooking(res.data.booking);
@@ -46,7 +43,7 @@ export default function CoachingSuccess() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
       {/* Verifying State */}
       {status === "verifying" && (
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
@@ -58,17 +55,17 @@ export default function CoachingSuccess() {
           <p className="text-gray-600">
             Please wait while we confirm your booking.
           </p>
-        </motion.div>
+        </Motion.div>
       )}
 
       {/* Success State */}
       {status === "success" && booking && (
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-lg bg-white p-10 rounded-none shadow-sm text-center border border-gray-100"
         >
-          <motion.div
+          <Motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1 }}
@@ -83,7 +80,7 @@ export default function CoachingSuccess() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-          </motion.div>
+          </Motion.div>
 
           <h1 className="text-3xl font-light text-[#00337C] mb-4">
             Payment Successful 🎉
@@ -114,17 +111,17 @@ export default function CoachingSuccess() {
           >
             Back to Coaching Page
           </button>
-        </motion.div>
+        </Motion.div>
       )}
 
       {/* Failed State */}
       {status === "failed" && (
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="max-w-lg bg-white p-10 rounded-none shadow-sm text-center border border-gray-100"
         >
-          <motion.div
+          <Motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1 }}
@@ -139,7 +136,7 @@ export default function CoachingSuccess() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </motion.div>
+          </Motion.div>
 
           <h1 className="text-3xl font-light text-[#B76E79] mb-4">
             Payment Verification Failed
@@ -154,7 +151,7 @@ export default function CoachingSuccess() {
           >
             Return to Coaching
           </button>
-        </motion.div>
+        </Motion.div>
       )}
     </div>
   );

@@ -1,9 +1,80 @@
 const crypto = require("crypto");
+const axios = require("axios");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 
 const { generateInvoice } = require("../utils/generateInvoice");
 const { sendEbookEmail, sendMerchEmail } = require("../utils/email");
+
+const verifyPaystackTransaction = async (reference) => {
+  if (!process.env.PAYSTACK_SECRET_KEY) {
+    const error = new Error("Paystack secret key is not configured");
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const { data } = await axios.get(
+    `https://api.paystack.co/transaction/verify/${reference}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      },
+    }
+  );
+
+  return data?.data;
+};
+
+const populateOrder = (query) =>
+  query.populate("product").populate("items.product");
+
+const sendOrderReceipt = async (order) => {
+  const invoicePath = await generateInvoice(order);
+  const hasMerchItems =
+    order.items?.length > 0
+      ? order.items.some((item) => item.type === "merch")
+      : order.product.type === "merch";
+
+  if (hasMerchItems) {
+    await sendMerchEmail(order, invoicePath);
+    return;
+  }
+
+  await sendEbookEmail(order, invoicePath);
+};
+
+const markOrderAsPaid = async (reference) => {
+  const order = await populateOrder(
+    Order.findOneAndUpdate(
+      { reference, status: { $ne: "paid" } },
+      { status: "paid" },
+      { new: true }
+    )
+  );
+
+  if (!order) {
+    return populateOrder(Order.findOne({ reference }));
+  }
+
+  if (order.items && order.items.length > 0) {
+    for (const item of order.items) {
+      if (item.product && item.product.type === "merch") {
+        if (typeof item.product.stock === "number") {
+          item.product.stock = Math.max(0, item.product.stock - item.quantity);
+          await item.product.save();
+        }
+      }
+    }
+  } else if (order.product.type === "merch") {
+    if (typeof order.product.stock === "number") {
+      order.product.stock = Math.max(0, order.product.stock - 1);
+      await order.product.save();
+    }
+  }
+
+  await sendOrderReceipt(order);
+  return order;
+};
 
 
 // ===============================
@@ -137,9 +208,7 @@ exports.verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const order = await Order.findOne({ reference })
-      .populate("product")
-      .populate("items.product");
+    const order = await populateOrder(Order.findOne({ reference }));
 
     if (!order) {
       return res.status(404).json({
@@ -148,16 +217,43 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
-    if (order.status !== "paid") {
+    if (order.status === "paid") {
+      return res.json({
+        success: true,
+        order
+      });
+    }
+
+    const transaction = await verifyPaystackTransaction(reference);
+
+    if (!transaction || transaction.status !== "success") {
       return res.status(400).json({
         success: false,
         message: "Payment not confirmed yet"
       });
     }
 
+    if (transaction.reference !== reference) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment reference mismatch"
+      });
+    }
+
+    const expectedAmount = Math.round(Number(order.amount || 0) * 100);
+
+    if (Number(transaction.amount) !== expectedAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment amount mismatch"
+      });
+    }
+
+    const paidOrder = await markOrderAsPaid(reference);
+
     res.json({
       success: true,
-      order
+      order: paidOrder
     });
 
   } catch (error) {
@@ -196,9 +292,7 @@ exports.handleWebhook = async (req, res) => {
 
       console.log("Looking for order:", reference);
 
-      const order = await Order.findOne({ reference })
-        .populate("product")
-        .populate("items.product");
+      const order = await markOrderAsPaid(reference);
 
       if (!order) {
         console.log("Order not found");
@@ -206,41 +300,9 @@ exports.handleWebhook = async (req, res) => {
       }
 
       if (order.status === "paid") {
-        console.log("Already processed");
+        console.log("Order marked paid");
         return res.sendStatus(200);
       }
-
-      order.status = "paid";
-      await order.save();
-
-      console.log("Order marked paid");
-
-      if (order.items && order.items.length > 0) {
-        for (const item of order.items) {
-          if (item.product && item.product.type === "merch") {
-            item.product.stock -= item.quantity;
-            await item.product.save();
-          }
-        }
-      } else if (order.product.type === "merch") {
-        order.product.stock -= 1;
-        await order.product.save();
-      }
-
-      const invoicePath = await generateInvoice(order);
-
-      const hasMerchItems =
-        order.items?.length > 0
-          ? order.items.some((item) => item.type === "merch")
-          : order.product.type === "merch";
-
-      if (!hasMerchItems) {
-        await sendEbookEmail(order, invoicePath);
-      } else {
-        await sendMerchEmail(order, invoicePath);
-      }
-
-      console.log("Email sent");
     }
 
     res.sendStatus(200);

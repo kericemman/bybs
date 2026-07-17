@@ -12,6 +12,7 @@ const path = require("path");
 
 const authRoutes = require("./routes/admin/authRoutes");
 const paymentRoutes = require("./routes/admin/paymentRoutes");
+const adminPaymentRoutes = require("./routes/admin/adminPaymentRoutes");
 // const orderRoutes = require("./routes/admin/orderRoutes");
 const downloadRoutes = require("./routes/admin/downloadRoutes");
 const merchRoutes = require("./routes/admin/merchRoutes");
@@ -23,6 +24,7 @@ const publicArticleRoutes = require("./routes/public/publicArticle.routes");
 const cohortRoutes = require("./routes/admin/cohort.routes");
 const publicCohortRoutes = require("./routes/public/public.cohortRoutes");
 const publicWaitlistRoutes = require("./routes/public/publicWaitlistRoutes");
+const seoRoutes = require("./routes/public/seo.routes");
 const waitlistRoutes = require("./routes/admin/waitlistRoutes");
 const productRoutes = require("./routes/admin/productRoutes");
 const subscriberRoutes = require("./routes/admin/subscriberRoutes");
@@ -95,7 +97,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
+app.use("/", seoRoutes);
+app.use("/api", seoRoutes);
 app.use("/api/admin/auth", authRoutes);
+app.use("/api/admin/payments", adminPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 // app.use("/api/orders", orderRoutes);
 app.use("/api/download", downloadRoutes);

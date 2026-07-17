@@ -7,7 +7,23 @@ const initiateCoaching = async (req, res) => {
   const { fullName, email, phone, amount, productName, sessionType, preferredDate } = req.body;
 
   try {
-    const amountInKobo = Math.round(amount * 100);
+    const numericAmount = Number(amount);
+
+    if (!fullName || !email || !phone || !productName || !numericAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, phone, package, and amount are required",
+      });
+    }
+
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Payment is not configured",
+      });
+    }
+
+    const amountInKobo = Math.round(numericAmount * 100);
 
     // Initialize Paystack payment
     const response = await axios.post(
@@ -38,7 +54,7 @@ const initiateCoaching = async (req, res) => {
       fullName,
       email,
       phone,
-      amount,
+      amount: numericAmount,
       productName,
       sessionType,
       preferredDate,
@@ -77,10 +93,35 @@ const verifyCoaching = async (req, res) => {
     if (data.status === "success") {
       // Update payment in DB
       const updatedBooking = await Coaching.findOneAndUpdate(
-        { reference },
+        { reference, status: { $ne: "completed" } },
         { status: "completed" },
         { new: true }
       );
+
+      if (!updatedBooking) {
+        const existingBooking = await Coaching.findOne({ reference });
+
+        if (!existingBooking) {
+          return res.status(404).json({
+            success: false,
+            message: "Booking not found",
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          booking: {
+            fullName: existingBooking.fullName,
+            email: existingBooking.email,
+            phone: existingBooking.phone,
+            productName: existingBooking.productName,
+            sessionType: existingBooking.sessionType,
+            preferredDate: existingBooking.preferredDate,
+            price: existingBooking.amount,
+            reference: existingBooking.reference,
+          },
+        });
+      }
 
       // ✅ Send confirmation emails with rate limiting
       try {

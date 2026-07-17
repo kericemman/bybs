@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import {
   CheckCircle,
   AlertCircle,
@@ -181,7 +181,7 @@ const PaymentSuccess = () => {
 
       <div className="max-w-2xl mx-auto px-4">
 
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden"
@@ -318,7 +318,7 @@ const PaymentSuccess = () => {
 
           </div>
 
-        </motion.div>
+        </Motion.div>
 
       </div>
 

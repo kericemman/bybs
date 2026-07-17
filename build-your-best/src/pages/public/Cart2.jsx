@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../utils/axios";
 
-export default function CartPage({ selectedProduct, onBack }) {
+export default function CartPage({ selectedProduct }) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -12,7 +12,6 @@ export default function CartPage({ selectedProduct, onBack }) {
     phone: "",
   });
   const [loading, setLoading] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [error, setError] = useState("");
 
   const handleInputChange = (e) => {
@@ -31,17 +30,15 @@ export default function CartPage({ selectedProduct, onBack }) {
 
     try {
       // ✅ Call backend to initialize Paystack payment
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/coaching/initiate`,
-        {
-          fullName: customerInfo.name,
-          email: customerInfo.email,
-          phone: customerInfo.phone,
-          productId: selectedProduct._id || selectedProduct.id,
-          productName: selectedProduct.name,
-          description: selectedProduct.description,
-          amount: selectedProduct.price,
-        }
-      );
+      const res = await api.post("/coaching/initiate", {
+        fullName: customerInfo.name,
+        email: customerInfo.email,
+        phone: customerInfo.phone,
+        productId: selectedProduct._id || selectedProduct.id,
+        productName: selectedProduct.name,
+        description: selectedProduct.description,
+        amount: selectedProduct.price,
+      });
 
       // Redirect user to Paystack hosted payment page
       window.location.href = res.data.data.authorization_url;
@@ -52,47 +49,6 @@ export default function CartPage({ selectedProduct, onBack }) {
       setLoading(false);
     }
   };
-
-  if (paymentSuccess) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-[#00337C] to-[#1E4B9E] p-6 text-white">
-            <h1 className="text-2xl font-bold">Payment Successful!</h1>
-          </div>
-          <div className="p-8 text-center">
-            <div className="text-green-500 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Thank you for your purchase!
-            </h2>
-            <p className="text-gray-600 mb-6">
-              We’ll send a confirmation email shortly.
-            </p>
-            <button
-              onClick={onBack}
-              className="px-6 py-3 bg-[#00337C] text-white rounded-lg font-medium"
-            >
-              Return to Coaching
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 sm:py-12">

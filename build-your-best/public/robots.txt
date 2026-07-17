@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /checkout
+Disallow: /payment/success
+
+Sitemap: https://buildyourbestself.org/sitemap.xml
+Sitemap: https://buildyourbestself.org/api/sitemap.xml

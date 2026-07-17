@@ -17,9 +17,9 @@ export default function Navbar() {
     { name: "Home", to: "/" },
     { name: "Cohorts", to: "/fellowship" },
     { name: "Coaching", to: "/coaching" },
-    { name: "Updates", to: "/articles" },
-    { name: "Buy Merchandise", to: "/shop" },
     
+    { name: "Buy Merchandise", to: "/shop" },
+    { name: "News & Updates", to: "/articles" },
     { name: "Contact Us", to: "/contact" },
   ];
 

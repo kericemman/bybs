@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import {
+  ArrowRight,
   ArrowLeft,
   BookOpen,
   Bookmark,
   Calendar,
   Clock,
-  Hash,
   Menu,
   Share2,
   Tag,
@@ -15,8 +15,16 @@ import {
 } from "lucide-react";
 import {
   fetchArticleBySlug,
+  fetchPublishedArticles,
   trackArticleReader,
 } from "../../api/pubclicArticle.api";
+import SEO from "../../components/SEO";
+import {
+  absoluteUrl,
+  breadcrumbSchema,
+  organizationSchema,
+  truncate,
+} from "../../lib/seo";
 
 const stripHtml = (value = "") =>
   value
@@ -31,6 +39,17 @@ const getReadingTime = (content) => {
   return `${Math.max(1, Math.ceil(wordCount / 200))} min read`;
 };
 
+const removeEmptyParagraphs = (root) => {
+  root.querySelectorAll("p").forEach((paragraph) => {
+    const hasEmbeddedContent = paragraph.querySelector("img, iframe, video, audio, embed");
+    const text = paragraph.textContent.replace(/\u00a0/g, "").trim();
+
+    if (!hasEmbeddedContent && !text) {
+      paragraph.remove();
+    }
+  });
+};
+
 const getExcerpt = (article, maxLength = 190) => {
   const source = article?.excerpt || article?.description || article?.content || "";
   const plainText = stripHtml(source);
@@ -38,6 +57,38 @@ const getExcerpt = (article, maxLength = 190) => {
   if (!plainText) return "";
   if (plainText.length <= maxLength) return plainText;
   return `${plainText.slice(0, maxLength).trim()}...`;
+};
+
+const normalizeTags = (tags = []) =>
+  Array.isArray(tags)
+    ? tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean)
+    : [];
+
+const getRelatedArticles = (currentArticle, articles = []) => {
+  const currentTags = new Set(normalizeTags(currentArticle?.tags));
+  const currentSlug = currentArticle?.slug;
+  const currentId = currentArticle?._id;
+
+  return articles
+    .filter((candidate) => {
+      if (!candidate) return false;
+      return candidate.slug !== currentSlug && candidate._id !== currentId;
+    })
+    .map((candidate) => {
+      const sharedTagCount = normalizeTags(candidate.tags).filter((tag) =>
+        currentTags.has(tag)
+      ).length;
+
+      return { ...candidate, sharedTagCount };
+    })
+    .sort((a, b) => {
+      if (b.sharedTagCount !== a.sharedTagCount) {
+        return b.sharedTagCount - a.sharedTagCount;
+      }
+
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    })
+    .slice(0, 3);
 };
 
 const formatDate = (dateString) => {
@@ -59,6 +110,7 @@ const ArticleDetails = () => {
   const [activeHeading, setActiveHeading] = useState("");
   const [activeReaders, setActiveReaders] = useState(0);
   const [readingProgress, setReadingProgress] = useState(0);
+  const [relatedArticles, setRelatedArticles] = useState([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -68,11 +120,14 @@ const ArticleDetails = () => {
     const loadArticle = async () => {
       try {
         setLoading(true);
+        setArticle(null);
+        setRelatedArticles([]);
         const { data } = await fetchArticleBySlug(slug);
 
         if (data.content) {
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = data.content;
+          removeEmptyParagraphs(tempDiv);
           const headingNodes = Array.from(tempDiv.querySelectorAll("h2, h3"));
           const headingData = headingNodes.map((heading, index) => {
             const id = `heading-${index}`;
@@ -93,6 +148,14 @@ const ArticleDetails = () => {
 
         setArticle(data);
         setActiveReaders(data.activeReaders || 0);
+
+        try {
+          const { data: publishedArticles } = await fetchPublishedArticles();
+          setRelatedArticles(getRelatedArticles(data, publishedArticles));
+        } catch (relatedError) {
+          console.error("Error loading related articles:", relatedError);
+          setRelatedArticles([]);
+        }
       } catch (error) {
         console.error("Error loading article:", error);
       } finally {
@@ -201,35 +264,39 @@ const ArticleDetails = () => {
 
   const tocContent = (
     <>
-      <div className="mb-5">
+      <div className="mb-5 border-b border-slate-100 pb-4">
         <div className="mb-2 flex items-center gap-2 text-[#00337C]">
           <Menu className="h-4 w-4" />
           <p className="text-xs font-semibold uppercase tracking-wide">
-            On this page
+            Table of contents
           </p>
         </div>
-        <h2 className="text-lg font-light text-slate-900">
-          Article sections
+        <h2 className="text-lg font-light leading-tight text-slate-950">
+          Follow the article
         </h2>
       </div>
 
       {headings.length > 0 ? (
-        <nav className="space-y-1.5">
-          {headings.map((heading) => (
+        <nav className="space-y-1">
+          {headings.map((heading, index) => (
             <button
               key={heading.id}
               onClick={() => scrollToHeading(heading.id)}
-              className={`flex w-full items-start border-l-2 px-3 py-2 text-left transition ${
+              className={`group flex w-full items-start rounded-md px-2 py-2.5 text-left transition ${
                 activeHeading === heading.id
-                  ? "border-[#00337C] bg-[#F5F9FF] text-[#00337C]"
-                  : "border-transparent text-slate-500 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-800"
+                  ? "bg-[#F5F9FF] text-[#00337C]"
+                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
               }`}
             >
-              <Hash
-                className={`mt-1 h-3 w-3 flex-shrink-0 ${
-                  activeHeading === heading.id ? "text-[#00337C]" : "text-slate-300"
+              <span
+                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[11px] ${
+                  activeHeading === heading.id
+                    ? "bg-[#00337C] text-white"
+                    : "bg-slate-100 text-slate-400 group-hover:text-slate-600"
                 }`}
-              />
+              >
+                {index + 1}
+              </span>
               <span
                 className={`ml-2 text-sm leading-5 ${
                   heading.level === "h3" ? "pl-3" : ""
@@ -262,6 +329,12 @@ const ArticleDetails = () => {
   if (!article) {
     return (
       <div className="min-h-screen bg-white py-20">
+        <SEO
+          title="Article not found | Build Your Best Self"
+          description="This BYBS article could not be found."
+          canonical={absoluteUrl(`/articles/${slug}`)}
+          noindex
+        />
         <div className="public-container text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-6" />
           <h1 className="text-2xl font-light text-slate-700 mb-4">
@@ -283,9 +356,47 @@ const ArticleDetails = () => {
   }
 
   const excerpt = getExcerpt(article);
+  const articleUrl = absoluteUrl(`/articles/${article.slug || slug}`);
+  const articleDescription = excerpt || truncate(article.content, 155);
+  const articleImage = article.coverImage?.url;
+  const articleSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: article.title,
+      description: articleDescription,
+      image: articleImage ? [articleImage] : undefined,
+      datePublished: article.createdAt,
+      dateModified: article.updatedAt || article.createdAt,
+      author: {
+        "@type": "Organization",
+        name: "Build Your Best Self",
+        url: absoluteUrl("/"),
+      },
+      publisher: organizationSchema,
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": articleUrl,
+      },
+    },
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Articles", path: "/articles" },
+      { name: article.title, path: `/articles/${article.slug || slug}` },
+    ]),
+  ];
 
   return (
     <main className="min-h-screen bg-[#FBFCFE] text-slate-950">
+      <SEO
+        title={`${article.title} | BYBS Articles`}
+        description={articleDescription}
+        canonical={articleUrl}
+        image={articleImage}
+        type="article"
+        keywords={article.tags?.join(", ")}
+        schema={articleSchema}
+      />
       <div className="fixed left-0 right-0 top-0 z-40 h-1 bg-transparent">
         <div
           className="h-full bg-[#00337C] transition-all duration-200"
@@ -306,35 +417,39 @@ const ArticleDetails = () => {
       </div>
 
       <section className="border-b border-slate-100 bg-white">
-        <div className="public-container py-7 md:py-10">
+        <div className="public-container py-7 md:py-12">
           <Motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)] lg:items-center"
+            className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.95fr)] lg:items-center"
           >
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
+            <div className="order-2 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 lg:order-1">
               {article.coverImage?.url ? (
                 <img
                   src={article.coverImage.url}
                   alt={article.title}
-                  className="aspect-[16/10] w-full object-cover lg:aspect-[4/3] lg:min-h-[420px]"
+                  className="aspect-[16/10] w-full object-cover lg:aspect-[5/4] lg:min-h-[440px]"
                 />
               ) : (
-                <div className="flex aspect-[16/10] w-full items-center justify-center lg:aspect-[4/3] lg:min-h-[420px]">
+                <div className="flex aspect-[16/10] w-full items-center justify-center lg:aspect-[5/4] lg:min-h-[440px]">
                   <BookOpen className="w-20 h-20 text-slate-300" />
                 </div>
               )}
             </div>
 
-            <div>
-              <div className="mb-6 flex flex-wrap items-center gap-3">
+            <div className="order-1 lg:order-2">
+              <div className="mb-5 flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#F5F9FF] px-3 py-1 text-sm font-semibold text-[#00337C]">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Article
+                </span>
                 {article.tags?.length > 0 && (
                   <>
-                    {article.tags.slice(0, 3).map((tag) => (
+                    {article.tags.slice(0, 2).map((tag) => (
                       <span
                         key={tag}
-                        className="inline-flex items-center rounded-full border border-[#00337C]/10 bg-[#F5F9FF] px-3 py-1 text-sm text-[#00337C]"
+                        className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600"
                       >
                         <Tag className="w-3 h-3 mr-1" />
                         {tag}
@@ -342,13 +457,9 @@ const ArticleDetails = () => {
                     ))}
                   </>
                 )}
-                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-500">
-                  <Users className="h-3.5 w-3.5" />
-                  {activeReaders || 1} reading now
-                </span>
               </div>
 
-              <h1 className="max-w-3xl text-3xl font-light leading-tight text-[#00337C] sm:text-4xl lg:text-5xl">
+              <h1 className="max-w-3xl text-3xl font-light leading-tight text-[#00337C] sm:text-4xl lg:text-6xl">
                 {article.title}
               </h1>
 
@@ -358,7 +469,7 @@ const ArticleDetails = () => {
                 </p>
               )}
 
-              <div className="mt-6 flex flex-wrap items-center gap-5 border-t border-slate-100 pt-5 text-sm text-slate-500">
+              <div className="mt-7 grid gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500 sm:grid-cols-2 lg:grid-cols-4">
                 <span className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
                   {formatDate(article.createdAt)}
@@ -371,72 +482,82 @@ const ArticleDetails = () => {
                   <BookOpen className="w-4 h-4" />
                   {headings.length} sections
                 </span>
+                <span className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  {activeReaders || 1} reading now
+                </span>
               </div>
             </div>
           </Motion.div>
         </div>
       </section>
 
-      <div className="public-container py-6 lg:hidden">
-        <details className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <summary className="cursor-pointer text-base font-semibold text-[#00337C]">
-            Table of contents
-          </summary>
-          <div className="mt-5">{tocContent}</div>
-        </details>
-      </div>
+      <section className="bg-white py-9 md:py-16">
+        <div className="public-container">
+          <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[minmax(0,46rem)_18rem] lg:items-start lg:justify-center">
+            <article className="min-w-0 border-t border-slate-200 pt-8 md:pt-12">
+              <Motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 }}
+              >
+                <div
+                  className="article-content"
+                  dangerouslySetInnerHTML={{ __html: article.content }}
+                />
 
-      <section className="public-container py-8 md:py-12">
-        <div className="mx-auto grid max-w-6xl gap-14 lg:grid-cols-[minmax(0,43rem)_17rem] lg:items-start lg:justify-center">
-          <article className="min-w-0">
-            <Motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.12 }}
-            >
-              <div
-                className="article-content"
-                dangerouslySetInnerHTML={{ __html: article.content }}
-              />
-
-              <style>{`
+                <style>{`
                 .article-content {
                   max-width: 100%;
                   color: #1f2937;
                 }
 
+                .article-content > p:first-of-type {
+                  color: #10233F;
+                  font-size: 1.16rem;
+                  line-height: 1.9;
+                  margin-bottom: 1.8rem;
+                }
+
                 .article-content h2 {
-                  font-size: 1.65rem;
+                  border-top: 1px solid #E5EAF2;
+                  font-size: 1.82rem;
                   font-weight: 400;
                   color: #00337C;
-                  margin-top: 3rem;
-                  margin-bottom: 1.25rem;
+                  margin-top: 3.75rem;
+                  margin-bottom: 0.75rem;
+                  padding-top: 2.25rem;
                   line-height: 1.2;
+                  scroll-margin-top: 7rem;
                 }
 
                 .article-content h2:first-of-type {
                   margin-top: 0;
+                  border-top: 0;
+                  padding-top: 0;
                 }
 
                 .article-content h3 {
-                  font-size: 1.175rem;
+                  font-size: 1.3rem;
                   font-weight: 600;
                   color: #1E4B9E;
-                  margin-top: 2.5rem;
-                  margin-bottom: 1rem;
+                  margin-top: 2.75rem;
+                  margin-bottom: 0.65rem;
+                  scroll-margin-top: 7rem;
                 }
 
                 .article-content p {
                   font-size: 1.075rem;
-                  line-height: 1.9;
+                  line-height: 1.92;
                   color: #334155;
-                  margin-bottom: 1.45rem;
+                  margin-top: 0;
+                  margin-bottom: 1.55rem;
                 }
 
                 .article-content ul,
                 .article-content ol {
-                  margin: 1.5rem 0 1.75rem;
-                  padding-left: 1.5rem;
+                  margin: 1.65rem 0 1.9rem;
+                  padding-left: 1.65rem;
                   color: #334155;
                 }
 
@@ -450,10 +571,10 @@ const ArticleDetails = () => {
 
                 .article-content li {
                   display: list-item;
-                  margin-bottom: 0.6rem;
-                  line-height: 1.8;
+                  margin-bottom: 0.7rem;
+                  line-height: 1.85;
                   padding-left: 0.25rem;
-                  font-size: 1.075rem;
+                  font-size: 1.05rem;
                 }
 
                 .article-content li p {
@@ -462,13 +583,19 @@ const ArticleDetails = () => {
 
                 .article-content blockquote {
                   border-left: 4px solid #B76E79;
-                  background: #F7F9FC;
-                  border-radius: 0 0.5rem 0.5rem 0;
-                  padding: 1.25rem 1.5rem;
-                  margin: 2.25rem 0;
-                  color: #334155;
-                  font-size: 1.15rem;
-                  line-height: 1.75;
+                  background: #F5F9FF;
+                  border-radius: 0 0.75rem 0.75rem 0;
+                  padding: 1.5rem 1.65rem;
+                  margin: 2.5rem 0;
+                  color: #10233F;
+                  font-size: 1.18rem;
+                  line-height: 1.8;
+                }
+
+                .article-content hr {
+                  border: 0;
+                  border-top: 1px solid #E5EAF2;
+                  margin: 3rem 0;
                 }
 
                 .article-content a {
@@ -478,11 +605,12 @@ const ArticleDetails = () => {
                 }
 
                 .article-content img {
-                  border-radius: 0.5rem;
-                  margin: 2.25rem 0;
+                  border-radius: 0.75rem;
+                  margin: 2.5rem 0;
                   max-width: 100%;
                   height: auto;
                   border: 1px solid #E5E7EB;
+                  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
                 }
 
                 .article-content strong {
@@ -511,9 +639,36 @@ const ArticleDetails = () => {
                   margin: 2rem 0;
                 }
 
+                .article-content table {
+                  width: 100%;
+                  border-collapse: collapse;
+                  margin: 2rem 0;
+                  font-size: 0.95rem;
+                }
+
+                .article-content th,
+                .article-content td {
+                  border: 1px solid #E5EAF2;
+                  padding: 0.85rem;
+                  text-align: left;
+                }
+
+                .article-content th {
+                  background: #F5F9FF;
+                  color: #00337C;
+                  font-weight: 600;
+                }
+
                 @media (max-width: 767px) {
                   .article-content h2 {
                     font-size: 1.55rem;
+                    margin-top: 2.5rem;
+                    padding-top: 1.75rem;
+                  }
+
+                  .article-content > p:first-of-type {
+                    font-size: 1.05rem;
+                    line-height: 1.82;
                   }
 
                   .article-content p {
@@ -527,135 +682,159 @@ const ArticleDetails = () => {
                 }
 
               `}</style>
-            </Motion.div>
+              </Motion.div>
 
-            <div className="mt-14 border-t border-slate-100 pt-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setIsBookmarked((value) => !value)}
-                    className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition ${
-                      isBookmarked
-                        ? "bg-[#FFD166] text-slate-900"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
-                  >
-                    <Bookmark
-                      className={`w-4 h-4 mr-2 ${
-                        isBookmarked ? "fill-current" : ""
+              <div className="mt-14 border-t border-slate-100 pt-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setIsBookmarked((value) => !value)}
+                      className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition ${
+                        isBookmarked
+                          ? "bg-[#FFD166] text-slate-900"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
-                    />
-                    {isBookmarked ? "Saved" : "Save"}
-                  </button>
+                    >
+                      <Bookmark
+                        className={`w-4 h-4 mr-2 ${
+                          isBookmarked ? "fill-current" : ""
+                        }`}
+                      />
+                      {isBookmarked ? "Saved" : "Save"}
+                    </button>
 
-                  <button
-                    onClick={handleShare}
-                    className="inline-flex items-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
+                    <button
+                      onClick={handleShare}
+                      className="inline-flex items-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </button>
+                  </div>
+
+                  <Link
+                    to="/articles"
+                    className="inline-flex items-center text-sm font-semibold text-[#00337C] hover:text-[#1E4B9E]"
                   >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </button>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to all articles
+                  </Link>
+                </div>
+              </div>
+            </article>
+
+            <aside
+              className="hidden lg:sticky lg:top-24 lg:block lg:self-start"
+              aria-label="Article table of contents"
+            >
+              <div className="max-h-[calc(100vh-7rem)] overflow-y-auto border-l border-slate-200 pl-5">
+                {tocContent}
+
+                <div className="mt-6 border-t border-slate-100 pt-5">
+                  <div className="mb-3 flex items-center justify-between gap-4 text-xs text-slate-500">
+                    <span>Progress</span>
+                    <span>{readingProgress}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className="h-full rounded-full bg-[#00337C] transition-all duration-200"
+                      style={{ width: `${readingProgress}%` }}
+                    />
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    {getReadingTime(article.content)} - {headings.length} sections
+                  </p>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      {relatedArticles.length > 0 && (
+        <section className="border-t border-slate-100 bg-[#F7F9FC] py-10 md:py-16">
+          <div className="public-container">
+            <div className="mx-auto max-w-7xl">
+              <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#00337C]">
+                    Keep reading
+                  </p>
+                  <h2 className="text-2xl font-light text-[#00337C] md:text-3xl">
+                    More articles for your season
+                  </h2>
                 </div>
 
                 <Link
                   to="/articles"
                   className="inline-flex items-center text-sm font-semibold text-[#00337C] hover:text-[#1E4B9E]"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to all articles
+                  View all articles
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </div>
+
+              <div className="grid gap-5 md:grid-cols-3">
+                {relatedArticles.map((relatedArticle, index) => (
+                  <Motion.article
+                    key={relatedArticle._id || relatedArticle.slug}
+                    initial={{ opacity: 0, y: 18 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-80px" }}
+                    transition={{ duration: 0.35, delay: index * 0.05 }}
+                  >
+                    <Link
+                      to={`/articles/${relatedArticle.slug}`}
+                      className="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
+                    >
+                      <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                        {relatedArticle.coverImage?.url ? (
+                          <img
+                            src={relatedArticle.coverImage.url}
+                            alt={relatedArticle.title}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <BookOpen className="h-12 w-12 text-slate-300" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-1 flex-col p-5">
+                        <h3 className="mb-3 text-xl font-light leading-tight text-[#00337C]">
+                          {relatedArticle.title}
+                        </h3>
+                        <p className="mb-5 line-clamp-3 flex-1 text-sm leading-6 text-slate-600">
+                          {getExcerpt(relatedArticle, 150)}
+                        </p>
+
+                        <div className="mt-auto border-t border-slate-100 pt-4">
+                          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+                            <span className="flex items-center gap-1.5">
+                              <Calendar className="h-4 w-4" />
+                              {formatDate(relatedArticle.createdAt)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4" />
+                              {getReadingTime(relatedArticle.content)}
+                            </span>
+                          </div>
+                          <span className="inline-flex items-center text-sm font-semibold text-[#00337C]">
+                            Read article
+                            <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </Motion.article>
+                ))}
+              </div>
             </div>
-          </article>
-
-          <aside
-            className="hidden lg:sticky lg:top-24 lg:block lg:h-fit lg:self-start"
-            aria-label="Article table of contents"
-          >
-            <div className="border-l border-slate-200 pl-5">
-              {tocContent}
-
-              <div className="mt-7 space-y-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
-                <p className="flex items-center justify-between gap-4">
-                  <span>Read time</span>
-                  <span className="font-medium text-slate-800">
-                    {getReadingTime(article.content)}
-                  </span>
-                </p>
-                <p className="flex items-center justify-between gap-4">
-                  <span>Sections</span>
-                  <span className="font-medium text-slate-800">
-                    {headings.length}
-                  </span>
-                </p>
-                <p className="flex items-center justify-between gap-4">
-                  <span>Reading now</span>
-                  <span className="font-medium text-slate-800">
-                    {activeReaders || 1}
-                  </span>
-                </p>
-              </div>
-
-              <div className="mt-6">
-                <p className="mb-3 text-sm font-semibold text-[#00337C]">
-                  Reading progress
-                </p>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                  <div
-                    className="h-full rounded-full bg-[#00337C] transition-all duration-200"
-                    style={{ width: `${readingProgress}%` }}
-                  />
-                </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  {readingProgress}% complete
-                </p>
-              </div>
-
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setIsBookmarked((value) => !value)}
-                  className={`inline-flex w-full items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition ${
-                    isBookmarked
-                      ? "bg-[#FFD166] text-slate-900"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  <Bookmark
-                    className={`mr-2 h-4 w-4 ${isBookmarked ? "fill-current" : ""}`}
-                  />
-                  {isBookmarked ? "Saved" : "Save"}
-                </button>
-
-                <button
-                  onClick={handleShare}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1E4B9E]"
-                >
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share
-                </button>
-              </div>
-
-              {article.tags?.length > 0 && (
-                <div className="mt-6 border-t border-slate-100 pt-5">
-                  <p className="mb-3 text-sm font-semibold text-[#00337C]">
-                    Topics
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {article.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#F5F9FF] px-3 py-1 text-xs text-[#00337C]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </aside>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
     </main>
   );
 };

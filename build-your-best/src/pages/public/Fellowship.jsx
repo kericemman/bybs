@@ -1,9 +1,12 @@
 import { motion as Motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Users, Calendar, Target, Heart, Star, Award, ChevronRight, Sparkles } from 'lucide-react';
+import WaitlistModal from '../../components/modal/WaitlistModal';
 
 export default function FellowshipLanding() {
+    const [waitlistOpen, setWaitlistOpen] = useState(false);
+
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
@@ -106,21 +109,22 @@ export default function FellowshipLanding() {
                         <h1 className="text-4xl md:text-5xl font-light mb-6 leading-tight">
                             Cohort 4 Applications Are{' '}
                             <span className="font-bold bg-gradient-to-r from-[#FFD166] to-[#B76E79] bg-clip-text text-transparent">
-                                Open
+                                Closed
                             </span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-                            Apply for the next BYBS Fellowship cohort and join a guided 3-month journey of self-awareness, resilience, purpose, and intentional growth.
+                            Applications for BYBS Fellowship Cohort 4 have now closed. Join the waitlist to be notified first when the next cohort opens.
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <Link
-                                to="/fellowship/cohort-4/apply"
+                            <button
+                                type="button"
+                                onClick={() => setWaitlistOpen(true)}
                                 className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
                             >
-                                Apply for Cohort 4
-                            </Link>
+                                Join Next Cohort Waitlist
+                            </button>
 
                             <Link
                                 to="/cohorts"
@@ -331,25 +335,27 @@ export default function FellowshipLanding() {
                         viewport={{ once: true }}
                     >
                         <h2 className="text-2xl md:text-4xl font-light mb-6">
-                            Ready to Begin Your Transformation?
+                            Cohort 4 Applications Are Now Closed
                         </h2>
                         <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-                            Apply for Cohort 4 and take the first step towards building your best self.
+                            The next application window will open for a future BYBS Fellowship cohort. Join the waitlist and we will let you know when it is time to apply.
                         </p>
                         
-                        <Link
-                                to="/fellowship/cohort-4/apply"
-                                className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                            >
-                                Start Application
-                            </Link>
+                        <button
+                            type="button"
+                            onClick={() => setWaitlistOpen(true)}
+                            className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                            Join the Waitlist
+                        </button>
                         
                         <p className="text-white/70 mt-6 text-sm">
-                            Limited spots available. Applications are reviewed by the BYBS team.
+                            Waitlist members will receive updates when the next fellowship cohort is announced.
                         </p>
                     </Motion.div>
                 </div>
             </section>
+            <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} />
         </div>
     );
 }

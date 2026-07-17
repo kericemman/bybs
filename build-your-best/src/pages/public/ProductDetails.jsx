@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../utils/axios";
 import CheckoutModal from "../../components/modal/CheckoutModal";
+import SEO from "../../components/SEO";
+import { absoluteUrl, breadcrumbSchema, truncate } from "../../lib/seo";
 import {
   BookOpen,
   Package,
@@ -106,6 +108,12 @@ const ProductDetails = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
+        <SEO
+          title="Product not found | Build Your Best Self"
+          description="This BYBS product could not be found."
+          canonical={absoluteUrl(`/shop/${slug}`)}
+          noindex
+        />
         <div className="max-w-md mx-auto text-center px-4">
           <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-red-600" />
@@ -132,8 +140,50 @@ const ProductDetails = () => {
     );
   }
 
+  const productUrl = absoluteUrl(`/shop/${product.slug || slug}`);
+  const productDescription = truncate(product.description, 155);
+  const productImage = product.coverImage?.url;
+  const productSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.title,
+      description: productDescription,
+      image: productImage ? [productImage] : undefined,
+      sku: product._id,
+      category: product.type === "ebook" ? "Digital product" : "Merchandise",
+      brand: {
+        "@type": "Brand",
+        name: "Build Your Best Self",
+      },
+      offers: {
+        "@type": "Offer",
+        url: productUrl,
+        priceCurrency: "USD",
+        price: Number(product.price || 0).toFixed(2),
+        availability:
+          product.type === "merch" && product.stock <= 0
+            ? "https://schema.org/OutOfStock"
+            : "https://schema.org/InStock",
+      },
+    },
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Shop", path: "/shop" },
+      { name: product.title, path: `/shop/${product.slug || slug}` },
+    ]),
+  ];
+
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title={`${product.title} | BYBS Shop`}
+        description={productDescription}
+        canonical={productUrl}
+        image={productImage}
+        type="product"
+        schema={productSchema}
+      />
       {/* Back Navigation */}
       <div className="border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">

@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../utils/axios";
+import SEO from "../../components/SEO";
+import { absoluteUrl, breadcrumbSchema, truncate } from "../../lib/seo";
 
 const formatDate = (value) => {
   if (!value) return "Date to be announced";
@@ -219,8 +221,44 @@ export function CohortDetailPage() {
     if (distance < -50) prevImage();
   };
 
+  const cohortUrl = absoluteUrl(`/cohorts/${cohort?.slug || cohortSlug}`);
+  const cohortDescription = truncate(
+    cohort?.tagline || cohort?.overview || cohort?.description || "Explore this BYBS cohort reflection, achievements, stories, and gallery.",
+    155
+  );
+  const cohortSchema = cohort
+    ? [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: cohort.title,
+          description: cohortDescription,
+          url: cohortUrl,
+          image: cohort.coverImage?.url,
+          about: {
+            "@type": "EducationalOrganization",
+            name: "Build Your Best Self",
+            url: absoluteUrl("/"),
+          },
+        },
+        breadcrumbSchema([
+          { name: "Home", path: "/" },
+          { name: "Cohorts", path: "/cohorts" },
+          { name: cohort.title, path: `/cohorts/${cohort.slug || cohortSlug}` },
+        ]),
+      ]
+    : undefined;
+
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title={cohort ? `${cohort.title} | BYBS Cohorts` : "BYBS Cohort | Build Your Best Self"}
+        description={cohortDescription}
+        canonical={cohortUrl}
+        image={cohort?.coverImage?.url}
+        noindex={Boolean(error) && !cohort}
+        schema={cohortSchema}
+      />
       <section className="relative overflow-hidden bg-[#061C3D] text-white">
         <div className="absolute inset-0">
           {cohort?.coverImage?.url && (
@@ -318,11 +356,6 @@ export function CohortDetailPage() {
 }
 
 function CohortPreviewCard({ cohort }) {
-  const reflectionCount =
-    (cohort.previousCohorts?.length || 0) +
-    (cohort.achievements?.length || 0) +
-    (cohort.impactHighlights?.length || 0);
-
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       <div className="h-56 bg-gray-100">

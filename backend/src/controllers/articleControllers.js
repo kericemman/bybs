@@ -78,6 +78,22 @@ exports.getArticle = async (req, res) => {
   }
 };
 
+exports.uploadArticleContentImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Image file is required" });
+    }
+
+    res.status(201).json({
+      url: req.file.path,
+      public_id: req.file.filename,
+    });
+  } catch (error) {
+    console.error("Upload article content image error:", error);
+    res.status(500).json({ message: "Failed to upload image" });
+  }
+};
+
 exports.updateArticle = async (req, res) => {
   try {
     const article = await Article.findById(req.params.id);

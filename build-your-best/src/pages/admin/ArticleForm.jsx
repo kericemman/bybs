@@ -2,11 +2,28 @@ import { useState, useRef, useEffect } from "react";
 import {
     createArticle,
     updateArticle,
+    uploadArticleContentImage,
   } from "../../api/articles.api";  
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { X, Image as ImageIcon, Globe, Eye, Save } from "lucide-react";
 import RichTextEditor from "../../layouts/RichEditor";
 import { compressImageFile } from "../../utils/imageCompression";
+
+const cleanArticleContent = (html = "") => {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+
+  container.querySelectorAll("p").forEach((paragraph) => {
+    const hasEmbeddedContent = paragraph.querySelector("img, iframe, video, audio, embed");
+    const text = paragraph.textContent.replace(/\u00a0/g, "").trim();
+
+    if (!hasEmbeddedContent && !text) {
+      paragraph.remove();
+    }
+  });
+
+  return container.innerHTML;
+};
 
 const ArticleForm = ({ article, onClose, onSaved }) => {
   const [title, setTitle] = useState(article?.title || "");
@@ -70,17 +87,30 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
     }
   };
 
+  const handleContentImageUpload = async (file) => {
+    const compressedFile = await compressImageFile(file, {
+      maxWidth: 1400,
+      maxHeight: 1000,
+      quality: 0.82,
+    });
+    const { data } = await uploadArticleContentImage(compressedFile);
+
+    return data.url;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
+      const cleanedContent = cleanArticleContent(content);
+
       if (!title.trim()) {
         throw new Error("Article title is required.");
       }
 
-      if (!hasContent(content)) {
+      if (!hasContent(cleanedContent)) {
         throw new Error("Article content is required.");
       }
 
@@ -90,7 +120,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
 
       const formData = new FormData();
       formData.append("title", title.trim());
-      formData.append("content", content);
+      formData.append("content", cleanedContent);
       formData.append("excerpt", excerpt.trim());
       formData.append("description", excerpt.trim());
       formData.append("status", status);
@@ -286,6 +316,7 @@ const ArticleForm = ({ article, onClose, onSaved }) => {
                   <RichTextEditor
                     content={content}
                     onChange={setContent}
+                    onImageUpload={handleContentImageUpload}
                   />
                 </div>
               </div>

@@ -76,7 +76,7 @@ const Dashboard = () => {
         />
         <StatCard 
           title="Revenue" 
-          value={`KES ${data.stats.totalRevenue}`}
+          value={`USD ${Number(data.stats.totalRevenue || 0).toFixed(2)}`}
           icon={<DollarSign className="w-5 h-5" />}
           color="from-[#B76E79] to-[#D4A5A5]"
           trend={"+12.5%"}

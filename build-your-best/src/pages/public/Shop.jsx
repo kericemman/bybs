@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../utils/axios";
 import CheckoutModal from "../../components/modal/CheckoutModal";
+import SEO from "../../components/SEO";
+import { absoluteUrl, breadcrumbSchema } from "../../lib/seo";
 import {
   BookOpen,
   Package,
@@ -120,9 +122,32 @@ const Shop = () => {
   );
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const productListSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "BYBS Shop Products",
+      itemListElement: products.slice(0, 50).map((product, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(`/shop/${product.slug}`),
+        name: product.title,
+      })),
+    },
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Shop", path: "/shop" },
+    ]),
+  ];
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title="Shop | BYBS Ebooks and Merchandise"
+        description="Shop BYBS ebooks, resources, and merchandise that support personal growth, reflection, and the BYBS charity mission."
+        canonical={absoluteUrl("/shop")}
+        schema={productListSchema}
+      />
       {/* Hero Section */}
       <section className="py-12 bg-gradient-to-br from-[#F5F9FF] to-[#FFF0F0]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

@@ -37,10 +37,23 @@ export const updateArticle = (id, formData) => {
 };
 
 /**
+ * UPLOAD ARTICLE BODY IMAGE
+ */
+export const uploadArticleContentImage = (file) => {
+  const formData = new FormData();
+  formData.append("contentImage", file);
+
+  return api.post("/admin/articles/content-image", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
+
+/**
  * DELETE ARTICLE
  */
 export const deleteArticle = (id) => {
   return api.delete(`/admin/articles/${id}`);
 };
-
 

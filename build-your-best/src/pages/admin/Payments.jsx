@@ -5,7 +5,7 @@ import {
   fetchPaymentStats,
   syncPayments,
 } from "../../api/admin.api";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import {
   CreditCard,
   DollarSign,
@@ -147,7 +147,7 @@ const Payments = () => {
   return (
     <AdminLayout>
       <div className="min-h-screen bg-gray-50">
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -215,11 +215,7 @@ const Payments = () => {
                     <div>
                       <p className="text-sm text-gray-600">Total Revenue</p>
                       <p className="text-2xl font-semibold text-gray-900 mt-1">
-                        {new Intl.NumberFormat("en-KE", {
-                          style: "currency",
-                          currency: "KES",
-                          minimumFractionDigits: 0,
-                        }).format(stats.totalRevenue)}
+                        {formatCurrency(stats.totalRevenue)}
                       </p>
                     </div>
                     <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
@@ -452,7 +448,7 @@ const Payments = () => {
                         </div>
 
                         {expandedPayment === payment._id && (
-                          <motion.div
+                          <Motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
@@ -478,7 +474,7 @@ const Payments = () => {
                                 Receipt
                               </button>
                             </div>
-                          </motion.div>
+                          </Motion.div>
                         )}
                       </div>
                     ))}
@@ -532,7 +528,7 @@ const Payments = () => {
               </div>
             </div>
           )}
-        </motion.div>
+        </Motion.div>
       </div>
     </AdminLayout>
   );

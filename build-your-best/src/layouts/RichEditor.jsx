@@ -24,30 +24,77 @@ import {
   Undo,
   Redo,
   Code,
-  Quote,
-  Palette
+  Quote
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-const MenuBar = ({ editor }) => {
+const normalizeUrl = (value = '') => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
+const MenuBar = ({ editor, onImageUpload }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [imageUrl, setImageUrl] = useState('');
   const [showImageInput, setShowImageInput] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const imageFileInputRef = useRef(null);
 
   const addLink = () => {
-    if (linkUrl) {
-      editor.chain().focus().setLink({ href: linkUrl }).run();
+    const href = normalizeUrl(linkUrl);
+
+    if (href) {
+      editor.chain().focus().setLink({ href }).run();
       setLinkUrl('');
       setShowLinkInput(false);
     }
   };
 
-  const addImage = () => {
-    if (imageUrl) {
-      editor.chain().focus().setImage({ src: imageUrl }).run();
+  const addImageByUrl = () => {
+    const src = normalizeUrl(imageUrl);
+
+    if (src) {
+      editor.chain().focus().setImage({ src }).run();
       setImageUrl('');
       setShowImageInput(false);
+      setImageUploadError('');
+    }
+  };
+
+  const handleImageFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!onImageUpload) {
+      setImageUploadError('Image uploads are not available in this editor.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      setImageUploadError('');
+      setIsUploadingImage(true);
+      const uploadedUrl = await onImageUpload(file);
+
+      if (!uploadedUrl) {
+        throw new Error('The upload did not return an image URL.');
+      }
+
+      editor.chain().focus().setImage({ src: uploadedUrl, alt: file.name }).run();
+      setShowImageInput(false);
+      setImageUrl('');
+    } catch (error) {
+      setImageUploadError(
+        error?.response?.data?.message ||
+          error?.message ||
+          'Could not upload this image. Please try again.'
+      );
+    } finally {
+      setIsUploadingImage(false);
+      event.target.value = '';
     }
   };
 
@@ -267,39 +314,66 @@ const MenuBar = ({ editor }) => {
       {/* Image Input */}
       {showImageInput && (
         <div className="mb-3 p-2 bg-white border border-gray-200 rounded-lg">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="url"
+                placeholder="Paste image URL"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm"
+              />
+              <button
+                type="button"
+                onClick={addImageByUrl}
+                className="px-3 py-1 bg-[#00337C] text-white rounded text-sm hover:bg-[#1E4B9E]"
+              >
+                Add URL
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImageInput(false);
+                  setImageUploadError('');
+                }}
+                className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+
             <input
-              type="url"
-              placeholder="Enter image URL"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="flex-1 px-3 py-1 border border-gray-300 rounded text-sm"
+              ref={imageFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageFileChange}
+              className="hidden"
             />
-            <button
-              type="button"
-              onClick={addImage}
-              className="px-3 py-1 bg-[#00337C] text-white rounded text-sm hover:bg-[#1E4B9E]"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowImageInput(false)}
-              className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
-            >
-              Cancel
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => imageFileInputRef.current?.click()}
+                disabled={isUploadingImage}
+                className="inline-flex items-center justify-center rounded bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ImageIcon className="mr-2 h-4 w-4" />
+                {isUploadingImage ? 'Uploading...' : 'Upload image file'}
+              </button>
+              <p className="text-xs text-gray-500">
+                Uploaded images are inserted directly into the article body.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            You can also upload via URL or paste an image directly
-          </p>
+          {imageUploadError && (
+            <p className="mt-2 text-xs text-red-600">{imageUploadError}</p>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-const RichTextEditor = ({ content, onChange }) => {
+const RichTextEditor = ({ content, onChange, onImageUpload }) => {
     const editor = useEditor({
         extensions: [
           StarterKit.configure({
@@ -314,7 +388,7 @@ const RichTextEditor = ({ content, onChange }) => {
             },
           }),
           Image.configure({
-            inline: true,
+            inline: false,
             allowBase64: true,
             HTMLAttributes: {
               class: 'rounded-lg max-w-full h-auto',
@@ -354,9 +428,13 @@ const RichTextEditor = ({ content, onChange }) => {
 
   return (
     <div className="flex flex-col">
-      <MenuBar editor={editor} />
+      <MenuBar editor={editor} onImageUpload={onImageUpload} />
       <EditorContent editor={editor} />
       <style>{`
+        .rich-editor-content p {
+          margin: 0.85rem 0;
+        }
+
         .rich-editor-content ul {
           list-style-type: disc;
           padding-left: 1.5rem;
@@ -377,6 +455,14 @@ const RichTextEditor = ({ content, onChange }) => {
 
         .rich-editor-content li p {
           margin: 0;
+        }
+
+        .rich-editor-content img {
+          display: block;
+          max-width: 100%;
+          height: auto;
+          margin: 1.25rem 0;
+          border-radius: 0.75rem;
         }
       `}</style>
       

@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { ArrowRight, BookOpen, Calendar, Clock, Search, X } from "lucide-react";
 import { fetchPublishedArticles } from "../../api/pubclicArticle.api";
+import SEO from "../../components/SEO";
+import { absoluteUrl, breadcrumbSchema } from "../../lib/seo";
 
 const stripHtml = (value = "") =>
   value
@@ -80,6 +82,23 @@ const ArticlesPage = () => {
 
   const featuredArticle = filteredArticles[0];
   const remainingArticles = featuredArticle ? filteredArticles.slice(1) : [];
+  const articleListSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Build Your Best Self Articles",
+      itemListElement: articles.slice(0, 20).map((article, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: absoluteUrl(`/articles/${article.slug}`),
+        name: article.title,
+      })),
+    },
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Articles", path: "/articles" },
+    ]),
+  ];
 
   if (loading) {
     return (
@@ -94,6 +113,12 @@ const ArticlesPage = () => {
 
   return (
     <main className="bg-white text-slate-950">
+      <SEO
+        title="Articles | Build Your Best Self"
+        description="Read BYBS articles on self-discovery, confidence, healing, purpose, boundaries, empowerment, and building a grounded life."
+        canonical={absoluteUrl("/articles")}
+        schema={articleListSchema}
+      />
       <section className="bg-[#F7F9FC] border-b border-slate-100">
         <div className="public-container py-5 md:py-10">
           <Motion.div
@@ -146,7 +171,6 @@ const ArticlesPage = () => {
               <h2 className="text-2xl md:text-3xl font-light text-[#00337C]">
                 Latest articles
               </h2>
-             
             </div>
           </div>
 

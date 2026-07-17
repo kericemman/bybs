@@ -22,6 +22,14 @@ const storage = new CloudinaryStorage({
       };
     }
 
+    if (file.fieldname === "contentImage" && req.originalUrl?.includes("/articles")) {
+      return {
+        folder: "bybs/articles/content",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      };
+    }
+
     if (file.fieldname === "coverImage" && req.originalUrl?.includes("/cohorts")) {
       return {
         folder: "bybs/cohorts/covers",

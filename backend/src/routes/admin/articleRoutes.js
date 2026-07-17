@@ -8,6 +8,7 @@ const {
   getArticle,
   updateArticle,
   deleteArticle,
+  uploadArticleContentImage,
 } = require("../../controllers/articleControllers");
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.use(protect);
 
 // GET all articles (admin dashboard)
 router.get("/", getArticles);
+
+// UPLOAD article body image
+router.post("/content-image", upload.single("contentImage"), uploadArticleContentImage);
 
 // GET single article by ID (edit/view)
 router.get("/:id", getArticle);
