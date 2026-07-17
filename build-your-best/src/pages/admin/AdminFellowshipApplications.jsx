@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
+import RichTextEditor from "../../layouts/RichEditor";
+import { useAuth } from "../../context/AuthContext";
+import { isFullAdmin } from "../../utils/adminPermissions";
+import { compressImageFile } from "../../utils/imageCompression";
 import {
   deleteFellowshipApplication,
   getFellowshipApplications,
+  screenFellowshipApplications,
+  sendBulkFellowshipInvites,
   sendFellowshipInvite,
   updateFellowshipApplication,
+  uploadFellowshipInviteImage,
 } from "../../api/fellowshipApplication.api";
 import {
   CheckCircle2,
@@ -14,9 +21,11 @@ import {
   Mail,
   Search,
   Send,
+  Sparkles,
   Trash2,
   Users,
   X,
+  XCircle,
 } from "lucide-react";
 
 const statuses = [
@@ -29,6 +38,13 @@ const statuses = [
   { value: "declined", label: "Declined" },
 ];
 
+const screeningGroups = [
+  { value: "all", label: "All groups" },
+  { value: "unscreened", label: "Unscreened" },
+  { value: "accepted", label: "Accepted group" },
+  { value: "not_qualified", label: "Not qualified" },
+];
+
 const statusStyles = {
   new: "bg-blue-50 text-blue-700 border-blue-100",
   reviewing: "bg-amber-50 text-amber-700 border-amber-100",
@@ -38,7 +54,19 @@ const statusStyles = {
   declined: "bg-red-50 text-red-700 border-red-100",
 };
 
+const groupStyles = {
+  unscreened: "bg-slate-50 text-slate-600 border-slate-200",
+  accepted: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  not_qualified: "bg-red-50 text-red-700 border-red-100",
+};
+
 const fixedCohortSchedule = "Saturday and Sunday every week, 2:00 PM - 4:00 PM CAT";
+const defaultInviteMessage = `
+<p>Congratulations. After reviewing your application, we are pleased to invite you to the next step of the BYBS Fellowship Cohort 4 selection process.</p>
+<p>Please confirm your availability for the Saturday and Sunday sessions from 2:00 PM to 4:00 PM CAT.</p>
+<p>We will share onboarding details after your confirmation.</p>
+`;
+
 const formatAvailability = (value) => {
   if (value === "yes") return "Yes, can commit";
   if (value === "mostly") return "Mostly, with minor constraints";
@@ -46,16 +74,31 @@ const formatAvailability = (value) => {
   return value || "Not provided";
 };
 
+const formatGroup = (value) => {
+  if (value === "accepted") return "Accepted group";
+  if (value === "not_qualified") return "Not qualified";
+  return "Unscreened";
+};
+
 const escapeCsv = (value = "") => `"${String(value).replaceAll('"', '""')}"`;
 
 export default function AdminFellowshipApplications() {
+  const { admin } = useAuth();
+  const canDelete = isFullAdmin(admin);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [groupFilter, setGroupFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIds, setSelectedIds] = useState([]);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [screening, setScreening] = useState(false);
+  const [screeningSummary, setScreeningSummary] = useState(null);
+  const [inviteSubject, setInviteSubject] = useState("Invitation: BYBS Fellowship Cohort 4");
+  const [inviteMessage, setInviteMessage] = useState(defaultInviteMessage);
+  const [sendingInvites, setSendingInvites] = useState(false);
 
   const fetchApplications = async () => {
     try {
@@ -81,6 +124,12 @@ export default function AdminFellowshipApplications() {
       results = results.filter((application) => application.status === statusFilter);
     }
 
+    if (groupFilter !== "all") {
+      results = results.filter(
+        (application) => (application.screeningGroup || "unscreened") === groupFilter
+      );
+    }
+
     if (!searchTerm.trim()) return results;
 
     const term = searchTerm.toLowerCase();
@@ -92,32 +141,73 @@ export default function AdminFellowshipApplications() {
         application.phone,
         application.country,
         application.occupation,
+        application.screeningReasons?.join(" "),
       ]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(term))
     );
-  }, [applications, searchTerm, statusFilter]);
+  }, [applications, groupFilter, searchTerm, statusFilter]);
 
   const counts = useMemo(() => {
     return applications.reduce(
-      (summary, application) => ({
-        ...summary,
-        [application.status]: (summary[application.status] || 0) + 1,
-        total: summary.total + 1,
-      }),
+      (summary, application) => {
+        const group = application.screeningGroup || "unscreened";
+        return {
+          ...summary,
+          [application.status]: (summary[application.status] || 0) + 1,
+          [group]: (summary[group] || 0) + 1,
+          total: summary.total + 1,
+        };
+      },
       { total: 0 }
     );
   }, [applications]);
 
+  const selectedApplications = useMemo(
+    () => applications.filter((application) => selectedIds.includes(application._id)),
+    [applications, selectedIds]
+  );
+
+  const acceptedReadyForInvite = useMemo(
+    () =>
+      applications.filter(
+        (application) =>
+          (application.screeningGroup || "unscreened") === "accepted" &&
+          application.status !== "invited"
+      ),
+    [applications]
+  );
+
+  const inviteTargets = selectedApplications.length ? selectedApplications : acceptedReadyForInvite;
+
+  const mergeApplication = (updatedApplication) => {
+    setApplications((current) =>
+      current.map((item) => (item._id === updatedApplication._id ? updatedApplication : item))
+    );
+    setSelectedApplication((current) =>
+      current?._id === updatedApplication._id ? updatedApplication : current
+    );
+  };
+
   const updateStatus = async (application, status) => {
     try {
       const { data } = await updateFellowshipApplication(application._id, { status });
-      setApplications((current) =>
-        current.map((item) => (item._id === data._id ? data : item))
-      );
-      setSelectedApplication((current) => (current?._id === data._id ? data : current));
+      mergeApplication(data);
     } catch (updateError) {
       alert(updateError.response?.data?.message || "Failed to update status.");
+    }
+  };
+
+  const updateScreeningGroup = async (application, screeningGroup) => {
+    try {
+      const status = screeningGroup === "accepted" ? "accepted" : screeningGroup === "not_qualified" ? "declined" : application.status;
+      const { data } = await updateFellowshipApplication(application._id, {
+        screeningGroup,
+        status,
+      });
+      mergeApplication(data);
+    } catch (updateError) {
+      alert(updateError.response?.data?.message || "Failed to update screening group.");
     }
   };
 
@@ -129,14 +219,30 @@ export default function AdminFellowshipApplications() {
       const { data } = await updateFellowshipApplication(selectedApplication._id, {
         adminNotes: selectedApplication.adminNotes || "",
       });
-      setApplications((current) =>
-        current.map((item) => (item._id === data._id ? data : item))
-      );
-      setSelectedApplication(data);
+      mergeApplication(data);
     } catch (updateError) {
       alert(updateError.response?.data?.message || "Failed to save notes.");
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const runAutomatedScreening = async (force = false) => {
+    try {
+      setScreening(true);
+      setError("");
+      const { data } = await screenFellowshipApplications({ force });
+      setScreeningSummary(data.summary);
+      if (Array.isArray(data.applications)) {
+        setApplications((current) => {
+          const updates = new Map(data.applications.map((application) => [application._id, application]));
+          return current.map((application) => updates.get(application._id) || application);
+        });
+      }
+    } catch (screenError) {
+      setError(screenError.response?.data?.message || "Failed to screen applications.");
+    } finally {
+      setScreening(false);
     }
   };
 
@@ -146,28 +252,85 @@ export default function AdminFellowshipApplications() {
     try {
       await deleteFellowshipApplication(application._id);
       setApplications((current) => current.filter((item) => item._id !== application._id));
+      setSelectedIds((current) => current.filter((id) => id !== application._id));
       if (selectedApplication?._id === application._id) setSelectedApplication(null);
     } catch (deleteError) {
       alert(deleteError.response?.data?.message || "Failed to delete application.");
     }
   };
 
-  const handleSendInvite = async (application) => {
+  const sendOneInvite = async (application) => {
     if (!window.confirm(`Send invite to ${application.firstName} ${application.lastName}?`)) return;
 
     try {
       const { data } = await sendFellowshipInvite(application._id, {
-        subject: `Invitation: ${application.cohort || "BYBS Fellowship"}`,
+        subject: inviteSubject,
+        messageHtml: inviteMessage,
       });
-      setApplications((current) =>
-        current.map((item) => (item._id === data.application._id ? data.application : item))
-      );
-      setSelectedApplication((current) =>
-        current?._id === data.application._id ? data.application : current
-      );
+      mergeApplication(data.application);
     } catch (inviteError) {
       alert(inviteError.response?.data?.message || "Failed to send invite.");
     }
+  };
+
+  const sendBulkInvites = async () => {
+    const ids = inviteTargets.map((application) => application._id);
+
+    if (!ids.length) {
+      alert("No accepted applicants are ready for invitation.");
+      return;
+    }
+
+    if (!window.confirm(`Send invitation email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`)) return;
+
+    try {
+      setSendingInvites(true);
+      const { data } = await sendBulkFellowshipInvites({
+        ids,
+        subject: inviteSubject,
+        messageHtml: inviteMessage,
+      });
+      const sent = data.sent || [];
+      setApplications((current) => {
+        const updates = new Map(sent.map((application) => [application._id, application]));
+        return current.map((application) => updates.get(application._id) || application);
+      });
+      setSelectedIds([]);
+      alert(data.message || "Invitations sent.");
+    } catch (inviteError) {
+      alert(inviteError.response?.data?.message || "Failed to send invitations.");
+    } finally {
+      setSendingInvites(false);
+    }
+  };
+
+  const handleInviteImageUpload = async (file) => {
+    const compressedFile = await compressImageFile(file, {
+      maxWidth: 1400,
+      maxHeight: 1000,
+      quality: 0.82,
+    });
+    const { data } = await uploadFellowshipInviteImage(compressedFile);
+
+    return data.url;
+  };
+
+  const toggleSelected = (applicationId) => {
+    setSelectedIds((current) =>
+      current.includes(applicationId)
+        ? current.filter((id) => id !== applicationId)
+        : [...current, applicationId]
+    );
+  };
+
+  const toggleAllVisible = () => {
+    const visibleIds = visibleApplications.map((application) => application._id);
+    const allVisibleSelected = visibleIds.every((id) => selectedIds.includes(id));
+    setSelectedIds((current) =>
+      allVisibleSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds]))
+    );
   };
 
   const exportCsv = () => {
@@ -178,11 +341,13 @@ export default function AdminFellowshipApplications() {
       "Phone",
       "Country",
       "City",
-      "Profile Link",
       "Age Range",
       "Occupation",
       "Current Stage",
       "Status",
+      "Screening Group",
+      "Screening Score",
+      "Screening Reasons",
       "Cohort Schedule",
       "Can Commit To Schedule",
       "Growth Focus Areas",
@@ -200,11 +365,13 @@ export default function AdminFellowshipApplications() {
       application.phone,
       application.country,
       application.city,
-      application.linkedinUrl,
       application.ageRange,
       application.occupation,
       application.currentStage,
       application.status,
+      formatGroup(application.screeningGroup),
+      application.screeningScore ?? 0,
+      application.screeningReasons?.join("; "),
       application.cohortSchedule || fixedCohortSchedule,
       formatAvailability(application.availability),
       application.focusAreas?.join(", "),
@@ -223,48 +390,123 @@ export default function AdminFellowshipApplications() {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `bybs-fellowship-applications-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `bybs-fellowship-screening-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
   };
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="mt-10 space-y-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-light text-[#00337C]">Fellowship Applications</h1>
+            <h1 className="text-3xl font-light text-[#00337C]">Cohort 4 Screening</h1>
             <p className="mt-1 text-gray-600">
-              Review answers submitted from the BYBS fellowship application form.
+              Auto-screen applicants, review grouped results, and send invitations after approval.
             </p>
           </div>
-          <button
-            onClick={exportCsv}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => runAutomatedScreening(false)}
+              disabled={screening}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E] disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" />
+              {screening ? "Screening..." : "Run auto-screening"}
+            </button>
+            <button
+              onClick={exportCsv}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
           <StatCard label="Total" value={counts.total || 0} icon={<Users className="h-5 w-5" />} tone="blue" />
-          <StatCard label="New" value={counts.new || 0} icon={<Clock className="h-5 w-5" />} tone="amber" />
-          <StatCard label="Shortlisted" value={counts.shortlisted || 0} icon={<Eye className="h-5 w-5" />} tone="purple" />
-          <StatCard label="Accepted" value={counts.accepted || 0} icon={<CheckCircle2 className="h-5 w-5" />} tone="green" />
+          <StatCard label="Unscreened" value={counts.unscreened || 0} icon={<Clock className="h-5 w-5" />} tone="slate" />
+          <StatCard label="Accepted group" value={counts.accepted || 0} icon={<CheckCircle2 className="h-5 w-5" />} tone="green" />
+          <StatCard label="Not qualified" value={counts.not_qualified || 0} icon={<XCircle className="h-5 w-5" />} tone="red" />
         </div>
 
+        {screeningSummary && (
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+            Auto-screening completed: {screeningSummary.screened} screened, {screeningSummary.accepted} accepted, {screeningSummary.notQualified} not qualified.
+            <button
+              onClick={() => runAutomatedScreening(true)}
+              disabled={screening}
+              className="ml-3 font-semibold underline"
+            >
+              Re-screen all
+            </button>
+          </div>
+        )}
+
+        <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-col gap-1">
+            <h2 className="text-xl font-semibold text-[#10233F]">Invitation email</h2>
+            <p className="text-sm text-gray-500">
+              Write the invitation once, then send it to selected applicants or the accepted group.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-gray-700">Subject</span>
+              <input
+                value={inviteSubject}
+                onChange={(event) => setInviteSubject(event.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+              />
+            </label>
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <RichTextEditor
+                content={inviteMessage}
+                onChange={setInviteMessage}
+                onImageUpload={handleInviteImageUpload}
+                placeholder="Write the invitation email here..."
+              />
+            </div>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-gray-500">
+                Target: {selectedApplications.length ? `${selectedApplications.length} selected` : `${acceptedReadyForInvite.length} accepted not invited`}
+                . You can use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"}.
+              </p>
+              <button
+                onClick={sendBulkInvites}
+                disabled={sendingInvites}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                {sendingInvites ? "Sending..." : "Send invitations"}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search name, email, phone, country, role..."
+                placeholder="Search name, email, country, role, screening reason..."
                 className="w-full rounded-lg border border-gray-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
               />
             </div>
+            <select
+              value={groupFilter}
+              onChange={(event) => setGroupFilter(event.target.value)}
+              className="rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+            >
+              {screeningGroups.map((group) => (
+                <option key={group.value} value={group.value}>
+                  {group.label}
+                </option>
+              ))}
+            </select>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
@@ -297,9 +539,10 @@ export default function AdminFellowshipApplications() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
-            <div className="hidden grid-cols-[1.05fr_1.2fr_0.75fr_0.7fr_0.7fr] gap-4 border-b border-gray-100 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:grid">
+            <div className="hidden grid-cols-[auto_1fr_1fr_0.8fr_0.8fr_0.8fr] gap-4 border-b border-gray-100 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:grid">
+              <button onClick={toggleAllVisible} className="text-left">Select</button>
               <span>Applicant</span>
-              <span>Apply-cohort answers</span>
+              <span>Screening</span>
               <span>Status</span>
               <span>Submitted</span>
               <span className="text-right">Actions</span>
@@ -307,70 +550,18 @@ export default function AdminFellowshipApplications() {
 
             <div className="divide-y divide-gray-100">
               {visibleApplications.map((application) => (
-                <div
+                <ApplicationRow
                   key={application._id}
-                  className="grid gap-4 px-5 py-5 lg:grid-cols-[1.05fr_1.2fr_0.75fr_0.7fr_0.7fr] lg:items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-[#10233F]">
-                      {application.firstName} {application.lastName}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                      <Mail className="h-3.5 w-3.5" />
-                      {application.email}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <p className="font-medium text-[#10233F]">
-                      {formatAvailability(application.availability)}
-                    </p>
-                    <p className="mt-1 line-clamp-1 text-xs text-gray-500">
-                      {application.focusAreas?.length
-                        ? application.focusAreas.join(", ")
-                        : "No focus areas selected"}
-                    </p>
-                    <p className="mt-1 line-clamp-1 text-xs text-gray-400">
-                      {application.challenge || "No challenge answer"}
-                    </p>
-                  </div>
-                  <select
-                    value={application.status}
-                    onChange={(event) => updateStatus(application, event.target.value)}
-                    className={`w-full rounded-full border px-3 py-2 text-xs font-semibold capitalize outline-none ${statusStyles[application.status]}`}
-                  >
-                    {statuses.filter((status) => status.value !== "all").map((status) => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-sm text-gray-500">
-                    {new Date(application.createdAt).toLocaleDateString()}
-                  </p>
-                  <div className="flex justify-start gap-2 lg:justify-end">
-                    <button
-                      onClick={() => setSelectedApplication(application)}
-                      className="rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#00337C]"
-                      title="View application"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleSendInvite(application)}
-                      className="rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-blue-50 hover:text-[#00337C]"
-                      title="Send invite"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(application)}
-                      className="rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
-                      title="Delete application"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+                  application={application}
+                  canDelete={canDelete}
+                  isSelected={selectedIds.includes(application._id)}
+                  onSelect={() => toggleSelected(application._id)}
+                  onOpen={() => setSelectedApplication(application)}
+                  onDelete={() => handleDelete(application)}
+                  onInvite={() => sendOneInvite(application)}
+                  onStatusChange={(status) => updateStatus(application, status)}
+                  onGroupChange={(group) => updateScreeningGroup(application, group)}
+                />
               ))}
             </div>
           </div>
@@ -380,24 +571,122 @@ export default function AdminFellowshipApplications() {
       {selectedApplication && (
         <ApplicationDrawer
           application={selectedApplication}
+          canDelete={canDelete}
           onClose={() => setSelectedApplication(null)}
           onChange={setSelectedApplication}
           onSaveNotes={saveNotes}
           savingNotes={savingNotes}
           onStatusChange={(status) => updateStatus(selectedApplication, status)}
-          onSendInvite={() => handleSendInvite(selectedApplication)}
+          onGroupChange={(group) => updateScreeningGroup(selectedApplication, group)}
+          onSendInvite={() => sendOneInvite(selectedApplication)}
         />
       )}
     </AdminLayout>
   );
 }
 
+function ApplicationRow({
+  application,
+  canDelete,
+  isSelected,
+  onSelect,
+  onOpen,
+  onDelete,
+  onInvite,
+  onStatusChange,
+  onGroupChange,
+}) {
+  const group = application.screeningGroup || "unscreened";
+
+  return (
+    <div className="grid gap-4 px-5 py-5 lg:grid-cols-[auto_1fr_1fr_0.8fr_0.8fr_0.8fr] lg:items-center">
+      <label className="flex items-center">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={onSelect}
+          className="h-4 w-4 rounded border-gray-300 text-[#00337C]"
+        />
+      </label>
+      <div>
+        <p className="font-semibold text-[#10233F]">
+          {application.firstName} {application.lastName}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+          <Mail className="h-3.5 w-3.5" />
+          {application.email}
+        </div>
+        <p className="mt-1 text-xs text-gray-400">{application.country} {application.city ? `- ${application.city}` : ""}</p>
+      </div>
+      <div className="space-y-2 text-sm text-gray-600">
+        <select
+          value={group}
+          onChange={(event) => onGroupChange(event.target.value)}
+          className={`w-full rounded-full border px-3 py-2 text-xs font-semibold outline-none ${groupStyles[group]}`}
+        >
+          {screeningGroups.filter((item) => item.value !== "all").map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500">
+          Score: {application.screeningScore ?? 0}/100
+        </p>
+        <p className="line-clamp-1 text-xs text-gray-400">
+          {application.screeningReasons?.[0] || "Not screened yet"}
+        </p>
+      </div>
+      <select
+        value={application.status}
+        onChange={(event) => onStatusChange(event.target.value)}
+        className={`w-full rounded-full border px-3 py-2 text-xs font-semibold capitalize outline-none ${statusStyles[application.status]}`}
+      >
+        {statuses.filter((status) => status.value !== "all").map((status) => (
+          <option key={status.value} value={status.value}>
+            {status.label}
+          </option>
+        ))}
+      </select>
+      <p className="text-sm text-gray-500">
+        {new Date(application.createdAt).toLocaleDateString()}
+      </p>
+      <div className="flex justify-start gap-2 lg:justify-end">
+        <IconButton onClick={onOpen} title="View application" icon={<Eye className="h-4 w-4" />} />
+        <IconButton onClick={onInvite} title="Send invite" icon={<Send className="h-4 w-4" />} />
+        {canDelete && (
+          <IconButton
+            onClick={onDelete}
+            title="Delete application"
+            icon={<Trash2 className="h-4 w-4" />}
+            danger
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function IconButton({ onClick, title, icon, danger = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors ${
+        danger ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-gray-50 hover:text-[#00337C]"
+      }`}
+      title={title}
+    >
+      {icon}
+    </button>
+  );
+}
+
 function StatCard({ label, value, icon, tone }) {
   const tones = {
     blue: "bg-blue-50 text-blue-700",
-    amber: "bg-amber-50 text-amber-700",
-    purple: "bg-purple-50 text-purple-700",
+    slate: "bg-slate-50 text-slate-700",
     green: "bg-emerald-50 text-emerald-700",
+    red: "bg-red-50 text-red-700",
   };
 
   return (
@@ -415,7 +704,18 @@ function StatCard({ label, value, icon, tone }) {
   );
 }
 
-function ApplicationDrawer({ application, onClose, onChange, onSaveNotes, savingNotes, onStatusChange, onSendInvite }) {
+function ApplicationDrawer({
+  application,
+  onClose,
+  onChange,
+  onSaveNotes,
+  savingNotes,
+  onStatusChange,
+  onGroupChange,
+  onSendInvite,
+}) {
+  const group = application.screeningGroup || "unscreened";
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
       <div className="h-full w-full max-w-3xl overflow-y-auto bg-white shadow-xl">
@@ -437,28 +737,65 @@ function ApplicationDrawer({ application, onClose, onChange, onSaveNotes, saving
 
         <div className="space-y-5 p-5">
           <div className="rounded-xl border border-gray-100 p-4">
-            <label className="text-sm font-medium text-gray-700">Status</label>
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-              <select
-                value={application.status}
-                onChange={(event) => onStatusChange(event.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
-              >
-                {statuses.filter((status) => status.value !== "all").map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={onSendInvite}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E]"
-              >
-                <Send className="h-4 w-4" />
-                Send invite
-              </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm font-medium text-gray-700">
+                Status
+                <select
+                  value={application.status}
+                  onChange={(event) => onStatusChange(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+                >
+                  {statuses.filter((status) => status.value !== "all").map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium text-gray-700">
+                Screening group
+                <select
+                  value={group}
+                  onChange={(event) => onGroupChange(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+                >
+                  {screeningGroups.filter((item) => item.value !== "all").map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
+            <button
+              onClick={onSendInvite}
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E]"
+            >
+              <Send className="h-4 w-4" />
+              Send invite
+            </button>
           </div>
+
+          <AnswerGrid
+            title="Screening Result"
+            items={[
+              ["Group", formatGroup(group)],
+              ["Score", `${application.screeningScore ?? 0}/100`],
+              ["Screened", application.screenedAt ? new Date(application.screenedAt).toLocaleString() : "Not screened"],
+              ["Mode", application.screeningMode || "manual"],
+            ]}
+          />
+
+          {application.screeningReasons?.length > 0 && (
+            <section className="rounded-xl border border-gray-100 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">Screening reasons</h3>
+              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-gray-600">
+                {application.screeningReasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <AnswerGrid
             title="Personal Details"

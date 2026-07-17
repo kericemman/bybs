@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 const {
   getWaitlistEntries,
   deleteWaitlistEntry,
@@ -7,7 +8,7 @@ const {
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, requireAdmin);
 
 // GET all waitlist entries
 router.get("/", getWaitlistEntries);

@@ -130,6 +130,28 @@ const fellowshipApplicationSchema = new mongoose.Schema(
       enum: ["new", "reviewing", "shortlisted", "accepted", "invited", "declined"],
       default: "new",
     },
+    screeningGroup: {
+      type: String,
+      enum: ["unscreened", "accepted", "not_qualified"],
+      default: "unscreened",
+    },
+    screeningScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    screeningReasons: [String],
+    screeningMode: {
+      type: String,
+      enum: ["manual", "auto"],
+      default: "manual",
+    },
+    screenedAt: Date,
+    screenedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+    },
     adminNotes: {
       type: String,
       trim: true,
@@ -147,6 +169,7 @@ const fellowshipApplicationSchema = new mongoose.Schema(
 
 fellowshipApplicationSchema.index({ email: 1, cohortSlug: 1 }, { unique: true });
 fellowshipApplicationSchema.index({ status: 1, createdAt: -1 });
+fellowshipApplicationSchema.index({ screeningGroup: 1, createdAt: -1 });
 fellowshipApplicationSchema.index({ cohortSlug: 1, createdAt: -1 });
 
 module.exports = mongoose.model("FellowshipApplication", fellowshipApplicationSchema);

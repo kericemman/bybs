@@ -11,6 +11,7 @@ const cors = require("cors");
 const path = require("path");
 
 const authRoutes = require("./routes/admin/authRoutes");
+const managerRoutes = require("./routes/admin/managerRoutes");
 const paymentRoutes = require("./routes/admin/paymentRoutes");
 const adminPaymentRoutes = require("./routes/admin/adminPaymentRoutes");
 // const orderRoutes = require("./routes/admin/orderRoutes");
@@ -100,6 +101,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/", seoRoutes);
 app.use("/api", seoRoutes);
 app.use("/api/admin/auth", authRoutes);
+app.use("/api/admin/managers", managerRoutes);
 app.use("/api/admin/payments", adminPaymentRoutes);
 app.use("/api/payments", paymentRoutes);
 // app.use("/api/orders", orderRoutes);

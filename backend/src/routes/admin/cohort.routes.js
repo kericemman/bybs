@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 const upload = require("../../utils/clodinaryUpload");
 const {
   createCohort,
@@ -11,7 +12,7 @@ const {
 
 const router = express.Router();
 
-router.use(protect);
+router.use(protect, requireAdmin);
 
 const cohortUpload = upload.fields([
   { name: "coverImage", maxCount: 1 },

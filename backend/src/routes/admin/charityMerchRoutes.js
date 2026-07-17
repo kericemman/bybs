@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 
 const {
   createCharityMerchOrder,
@@ -12,8 +13,8 @@ const router = express.Router();
 
 router.post("/", createCharityMerchOrder);
 
-router.get("/admin", protect, getCharityMerchOrders);
-router.patch("/admin/:id/status", protect, updateCharityMerchOrderStatus);
-router.delete("/admin/:id", protect, deleteCharityMerchOrder);
+router.get("/admin", protect, requireAdmin, getCharityMerchOrders);
+router.patch("/admin/:id/status", protect, requireAdmin, updateCharityMerchOrderStatus);
+router.delete("/admin/:id", protect, requireAdmin, deleteCharityMerchOrder);
 
 module.exports = router;

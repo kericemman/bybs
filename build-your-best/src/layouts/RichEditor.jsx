@@ -373,7 +373,12 @@ const MenuBar = ({ editor, onImageUpload }) => {
   );
 };
 
-const RichTextEditor = ({ content, onChange, onImageUpload }) => {
+const RichTextEditor = ({
+  content,
+  onChange,
+  onImageUpload,
+  placeholder = 'Start writing your article here...',
+}) => {
     const editor = useEditor({
         extensions: [
           StarterKit.configure({
@@ -398,7 +403,7 @@ const RichTextEditor = ({ content, onChange, onImageUpload }) => {
             types: ['heading', 'paragraph'],
           }),
           Placeholder.configure({
-            placeholder: 'Start writing your article here...',
+            placeholder,
           }),
           CharacterCount, // ✅ ADD THIS
         ],

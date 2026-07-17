@@ -18,6 +18,11 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.admin = await Admin.findById(decoded.id).select("-password");
+
+    if (!req.admin || req.admin.active === false) {
+      return res.status(401).json({ message: "Admin account is not active" });
+    }
+
     next();
   } catch (error) {
     res.status(401).json({ message: "Token failed" });

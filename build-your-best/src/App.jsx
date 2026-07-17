@@ -43,6 +43,8 @@ import CharityMerchLanding from "./pages/public/CharityMerchLanding";
 import AdminCharityMerchOrders from "./pages/admin/AdminCharityMerchOrders";
 import Checkout from "./pages/public/Checkout";
 import AdminFellowshipApplications from "./pages/admin/AdminFellowshipApplications";
+import AdminManagers from "./pages/admin/AdminManagers";
+import { PERMISSIONS } from "./utils/adminPermissions";
 
 
 export default function AppRoutes() {
@@ -93,7 +95,7 @@ export default function AppRoutes() {
         <Route
             path="/admin/dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <Dashboard />
               </ProtectedRoute>
             }
@@ -102,7 +104,7 @@ export default function AppRoutes() {
         <Route
             path="/admin/articles"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission={PERMISSIONS.ARTICLES_MANAGE}>
                 <Articles />
               </ProtectedRoute>
             }
@@ -111,7 +113,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/articles/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission={PERMISSIONS.ARTICLES_MANAGE}>
                 <ArticleForm />
               </ProtectedRoute>
             }
@@ -120,7 +122,7 @@ export default function AppRoutes() {
         <Route
             path="/admin/payments"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <Payments />
               </ProtectedRoute>
             }
@@ -129,7 +131,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/cohorts"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminCohorts />
               </ProtectedRoute>
             }
@@ -138,7 +140,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/cohorts/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminCohorts />
               </ProtectedRoute>
             }
@@ -147,7 +149,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/cohorts/:id/edit"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminCohorts />
               </ProtectedRoute>
             }
@@ -157,7 +159,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/waitlist"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminWaitlist />
               </ProtectedRoute>
             }
@@ -166,7 +168,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/products"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminProducts />
               </ProtectedRoute>
             }
@@ -175,7 +177,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/orders"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminOrders />
               </ProtectedRoute>
             }
@@ -184,7 +186,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/charity-merch"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminCharityMerchOrders />
               </ProtectedRoute>
             }
@@ -193,7 +195,7 @@ export default function AppRoutes() {
           <Route
             path="/admin/fellowship-applications"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute permission={PERMISSIONS.APPLICATIONS_SCREEN}>
                 <AdminFellowshipApplications />
               </ProtectedRoute>
             }
@@ -202,8 +204,17 @@ export default function AppRoutes() {
           <Route
             path="/admin/subscribers"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute adminOnly>
                 <AdminSubscribers />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/managers"
+            element={
+              <ProtectedRoute adminOnly>
+                <AdminManagers />
               </ProtectedRoute>
             }
           />

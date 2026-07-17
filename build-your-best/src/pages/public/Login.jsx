@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { motion } from "framer-motion";
+import { defaultAdminPath } from "../../utils/adminPermissions";
+import { motion as Motion } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, Shield, BookOpen, AlertCircle } from "lucide-react";
 
 const Login = () => {
@@ -20,8 +21,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate("/admin/dashboard");
+      const admin = await login(email, password);
+      navigate(defaultAdminPath(admin));
     } catch (err) {
       setError(err.message || "Invalid email or password");
     } finally {
@@ -31,7 +32,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5F9FF] to-[#FFF0F0] p-4">
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -69,7 +70,7 @@ const Login = () => {
             <form onSubmit={handleSubmit}>
               {/* Error Alert */}
               {error && (
-                <motion.div
+                <Motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start"
@@ -81,7 +82,7 @@ const Login = () => {
                       Please check your credentials and try again.
                     </p>
                   </div>
-                </motion.div>
+                </Motion.div>
               )}
 
               {/* Email Field */}
@@ -197,7 +198,7 @@ const Login = () => {
             CMS v2.0 • {new Date().getFullYear()} Build Your Best Self
           </p>
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 };

@@ -30,6 +30,14 @@ const storage = new CloudinaryStorage({
       };
     }
 
+    if (file.fieldname === "inviteImage" && req.originalUrl?.includes("/fellowship-applications")) {
+      return {
+        folder: "bybs/fellowship/invitations",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      };
+    }
+
     if (file.fieldname === "coverImage" && req.originalUrl?.includes("/cohorts")) {
       return {
         folder: "bybs/cohorts/covers",

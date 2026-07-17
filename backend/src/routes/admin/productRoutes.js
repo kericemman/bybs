@@ -1,5 +1,6 @@
 const express = require("express"); 
 const protect = require("../../middleware/auth.middleware"); 
+const { requireAdmin } = require("../../middleware/permission.middleware");
 const upload = require("../../utils/clodinaryUpload"); 
 const{ createProduct, updateProduct, 
     deleteProduct, 
@@ -30,11 +31,12 @@ const productUpload = (req, res, next) => {
 router.get("/", getPublicProducts);
 
 // Admin routes first
-router.get("/admin/all", protect, getAllProducts);
+router.get("/admin/all", protect, requireAdmin, getAllProducts);
 
 router.post(
   "/admin",
   protect,
+  requireAdmin,
   productUpload,
   createProduct
 );
@@ -42,11 +44,12 @@ router.post(
 router.put(
   "/admin/:id",
   protect,
+  requireAdmin,
   productUpload,
   updateProduct
 );
 
-router.delete("/admin/:id", protect, deleteProduct);
+router.delete("/admin/:id", protect, requireAdmin, deleteProduct);
 
 // 🔥 Dynamic route MUST be last
 router.get("/:slug", getProductBySlug);

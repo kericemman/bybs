@@ -7,7 +7,6 @@ import {
   BookOpen,
   DollarSign,
   Users,
-  Settings,
   Home,
   BarChart3,
   FileText,
@@ -19,8 +18,10 @@ import {
   Menu,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  UserCog
 } from "lucide-react";
+import { hasPermission, isFullAdmin, PERMISSIONS } from "../utils/adminPermissions";
 
 const Sidebar = () => {
   const { logout, admin } = useAuth();
@@ -52,18 +53,21 @@ const Sidebar = () => {
       path: "/admin/dashboard",
       label: "Dashboard",
       icon: <Home className="w-5 h-5" />,
-      exact: true
+      exact: true,
+      adminOnly: true
     },
     {
       path: "/admin/articles",
       label: "Articles",
       icon: <FileText className="w-5 h-5" />,
+      permission: PERMISSIONS.ARTICLES_MANAGE
       
     },
     {
       path: "/admin/orders",
       label: "Orders",
       icon: <DollarSign className="w-5 h-5" />,
+      adminOnly: true
     
     },
 
@@ -71,6 +75,7 @@ const Sidebar = () => {
       path: "/admin/charity-merch",
       label: "Charity Merch",
       icon: <Heart className="w-5 h-5" />,
+      adminOnly: true
     },
    
    
@@ -78,30 +83,47 @@ const Sidebar = () => {
       path: "/admin/cohorts",
       label: "Cohorts",
       icon: <GraduationCap className="w-5 h-5" />,
+      adminOnly: true
       
     },
     {
       path: "/admin/fellowship-applications",
       label: "Applications",
       icon: <BookOpen className="w-5 h-5" />,
+      permission: PERMISSIONS.APPLICATIONS_SCREEN
     },
     {
       path: "/admin/products",
       label: "Products",
       icon: <ShoppingBag className="w-5 h-5" />,
+      adminOnly: true
     },
     {
       path: "/admin/waitlist",
       label: "Waitlist",
-      icon: <BarChart3 className="w-5 h-5" />
+      icon: <BarChart3 className="w-5 h-5" />,
+      adminOnly: true
     }, 
 
     {
       path: "/admin/subscribers",
       label: "Subscribers",
-      icon: <Users className="w-5 h-5" />
+      icon: <Users className="w-5 h-5" />,
+      adminOnly: true
+    },
+    {
+      path: "/admin/managers",
+      label: "Admin Managers",
+      icon: <UserCog className="w-5 h-5" />,
+      adminOnly: true
     }
   ];
+
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (item.adminOnly) return isFullAdmin(admin);
+    if (item.permission) return hasPermission(admin, item.permission);
+    return true;
+  });
 
   const toggleMenu = (path) => {
     setExpandedMenus(prev => ({
@@ -163,7 +185,7 @@ const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 md:py-6">
         <div className="px-2 md:px-4 space-y-1">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const active = isActive(item.path);
             const expanded = expandedMenus[item.path] || (active && !isMobile);
             

@@ -2,6 +2,7 @@ const FellowshipApplication = require("../models/FellowshipApplication");
 const resend = require("../utils/resendClient");
 
 const allowedStatuses = ["new", "reviewing", "shortlisted", "accepted", "invited", "declined"];
+const autoScreenStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined"];
 const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@campaign.buildyourbestself.org>";
 
 const normalize = (value) => (typeof value === "string" ? value.trim() : value);
@@ -36,12 +37,141 @@ const buildInviteTemplate = ({ name, cohort, message }) => `
       </div>
       <div style="padding:30px;color:#1f2937;line-height:1.7;">
         <p>Hello ${name},</p>
-        <div>${message.replace(/\n/g, "<br/>")}</div>
+        <div>${message}</div>
         <p style="margin-top:28px;">Warmly,<br/><strong>BYBS Team</strong></p>
       </div>
     </div>
   </div>
 `;
+
+const textLength = (value) => String(value || "").replace(/\s+/g, " ").trim().length;
+
+const sanitizeEmailHtml = (html = "") =>
+  String(html)
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, "")
+    .replace(/\son[a-z]+=(["']).*?\1/gi, "");
+
+const toEmailHtml = (value = "") => {
+  const clean = sanitizeEmailHtml(value);
+  return /<[a-z][\s\S]*>/i.test(clean) ? clean : clean.replace(/\n/g, "<br/>");
+};
+
+const personalizeInviteMessage = (message, application) =>
+  message
+    .replaceAll("{{firstName}}", application.firstName || "")
+    .replaceAll("{{lastName}}", application.lastName || "")
+    .replaceAll("{{fullName}}", `${application.firstName || ""} ${application.lastName || ""}`.trim())
+    .replaceAll("{{cohort}}", application.cohort || "BYBS Fellowship");
+
+const scoreApplication = (application) => {
+  let score = 0;
+  const reasons = [];
+
+  const profileComplete = [
+    application.firstName,
+    application.lastName,
+    application.email,
+    application.phone,
+    application.country,
+  ].every(Boolean);
+
+  if (profileComplete) {
+    score += 15;
+    reasons.push("Profile and contact details are complete.");
+  } else {
+    reasons.push("Missing required personal or contact details.");
+  }
+
+  if (application.consent) {
+    score += 5;
+    reasons.push("Consent confirmed.");
+  } else {
+    reasons.push("Consent is missing.");
+  }
+
+  if (application.availability === "yes") {
+    score += 25;
+    reasons.push("Can commit to the Saturday and Sunday cohort schedule.");
+  } else if (application.availability === "mostly") {
+    score += 15;
+    reasons.push("Mostly available for the cohort schedule.");
+  } else {
+    reasons.push("Cannot clearly commit to the cohort schedule.");
+  }
+
+  if (application.currentStage) {
+    score += 10;
+    reasons.push("Current stage of life is clear.");
+  } else {
+    reasons.push("Current stage of life is missing.");
+  }
+
+  const motivationLength = textLength(application.motivation);
+  if (motivationLength >= 80) {
+    score += 20;
+    reasons.push("Motivation answer shows strong intent.");
+  } else if (motivationLength >= 40) {
+    score += 10;
+    reasons.push("Motivation answer is present but could be deeper.");
+  } else {
+    reasons.push("Motivation answer is too brief.");
+  }
+
+  const goalsLength = textLength(application.growthGoals);
+  if (goalsLength >= 60) {
+    score += 15;
+    reasons.push("Growth goals are specific enough for screening.");
+  } else if (goalsLength >= 30) {
+    score += 8;
+    reasons.push("Growth goals are present but light.");
+  } else {
+    reasons.push("Growth goals are too brief.");
+  }
+
+  const challengeLength = textLength(application.challenge);
+  if (challengeLength >= 50) {
+    score += 10;
+    reasons.push("Current challenge gives useful review context.");
+  } else if (challengeLength >= 25) {
+    score += 5;
+    reasons.push("Current challenge is present but light.");
+  } else {
+    reasons.push("Current challenge answer is too brief.");
+  }
+
+  if (application.focusAreas?.length) {
+    score += 10;
+    reasons.push("Growth focus areas were selected.");
+  } else {
+    reasons.push("No growth focus areas selected.");
+  }
+
+  const meetsCoreRequirements =
+    profileComplete &&
+    application.consent &&
+    ["yes", "mostly"].includes(application.availability) &&
+    motivationLength >= 40 &&
+    goalsLength >= 30 &&
+    challengeLength >= 25;
+  const group = meetsCoreRequirements && score >= 70 ? "accepted" : "not_qualified";
+
+  return {
+    group,
+    score: Math.min(score, 100),
+    reasons,
+  };
+};
+
+const markScreened = (application, screening, adminId) => {
+  application.screeningGroup = screening.group;
+  application.screeningScore = screening.score;
+  application.screeningReasons = screening.reasons;
+  application.screeningMode = "auto";
+  application.screenedAt = new Date();
+  application.screenedBy = adminId;
+  application.status = screening.group === "accepted" ? "accepted" : "declined";
+};
 
 exports.createFellowshipApplication = async (req, res) => {
   let payload = {};
@@ -103,6 +233,10 @@ exports.getFellowshipApplications = async (req, res) => {
       filter.status = status;
     }
 
+    if (req.query.screeningGroup && req.query.screeningGroup !== "all") {
+      filter.screeningGroup = req.query.screeningGroup;
+    }
+
     if (req.query.cohortSlug) {
       filter.cohortSlug = req.query.cohortSlug;
     }
@@ -133,7 +267,7 @@ exports.getFellowshipApplications = async (req, res) => {
 
 exports.updateFellowshipApplication = async (req, res) => {
   try {
-    const { status, adminNotes } = req.body;
+    const { status, adminNotes, screeningGroup } = req.body;
     const updates = {};
 
     if (status !== undefined) {
@@ -145,6 +279,17 @@ exports.updateFellowshipApplication = async (req, res) => {
 
     if (adminNotes !== undefined) {
       updates.adminNotes = normalize(adminNotes);
+    }
+
+    if (screeningGroup !== undefined) {
+      if (!["unscreened", "accepted", "not_qualified"].includes(screeningGroup)) {
+        return res.status(400).json({ message: "Invalid screening group." });
+      }
+
+      updates.screeningGroup = screeningGroup;
+      updates.screeningMode = "manual";
+      updates.screenedAt = new Date();
+      updates.screenedBy = req.admin._id;
     }
 
     const application = await FellowshipApplication.findByIdAndUpdate(
@@ -164,6 +309,54 @@ exports.updateFellowshipApplication = async (req, res) => {
   }
 };
 
+exports.screenFellowshipApplications = async (req, res) => {
+  try {
+    const filter = {
+      status: { $in: autoScreenStatuses },
+    };
+
+    if (req.body.cohortSlug) {
+      filter.cohortSlug = req.body.cohortSlug;
+    }
+
+    if (!req.body.force) {
+      filter.$or = [
+        { screeningGroup: { $exists: false } },
+        { screeningGroup: "unscreened" },
+      ];
+    }
+
+    const applications = await FellowshipApplication.find(filter);
+    const summary = {
+      screened: 0,
+      accepted: 0,
+      notQualified: 0,
+    };
+
+    const updatedApplications = [];
+
+    for (const application of applications) {
+      const screening = scoreApplication(application);
+      markScreened(application, screening, req.admin._id);
+      await application.save();
+
+      summary.screened += 1;
+      if (screening.group === "accepted") summary.accepted += 1;
+      if (screening.group === "not_qualified") summary.notQualified += 1;
+      updatedApplications.push(application);
+    }
+
+    return res.json({
+      message: "Automated screening completed.",
+      summary,
+      applications: updatedApplications,
+    });
+  } catch (error) {
+    console.error("Screen fellowship applications error:", error);
+    return res.status(500).json({ message: "Unable to screen applications." });
+  }
+};
+
 exports.sendFellowshipInvite = async (req, res) => {
   try {
     const application = await FellowshipApplication.findById(req.params.id);
@@ -173,8 +366,11 @@ exports.sendFellowshipInvite = async (req, res) => {
     }
 
     const subject = normalize(req.body.subject) || `Invitation: ${application.cohort}`;
-    const message = normalize(req.body.message) ||
-      `Congratulations ${application.firstName},\n\nAfter reviewing your application, we would like to invite you to the next step for ${application.cohort}. Please reply to this email to confirm your availability and receive onboarding details.`;
+    const message = toEmailHtml(
+      req.body.message ||
+      req.body.messageHtml ||
+      `Congratulations ${application.firstName},\n\nAfter reviewing your application, we would like to invite you to the next step for ${application.cohort}. Please reply to this email to confirm your availability and receive onboarding details.`
+    );
 
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -183,7 +379,7 @@ exports.sendFellowshipInvite = async (req, res) => {
       html: buildInviteTemplate({
         name: application.firstName,
         cohort: application.cohort,
-        message,
+        message: personalizeInviteMessage(message, application),
       }),
     });
 
@@ -201,6 +397,86 @@ exports.sendFellowshipInvite = async (req, res) => {
   } catch (error) {
     console.error("Send fellowship invite error:", error);
     return res.status(500).json({ message: "Unable to send invite." });
+  }
+};
+
+exports.sendBulkFellowshipInvites = async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+
+    if (!ids.length) {
+      return res.status(400).json({ message: "Select at least one applicant." });
+    }
+
+    const applications = await FellowshipApplication.find({
+      _id: { $in: ids },
+      status: { $ne: "invited" },
+    });
+
+    const subject = normalize(req.body.subject) || "Invitation: BYBS Fellowship";
+    const message = toEmailHtml(
+      req.body.message ||
+      req.body.messageHtml ||
+      "Congratulations. After reviewing your application, we would like to invite you to the next step."
+    );
+
+    const sent = [];
+    const failed = [];
+
+    for (const application of applications) {
+      try {
+        await resend.emails.send({
+          from: FROM_EMAIL,
+          to: [application.email],
+          subject,
+          html: buildInviteTemplate({
+            name: application.firstName,
+            cohort: application.cohort,
+            message: personalizeInviteMessage(message, application),
+          }),
+        });
+
+        application.status = "invited";
+        application.inviteSentAt = new Date();
+        application.inviteSentBy = req.admin._id;
+        application.inviteSubject = subject;
+        application.inviteMessage = message;
+        await application.save();
+        sent.push(application);
+      } catch (sendError) {
+        console.error("Bulk invite send error:", sendError);
+        failed.push({
+          id: application._id,
+          email: application.email,
+          message: sendError.message || "Failed to send invite.",
+        });
+      }
+    }
+
+    return res.json({
+      message: `Sent ${sent.length} invitation${sent.length === 1 ? "" : "s"}.`,
+      sent,
+      failed,
+    });
+  } catch (error) {
+    console.error("Send bulk fellowship invites error:", error);
+    return res.status(500).json({ message: "Unable to send invitations." });
+  }
+};
+
+exports.uploadFellowshipInviteImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Image file is required." });
+    }
+
+    return res.status(201).json({
+      url: req.file.path,
+      public_id: req.file.filename,
+    });
+  } catch (error) {
+    console.error("Upload fellowship invite image error:", error);
+    return res.status(500).json({ message: "Unable to upload invitation image." });
   }
 };
 

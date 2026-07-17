@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 const {
   createOrder,
   createCartOrder,
@@ -21,10 +22,10 @@ router.get("/verify/:reference", verifyPayment);
 router.post("/webhook", handleWebhook);
 
 // Admin
-router.get("/orders", protect, getOrders);
-router.get("/orders/:id", protect, getOrderById);
-router.patch("/orders/:id/delivered", protect, markDelivered);
-router.delete("/orders/:id", protect, deleteOrder);
+router.get("/orders", protect, requireAdmin, getOrders);
+router.get("/orders/:id", protect, requireAdmin, getOrderById);
+router.patch("/orders/:id/delivered", protect, requireAdmin, markDelivered);
+router.delete("/orders/:id", protect, requireAdmin, deleteOrder);
 
 
 

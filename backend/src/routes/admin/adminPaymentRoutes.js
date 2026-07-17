@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 const Order = require("../../models/Order");
 const Coaching = require("../../models/Coaching");
 
@@ -62,7 +63,9 @@ const loadPayments = async () => {
   ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 };
 
-router.get("/", protect, async (_req, res) => {
+router.use(protect, requireAdmin);
+
+router.get("/", async (_req, res) => {
   try {
     const payments = await loadPayments();
     res.json(payments);
@@ -72,7 +75,7 @@ router.get("/", protect, async (_req, res) => {
   }
 });
 
-router.get("/stats", protect, async (_req, res) => {
+router.get("/stats", async (_req, res) => {
   try {
     const payments = await loadPayments();
     const successfulPayments = payments.filter(
@@ -109,7 +112,7 @@ router.get("/stats", protect, async (_req, res) => {
   }
 });
 
-router.post("/sync", protect, async (_req, res) => {
+router.post("/sync", async (_req, res) => {
   res.json({
     success: true,
     message: "Payments are synced from shop orders and coaching bookings.",

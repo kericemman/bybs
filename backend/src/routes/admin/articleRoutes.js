@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requirePermission } = require("../../middleware/permission.middleware");
 const upload = require("../../utils/clodinaryUpload");
 
 const {
@@ -14,7 +15,7 @@ const {
 const router = express.Router();
 
 // 🔒 Protect ALL article routes
-router.use(protect);
+router.use(protect, requirePermission("articles:manage"));
 
 // GET all articles (admin dashboard)
 router.get("/", getArticles);

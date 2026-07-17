@@ -1,5 +1,6 @@
 const express = require("express");
 const protect = require("../../middleware/auth.middleware");
+const { requireAdmin } = require("../../middleware/permission.middleware");
 
 const {
   subscribe,
@@ -13,7 +14,7 @@ const router = express.Router();
 router.post("/", subscribe);
 
 // Admin
-router.get("/admin", protect, getSubscribers);
-router.post("/admin/send", protect, sendCampaign);
+router.get("/admin", protect, requireAdmin, getSubscribers);
+router.post("/admin/send", protect, requireAdmin, sendCampaign);
 
 module.exports = router;
