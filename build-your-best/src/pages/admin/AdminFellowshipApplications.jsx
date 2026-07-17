@@ -99,6 +99,7 @@ export default function AdminFellowshipApplications() {
   const [inviteSubject, setInviteSubject] = useState("Invitation: BYBS Fellowship Cohort 4");
   const [inviteMessage, setInviteMessage] = useState(defaultInviteMessage);
   const [sendingInvites, setSendingInvites] = useState(false);
+  const [showInviteComposer, setShowInviteComposer] = useState(false);
 
   const fetchApplications = async () => {
     try {
@@ -407,6 +408,13 @@ export default function AdminFellowshipApplications() {
           </div>
           <div className="flex flex-wrap gap-3">
             <button
+              onClick={() => setShowInviteComposer((current) => !current)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-4 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-[#F5F9FF]"
+            >
+              <Mail className="h-4 w-4" />
+              {showInviteComposer ? "Close composer" : "Compose invitation"}
+            </button>
+            <button
               onClick={() => runAutomatedScreening(false)}
               disabled={screening}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E] disabled:opacity-60"
@@ -431,6 +439,14 @@ export default function AdminFellowshipApplications() {
           <StatCard label="Not qualified" value={counts.not_qualified || 0} icon={<XCircle className="h-5 w-5" />} tone="red" />
         </div>
 
+        <WorkflowPanel
+          acceptedCount={acceptedReadyForInvite.length}
+          selectedCount={selectedApplications.length}
+          onOpenComposer={() => setShowInviteComposer(true)}
+          onRunScreening={() => runAutomatedScreening(false)}
+          screening={screening}
+        />
+
         {screeningSummary && (
           <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
             Auto-screening completed: {screeningSummary.screened} screened, {screeningSummary.accepted} accepted, {screeningSummary.notQualified} not qualified.
@@ -445,44 +461,73 @@ export default function AdminFellowshipApplications() {
         )}
 
         <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex flex-col gap-1">
-            <h2 className="text-xl font-semibold text-[#10233F]">Invitation email</h2>
-            <p className="text-sm text-gray-500">
-              Write the invitation once, then send it to selected applicants or the accepted group.
-            </p>
-          </div>
-          <div className="space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium text-gray-700">Subject</span>
-              <input
-                value={inviteSubject}
-                onChange={(event) => setInviteSubject(event.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
-              />
-            </label>
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <RichTextEditor
-                content={inviteMessage}
-                onChange={setInviteMessage}
-                onImageUpload={handleInviteImageUpload}
-                placeholder="Write the invitation email here..."
-              />
-            </div>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-gray-500">
-                Target: {selectedApplications.length ? `${selectedApplications.length} selected` : `${acceptedReadyForInvite.length} accepted not invited`}
-                . You can use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"}.
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-[#10233F]">Invitation email</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Target: {selectedApplications.length ? `${selectedApplications.length} selected` : `${acceptedReadyForInvite.length} accepted not invited`}.
               </p>
-              <button
-                onClick={sendBulkInvites}
-                disabled={sendingInvites}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60"
-              >
-                <Send className="h-4 w-4" />
-                {sendingInvites ? "Sending..." : "Send invitations"}
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowInviteComposer((current) => !current)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-4 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-[#F5F9FF]"
+            >
+              <Mail className="h-4 w-4" />
+              {showInviteComposer ? "Hide composer" : "Open composer"}
+            </button>
           </div>
+
+          {showInviteComposer ? (
+            <div className="mt-5 space-y-4 border-t border-gray-100 pt-5">
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-gray-700">Subject</span>
+                <input
+                  value={inviteSubject}
+                  onChange={(event) => setInviteSubject(event.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+                />
+              </label>
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <RichTextEditor
+                  content={inviteMessage}
+                  onChange={setInviteMessage}
+                  onImageUpload={handleInviteImageUpload}
+                  placeholder="Write the invitation email here..."
+                />
+              </div>
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-gray-500">
+                  Use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"} to personalize each message.
+                </p>
+                <button
+                  onClick={sendBulkInvites}
+                  disabled={sendingInvites}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60"
+                >
+                  <Send className="h-4 w-4" />
+                  {sendingInvites ? "Sending..." : "Send invitations"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 border-t border-gray-100 pt-5 md:grid-cols-3">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Subject</p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">{inviteSubject}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Recipients</p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">
+                  {selectedApplications.length || acceptedReadyForInvite.length}
+                </p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500">Composer</p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">Closed until needed</p>
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
@@ -582,6 +627,75 @@ export default function AdminFellowshipApplications() {
         />
       )}
     </AdminLayout>
+  );
+}
+
+function WorkflowPanel({ acceptedCount, selectedCount, onOpenComposer, onRunScreening, screening }) {
+  const steps = [
+    {
+      title: "Auto-screen",
+      copy: "Group applicants into accepted and not qualified lists.",
+      action: screening ? "Screening..." : "Run",
+      onClick: onRunScreening,
+      disabled: screening,
+      icon: <Sparkles className="h-4 w-4" />,
+    },
+    {
+      title: "Review answers",
+      copy: "Open each application to confirm context and add notes.",
+      action: "Use table",
+      icon: <Eye className="h-4 w-4" />,
+    },
+    {
+      title: "Invite",
+      copy: selectedCount
+        ? `${selectedCount} selected applicants ready for the invitation composer.`
+        : `${acceptedCount} accepted applicants ready for invitations.`,
+      action: "Compose",
+      onClick: onOpenComposer,
+      icon: <Mail className="h-4 w-4" />,
+    },
+  ];
+
+  return (
+    <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col gap-1">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">Screening workflow</p>
+        <h2 className="text-xl font-semibold text-[#10233F]">Review applicants in clear stages</h2>
+      </div>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {steps.map((step, index) => (
+          <div key={step.title} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#00337C]">
+                {step.icon}
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Step {index + 1}
+              </span>
+            </div>
+            <h3 className="font-semibold text-[#10233F]">{step.title}</h3>
+            <p className="mt-1 min-h-[40px] text-sm leading-5 text-gray-600">{step.copy}</p>
+            {step.onClick ? (
+              <button
+                type="button"
+                onClick={step.onClick}
+                disabled={step.disabled}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-3 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-white disabled:opacity-60"
+              >
+                {step.icon}
+                {step.action}
+              </button>
+            ) : (
+              <span className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-500">
+                <CheckCircle2 className="h-4 w-4" />
+                {step.action}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

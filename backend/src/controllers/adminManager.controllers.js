@@ -1,6 +1,9 @@
 const Admin = require("../models/Admin");
+const resend = require("../utils/resendClient");
 
 const managerPermissions = ["applications:screen", "articles:manage"];
+const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@campaign.buildyourbestself.org>";
+const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(/\/$/, "");
 
 const sanitizeManager = (admin) => ({
   _id: admin._id,
@@ -8,10 +11,60 @@ const sanitizeManager = (admin) => ({
   email: admin.email,
   role: admin.role,
   permissions: admin.permissions || [],
+  mustChangePassword: admin.mustChangePassword === true,
   active: admin.active !== false,
   createdAt: admin.createdAt,
   updatedAt: admin.updatedAt,
 });
+
+const escapeHtml = (value = "") =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+
+const buildWelcomeEmail = ({ manager, password }) => {
+  const permissionList = (manager.permissions || [])
+    .map((permission) => `<li>${escapeHtml(permission)}</li>`)
+    .join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;background:#f6f8fb;padding:30px 0;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <div style="background:#00337C;color:#ffffff;padding:28px 30px;">
+          <h1 style="margin:0;font-size:24px;font-weight:400;">BYBS Admin Manager Access</h1>
+          <p style="margin:8px 0 0;color:#dbeafe;">Your manager account has been created.</p>
+        </div>
+        <div style="padding:30px;color:#1f2937;line-height:1.7;">
+          <p>Hello ${escapeHtml(manager.name || "there")},</p>
+          <p>You have been added as a BYBS admin manager. Use the temporary password below to sign in.</p>
+          <div style="background:#f3f6fb;border:1px solid #dbe4f0;border-radius:10px;padding:18px;margin:20px 0;">
+            <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Login</p>
+            <p style="margin:0 0 12px;"><a href="${FRONTEND_URL}/admin/login" style="color:#00337C;">${FRONTEND_URL}/admin/login</a></p>
+            <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Email</p>
+            <p style="margin:0 0 12px;font-weight:700;">${escapeHtml(manager.email)}</p>
+            <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Temporary password</p>
+            <p style="margin:0;font-size:20px;font-weight:700;letter-spacing:.4px;">${escapeHtml(password)}</p>
+          </div>
+          <p>For security, you will be asked to create a new password immediately after your first login.</p>
+          ${permissionList ? `<p style="margin-bottom:8px;">Your enabled permissions:</p><ul>${permissionList}</ul>` : ""}
+          <p style="margin-top:28px;">Warmly,<br/><strong>BYBS Team</strong></p>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const sendWelcomeEmail = async (manager, password) => {
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: [manager.email],
+    subject: "Your BYBS admin manager account",
+    html: buildWelcomeEmail({ manager, password }),
+  });
+};
 
 const normalizePermissions = (permissions = managerPermissions) => {
   const list = Array.isArray(permissions) ? permissions : [permissions];
@@ -44,16 +97,36 @@ exports.createManager = async (req, res) => {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
+    if (password.trim().length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters." });
+    }
+
     const manager = await Admin.create({
       name: name?.trim(),
       email: email.trim().toLowerCase(),
-      password,
+      password: password.trim(),
       role: "manager",
       permissions: normalizePermissions(req.body.permissions),
       active: normalizeBoolean(req.body.active),
+      mustChangePassword: true,
     });
 
-    return res.status(201).json(sanitizeManager(manager));
+    let emailSent = false;
+    let emailError = "";
+
+    try {
+      await sendWelcomeEmail(manager, password.trim());
+      emailSent = true;
+    } catch (sendError) {
+      console.error("Manager welcome email error:", sendError);
+      emailError = sendError.message || "Manager account created, but welcome email was not sent.";
+    }
+
+    return res.status(201).json({
+      ...sanitizeManager(manager),
+      emailSent,
+      emailError,
+    });
   } catch (error) {
     console.error("Create manager error:", error);
 
@@ -77,10 +150,35 @@ exports.updateManager = async (req, res) => {
     if (req.body.email !== undefined) manager.email = req.body.email.trim().toLowerCase();
     if (req.body.permissions !== undefined) manager.permissions = normalizePermissions(req.body.permissions);
     if (req.body.active !== undefined) manager.active = normalizeBoolean(req.body.active);
-    if (req.body.password?.trim()) manager.password = req.body.password;
+    const passwordChanged = Boolean(req.body.password?.trim());
+    if (passwordChanged) {
+      if (req.body.password.trim().length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters." });
+      }
+      manager.password = req.body.password.trim();
+      manager.mustChangePassword = true;
+    }
 
     await manager.save();
-    return res.json(sanitizeManager(manager));
+
+    let emailSent = false;
+    let emailError = "";
+
+    if (passwordChanged) {
+      try {
+        await sendWelcomeEmail(manager, req.body.password.trim());
+        emailSent = true;
+      } catch (sendError) {
+        console.error("Manager password reset email error:", sendError);
+        emailError = sendError.message || "Manager updated, but reset email was not sent.";
+      }
+    }
+
+    return res.json({
+      ...sanitizeManager(manager),
+      emailSent,
+      emailError,
+    });
   } catch (error) {
     console.error("Update manager error:", error);
 

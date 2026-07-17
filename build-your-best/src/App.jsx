@@ -44,6 +44,7 @@ import AdminCharityMerchOrders from "./pages/admin/AdminCharityMerchOrders";
 import Checkout from "./pages/public/Checkout";
 import AdminFellowshipApplications from "./pages/admin/AdminFellowshipApplications";
 import AdminManagers from "./pages/admin/AdminManagers";
+import AdminChangePassword from "./pages/admin/AdminChangePassword";
 import { PERMISSIONS } from "./utils/adminPermissions";
 
 
@@ -90,6 +91,14 @@ export default function AppRoutes() {
 
         {/* AUTH */}
         <Route path="/admin/login" element={<Login />} />
+        <Route
+            path="/admin/change-password"
+            element={
+              <ProtectedRoute>
+                <AdminChangePassword />
+              </ProtectedRoute>
+            }
+          />
 
         {/* ADMIN (PROTECTED) */}
         <Route

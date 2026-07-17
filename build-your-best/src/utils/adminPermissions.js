@@ -23,6 +23,7 @@ export const hasPermission = (admin, permission) => {
 };
 
 export const defaultAdminPath = (admin) => {
+  if (admin?.mustChangePassword) return "/admin/change-password";
   if (isFullAdmin(admin)) return "/admin/dashboard";
   if (hasPermission(admin, PERMISSIONS.APPLICATIONS_SCREEN)) return "/admin/fellowship-applications";
   if (hasPermission(admin, PERMISSIONS.ARTICLES_MANAGE)) return "/admin/articles";

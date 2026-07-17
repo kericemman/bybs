@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { loginAdmin, getMe } from "../api/auth.api";
+import { changeAdminPassword, loginAdmin, getMe } from "../api/auth.api";
 
 const AuthContext = createContext();
 
@@ -32,6 +32,12 @@ export const AuthProvider = ({ children }) => {
     return fetchAdmin();
   }, [fetchAdmin]);
 
+  const changePassword = useCallback(async (payload) => {
+    const { data } = await changeAdminPassword(payload);
+    setAdmin(data);
+    return data;
+  }, []);
+
   useEffect(() => {
     if (localStorage.getItem("token")) {
       fetchAdmin();
@@ -41,7 +47,7 @@ export const AuthProvider = ({ children }) => {
   }, [fetchAdmin]);
 
   return (
-    <AuthContext.Provider value={{ admin, login, logout, loading }}>
+    <AuthContext.Provider value={{ admin, login, logout, loading, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

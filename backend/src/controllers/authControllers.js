@@ -26,6 +26,7 @@ exports.loginAdmin = async (req, res) => {
     email: admin.email,
     role: admin.role,
     permissions: admin.permissions || [],
+    mustChangePassword: admin.mustChangePassword === true,
     token,
   });
 };
@@ -33,4 +34,48 @@ exports.loginAdmin = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   res.status(200).json(req.admin);
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters." });
+    }
+
+    const admin = await Admin.findById(req.admin._id);
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin account not found." });
+    }
+
+    if (!admin.mustChangePassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: "Current password is required." });
+      }
+
+      const isMatch = await admin.matchPassword(currentPassword);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Current password is incorrect." });
+      }
+    }
+
+    admin.password = newPassword;
+    admin.mustChangePassword = false;
+    admin.passwordChangedAt = new Date();
+    await admin.save();
+
+    return res.json({
+      _id: admin._id,
+      name: admin.name,
+      email: admin.email,
+      role: admin.role,
+      permissions: admin.permissions || [],
+      mustChangePassword: false,
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return res.status(500).json({ message: "Unable to change password." });
+  }
 };
