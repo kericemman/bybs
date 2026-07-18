@@ -49,13 +49,6 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-
-      if (!publicKey) {
-        alert("Payment is not configured yet. Please contact support.");
-        return;
-      }
-
       if (!window.PaystackPop) {
         alert("Payment service is still loading. Please refresh and try again.");
         return;
@@ -68,6 +61,12 @@ const Checkout = () => {
           quantity: item.quantity,
         })),
       });
+      const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || data.publicKey;
+
+      if (!publicKey) {
+        alert("Payment is not configured yet. Please contact support.");
+        return;
+      }
 
       const handler = window.PaystackPop.setup({
         key: publicKey,

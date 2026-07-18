@@ -57,6 +57,26 @@ const articleSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
     },
+    newsletter: {
+      sentAt: Date,
+      lastAttemptAt: Date,
+      recipientCount: {
+        type: Number,
+        default: 0,
+      },
+      failedCount: {
+        type: Number,
+        default: 0,
+      },
+      emailIds: {
+        type: [String],
+        default: [],
+      },
+      error: {
+        type: String,
+        default: "",
+      },
+    },
   },
   { timestamps: true }
 );

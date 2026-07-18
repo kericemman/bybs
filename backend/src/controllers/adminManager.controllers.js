@@ -2,7 +2,7 @@ const Admin = require("../models/Admin");
 const resend = require("../utils/resendClient");
 
 const managerPermissions = ["applications:screen", "articles:manage"];
-const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@campaign.buildyourbestself.org>";
+const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS Admin <no-reply@updates.buildyourbestself.org>";
 const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(/\/$/, "");
 
 const sanitizeManager = (admin) => ({
@@ -58,12 +58,20 @@ const buildWelcomeEmail = ({ manager, password }) => {
 };
 
 const sendWelcomeEmail = async (manager, password) => {
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [manager.email],
     subject: "Your BYBS admin manager account",
     html: buildWelcomeEmail({ manager, password }),
   });
+
+  if (error) {
+    const message = error.message || "Resend rejected the manager welcome email.";
+    const detail = error.name ? `${error.name}: ${message}` : message;
+    throw new Error(detail);
+  }
+
+  return data;
 };
 
 const normalizePermissions = (permissions = managerPermissions) => {

@@ -6,6 +6,9 @@ const Product = require("../models/Product");
 const { generateInvoice } = require("../utils/generateInvoice");
 const { sendEbookEmail, sendMerchEmail } = require("../utils/email");
 
+const getPaystackPublicKey = () =>
+  process.env.PAYSTACK_PUBLIC_KEY || process.env.VITE_PAYSTACK_PUBLIC_KEY || "";
+
 const verifyPaystackTransaction = async (reference) => {
   if (!process.env.PAYSTACK_SECRET_KEY) {
     const error = new Error("Paystack secret key is not configured");
@@ -83,6 +86,11 @@ const markOrderAsPaid = async (reference) => {
 exports.createOrder = async (req, res) => {
   try {
     const { productId, name, email, shippingAddress } = req.body;
+    const publicKey = getPaystackPublicKey();
+
+    if (!publicKey) {
+      return res.status(500).json({ message: "Paystack public key is not configured" });
+    }
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -105,6 +113,7 @@ exports.createOrder = async (req, res) => {
       reference,
       amount: product.price,
       email,
+      publicKey,
     });
 
   } catch (error) {
@@ -120,6 +129,11 @@ exports.createCartOrder = async (req, res) => {
   try {
     const { customer = {}, items = [] } = req.body;
     const { name, email, phone, shippingAddress } = customer;
+    const publicKey = getPaystackPublicKey();
+
+    if (!publicKey) {
+      return res.status(500).json({ message: "Paystack public key is not configured" });
+    }
 
     if (!name || !email || !shippingAddress) {
       return res.status(400).json({
@@ -193,6 +207,7 @@ exports.createCartOrder = async (req, res) => {
       reference,
       amount,
       email,
+      publicKey,
     });
   } catch (error) {
     console.error("Create cart order error:", error);

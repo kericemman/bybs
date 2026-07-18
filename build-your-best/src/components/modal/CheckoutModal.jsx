@@ -54,6 +54,12 @@ const CheckoutModal = ({ product, onClose }) => {
     setError("");
 
     try {
+      if (!window.PaystackPop) {
+        setError("Payment service is still loading. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
+
       // Create order
       const { data } = await api.post("/payments/orders", {
         productId: product._id,
@@ -64,16 +70,10 @@ const CheckoutModal = ({ product, onClose }) => {
         }),
       });
 
-      const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+      const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || data.publicKey;
 
       if (!publicKey) {
         setError("Payment is not configured yet. Please contact support.");
-        setLoading(false);
-        return;
-      }
-
-      if (!window.PaystackPop) {
-        setError("Payment service is still loading. Please refresh and try again.");
         setLoading(false);
         return;
       }
