@@ -163,6 +163,13 @@ const fellowshipApplicationSchema = new mongoose.Schema(
     },
     inviteSubject: String,
     inviteMessage: String,
+    regretSentAt: Date,
+    regretSentBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+    },
+    regretSubject: String,
+    regretMessage: String,
   },
   { timestamps: true }
 );

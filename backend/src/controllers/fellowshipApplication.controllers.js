@@ -3,7 +3,7 @@ const resend = require("../utils/resendClient");
 
 const allowedStatuses = ["new", "reviewing", "shortlisted", "accepted", "invited", "declined"];
 const autoScreenStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined"];
-const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <admin@campaign.buildyourbestself.org>";
+const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS Fellowship <no-reply@updates.buildyourbestself.org>";
 
 const normalize = (value) => (typeof value === "string" ? value.trim() : value);
 const normalizeBoolean = (value) => value === true || value === "true" || value === "1" || value === "on";
@@ -28,12 +28,12 @@ const normalizeArray = (value) => {
   return [value].filter(Boolean);
 };
 
-const buildInviteTemplate = ({ name, cohort, message }) => `
+const buildApplicationEmailTemplate = ({ name, cohort, message, label = "Application update", accent = "#00337C" }) => `
   <div style="font-family:Arial,sans-serif;background:#f6f8fb;padding:30px 0;">
     <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-      <div style="background:#00337C;color:#ffffff;padding:28px 30px;">
+      <div style="background:${accent};color:#ffffff;padding:28px 30px;">
         <h1 style="margin:0;font-size:24px;font-weight:400;">${cohort}</h1>
-        <p style="margin:8px 0 0;color:#dbeafe;">Application invitation</p>
+        <p style="margin:8px 0 0;color:#dbeafe;">${label}</p>
       </div>
       <div style="padding:30px;color:#1f2937;line-height:1.7;">
         <p>Hello ${name},</p>
@@ -57,12 +57,36 @@ const toEmailHtml = (value = "") => {
   return /<[a-z][\s\S]*>/i.test(clean) ? clean : clean.replace(/\n/g, "<br/>");
 };
 
-const personalizeInviteMessage = (message, application) =>
+const personalizeApplicationMessage = (message, application) =>
   message
     .replaceAll("{{firstName}}", application.firstName || "")
     .replaceAll("{{lastName}}", application.lastName || "")
     .replaceAll("{{fullName}}", `${application.firstName || ""} ${application.lastName || ""}`.trim())
     .replaceAll("{{cohort}}", application.cohort || "BYBS Fellowship");
+
+const isUnsuccessfulApplication = (application) =>
+  application.screeningGroup === "not_qualified" || application.status === "declined";
+
+const sendApplicationEmail = async ({ application, subject, message, label, accent }) => {
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: [application.email],
+    subject,
+    html: buildApplicationEmailTemplate({
+      name: application.firstName,
+      cohort: application.cohort,
+      message: personalizeApplicationMessage(message, application),
+      label,
+      accent,
+    }),
+  });
+
+  if (error) {
+    const messageText = error.message || "Resend rejected the application email.";
+    const detail = error.name ? `${error.name}: ${messageText}` : messageText;
+    throw new Error(detail);
+  }
+};
 
 const scoreApplication = (application) => {
   let score = 0;
@@ -372,15 +396,12 @@ exports.sendFellowshipInvite = async (req, res) => {
       `Congratulations ${application.firstName},\n\nAfter reviewing your application, we would like to invite you to the next step for ${application.cohort}. Please reply to this email to confirm your availability and receive onboarding details.`
     );
 
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [application.email],
+    await sendApplicationEmail({
+      application,
       subject,
-      html: buildInviteTemplate({
-        name: application.firstName,
-        cohort: application.cohort,
-        message: personalizeInviteMessage(message, application),
-      }),
+      message,
+      label: "Application invitation",
+      accent: "#00337C",
     });
 
     application.status = "invited";
@@ -425,15 +446,12 @@ exports.sendBulkFellowshipInvites = async (req, res) => {
 
     for (const application of applications) {
       try {
-        await resend.emails.send({
-          from: FROM_EMAIL,
-          to: [application.email],
+        await sendApplicationEmail({
+          application,
           subject,
-          html: buildInviteTemplate({
-            name: application.firstName,
-            cohort: application.cohort,
-            message: personalizeInviteMessage(message, application),
-          }),
+          message,
+          label: "Application invitation",
+          accent: "#00337C",
         });
 
         application.status = "invited";
@@ -461,6 +479,132 @@ exports.sendBulkFellowshipInvites = async (req, res) => {
   } catch (error) {
     console.error("Send bulk fellowship invites error:", error);
     return res.status(500).json({ message: "Unable to send invitations." });
+  }
+};
+
+exports.sendFellowshipRegret = async (req, res) => {
+  try {
+    const application = await FellowshipApplication.findById(req.params.id);
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found." });
+    }
+
+    if (!isUnsuccessfulApplication(application)) {
+      return res.status(400).json({
+        message: "Regret emails can only be sent to declined or not qualified applicants.",
+      });
+    }
+
+    if (application.regretSentAt) {
+      return res.status(409).json({ message: "A regret email has already been sent to this applicant." });
+    }
+
+    const subject = normalize(req.body.subject) || `Update on your ${application.cohort} application`;
+    const message = toEmailHtml(
+      req.body.message ||
+      req.body.messageHtml ||
+      `Thank you ${application.firstName},\n\nWe are grateful for the time and thought you put into your application. After careful review, we are not able to offer you a place in this cohort. Please keep growing with the BYBS community and look out for future opportunities.`
+    );
+
+    await sendApplicationEmail({
+      application,
+      subject,
+      message,
+      label: "Application outcome",
+      accent: "#7F1D1D",
+    });
+
+    application.status = "declined";
+    application.screeningGroup = "not_qualified";
+    application.regretSentAt = new Date();
+    application.regretSentBy = req.admin._id;
+    application.regretSubject = subject;
+    application.regretMessage = message;
+    await application.save();
+
+    return res.json({
+      message: "Regret email sent successfully.",
+      application,
+    });
+  } catch (error) {
+    console.error("Send fellowship regret error:", error);
+    return res.status(500).json({ message: "Unable to send regret email." });
+  }
+};
+
+exports.sendBulkFellowshipRegrets = async (req, res) => {
+  try {
+    const ids = Array.isArray(req.body.ids) ? req.body.ids : [];
+
+    if (!ids.length) {
+      return res.status(400).json({ message: "Select at least one applicant." });
+    }
+
+    const applications = await FellowshipApplication.find({
+      _id: { $in: ids },
+      $and: [
+        {
+          $or: [
+            { regretSentAt: { $exists: false } },
+            { regretSentAt: null },
+          ],
+        },
+        {
+          $or: [
+            { screeningGroup: "not_qualified" },
+            { status: "declined" },
+          ],
+        },
+      ],
+    });
+
+    const subject = normalize(req.body.subject) || "Update on your BYBS Fellowship application";
+    const message = toEmailHtml(
+      req.body.message ||
+      req.body.messageHtml ||
+      "Thank you for applying. After careful review, we are not able to offer you a place in this cohort. We are grateful for your courage and interest, and we encourage you to stay connected for future opportunities."
+    );
+
+    const sent = [];
+    const failed = [];
+
+    for (const application of applications) {
+      try {
+        await sendApplicationEmail({
+          application,
+          subject,
+          message,
+          label: "Application outcome",
+          accent: "#7F1D1D",
+        });
+
+        application.status = "declined";
+        application.screeningGroup = "not_qualified";
+        application.regretSentAt = new Date();
+        application.regretSentBy = req.admin._id;
+        application.regretSubject = subject;
+        application.regretMessage = message;
+        await application.save();
+        sent.push(application);
+      } catch (sendError) {
+        console.error("Bulk regret send error:", sendError);
+        failed.push({
+          id: application._id,
+          email: application.email,
+          message: sendError.message || "Failed to send regret email.",
+        });
+      }
+    }
+
+    return res.json({
+      message: `Sent ${sent.length} regret email${sent.length === 1 ? "" : "s"}.`,
+      sent,
+      failed,
+    });
+  } catch (error) {
+    console.error("Send bulk fellowship regrets error:", error);
+    return res.status(500).json({ message: "Unable to send regret emails." });
   }
 };
 

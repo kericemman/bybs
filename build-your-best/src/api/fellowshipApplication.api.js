@@ -18,6 +18,12 @@ export const sendFellowshipInvite = (id, data) =>
 export const sendBulkFellowshipInvites = (data) =>
   api.post("/admin/fellowship-applications/invite-bulk", data);
 
+export const sendFellowshipRegret = (id, data) =>
+  api.post(`/admin/fellowship-applications/${id}/regret`, data);
+
+export const sendBulkFellowshipRegrets = (data) =>
+  api.post("/admin/fellowship-applications/regret-bulk", data);
+
 export const uploadFellowshipInviteImage = (file) => {
   const formData = new FormData();
   formData.append("inviteImage", file);

@@ -9,7 +9,9 @@ import {
   getFellowshipApplications,
   screenFellowshipApplications,
   sendBulkFellowshipInvites,
+  sendBulkFellowshipRegrets,
   sendFellowshipInvite,
+  sendFellowshipRegret,
   updateFellowshipApplication,
   uploadFellowshipInviteImage,
 } from "../../api/fellowshipApplication.api";
@@ -66,6 +68,15 @@ const defaultInviteMessage = `
 <p>Please confirm your availability for the Saturday and Sunday sessions from 2:00 PM to 4:00 PM CAT.</p>
 <p>We will share onboarding details after your confirmation.</p>
 `;
+const defaultRegretMessage = `
+<p>Thank you for the time, honesty, and care you put into your BYBS Fellowship Cohort 4 application.</p>
+<p>After reviewing your application, we are not able to offer you a place in this cohort. This decision does not reduce the value of your story or your potential.</p>
+<p>We encourage you to stay connected with BYBS and look out for future learning opportunities, articles, and community programs.</p>
+`;
+
+const isUnsuccessfulApplication = (application) =>
+  (application.screeningGroup || "unscreened") === "not_qualified" ||
+  application.status === "declined";
 
 const formatAvailability = (value) => {
   if (value === "yes") return "Yes, can commit";
@@ -99,6 +110,10 @@ export default function AdminFellowshipApplications() {
   const [inviteSubject, setInviteSubject] = useState("Invitation: BYBS Fellowship Cohort 4");
   const [inviteMessage, setInviteMessage] = useState(defaultInviteMessage);
   const [sendingInvites, setSendingInvites] = useState(false);
+  const [regretSubject, setRegretSubject] = useState("Update on your BYBS Fellowship Cohort 4 application");
+  const [regretMessage, setRegretMessage] = useState(defaultRegretMessage);
+  const [sendingRegrets, setSendingRegrets] = useState(false);
+  const [composerMode, setComposerMode] = useState("invite");
   const [showInviteComposer, setShowInviteComposer] = useState(false);
 
   const fetchApplications = async () => {
@@ -179,7 +194,38 @@ export default function AdminFellowshipApplications() {
     [applications]
   );
 
-  const inviteTargets = selectedApplications.length ? selectedApplications : acceptedReadyForInvite;
+  const selectedAcceptedApplications = useMemo(
+    () =>
+      selectedApplications.filter(
+        (application) =>
+          (application.screeningGroup || "unscreened") === "accepted" &&
+          application.status !== "invited"
+      ),
+    [selectedApplications]
+  );
+
+  const notQualifiedReadyForRegret = useMemo(
+    () =>
+      applications.filter(
+        (application) =>
+          isUnsuccessfulApplication(application) &&
+          !application.regretSentAt
+      ),
+    [applications]
+  );
+
+  const selectedUnsuccessfulApplications = useMemo(
+    () =>
+      selectedApplications.filter(
+        (application) =>
+          isUnsuccessfulApplication(application) &&
+          !application.regretSentAt
+      ),
+    [selectedApplications]
+  );
+
+  const inviteTargets = selectedAcceptedApplications.length ? selectedAcceptedApplications : acceptedReadyForInvite;
+  const regretTargets = selectedUnsuccessfulApplications.length ? selectedUnsuccessfulApplications : notQualifiedReadyForRegret;
 
   const mergeApplication = (updatedApplication) => {
     setApplications((current) =>
@@ -188,6 +234,16 @@ export default function AdminFellowshipApplications() {
     setSelectedApplication((current) =>
       current?._id === updatedApplication._id ? updatedApplication : current
     );
+  };
+
+  const openComposer = (mode) => {
+    setComposerMode(mode);
+    setShowInviteComposer(true);
+  };
+
+  const toggleComposer = (mode) => {
+    setComposerMode(mode);
+    setShowInviteComposer((current) => (composerMode === mode ? !current : true));
   };
 
   const updateStatus = async (application, status) => {
@@ -274,6 +330,30 @@ export default function AdminFellowshipApplications() {
     }
   };
 
+  const sendOneRegret = async (application) => {
+    if (!isUnsuccessfulApplication(application)) {
+      alert("Move this applicant to Not qualified or Declined before sending a regret email.");
+      return;
+    }
+
+    if (application.regretSentAt) {
+      alert("A regret email has already been sent to this applicant.");
+      return;
+    }
+
+    if (!window.confirm(`Send regret email to ${application.firstName} ${application.lastName}?`)) return;
+
+    try {
+      const { data } = await sendFellowshipRegret(application._id, {
+        subject: regretSubject,
+        messageHtml: regretMessage,
+      });
+      mergeApplication(data.application);
+    } catch (regretError) {
+      alert(regretError.response?.data?.message || "Failed to send regret email.");
+    }
+  };
+
   const sendBulkInvites = async () => {
     const ids = inviteTargets.map((application) => application._id);
 
@@ -302,6 +382,37 @@ export default function AdminFellowshipApplications() {
       alert(inviteError.response?.data?.message || "Failed to send invitations.");
     } finally {
       setSendingInvites(false);
+    }
+  };
+
+  const sendBulkRegrets = async () => {
+    const ids = regretTargets.map((application) => application._id);
+
+    if (!ids.length) {
+      alert("No not-qualified applicants are ready for regret emails.");
+      return;
+    }
+
+    if (!window.confirm(`Send regret email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`)) return;
+
+    try {
+      setSendingRegrets(true);
+      const { data } = await sendBulkFellowshipRegrets({
+        ids,
+        subject: regretSubject,
+        messageHtml: regretMessage,
+      });
+      const sent = data.sent || [];
+      setApplications((current) => {
+        const updates = new Map(sent.map((application) => [application._id, application]));
+        return current.map((application) => updates.get(application._id) || application);
+      });
+      setSelectedIds([]);
+      alert(data.message || "Regret emails sent.");
+    } catch (regretError) {
+      alert(regretError.response?.data?.message || "Failed to send regret emails.");
+    } finally {
+      setSendingRegrets(false);
     }
   };
 
@@ -396,6 +507,23 @@ export default function AdminFellowshipApplications() {
     window.URL.revokeObjectURL(url);
   };
 
+  const isRegretComposer = composerMode === "regret";
+  const composerSubject = isRegretComposer ? regretSubject : inviteSubject;
+  const composerMessage = isRegretComposer ? regretMessage : inviteMessage;
+  const composerTargets = isRegretComposer ? regretTargets : inviteTargets;
+  const selectedComposerTargets = isRegretComposer
+    ? selectedUnsuccessfulApplications.length
+    : selectedAcceptedApplications.length;
+  const composerTargetLabel = isRegretComposer
+    ? "not-qualified applicants not yet emailed"
+    : "accepted not invited";
+  const composerHeading = isRegretComposer ? "Regret email" : "Invitation email";
+  const composerButtonLabel = isRegretComposer ? "Send regret emails" : "Send invitations";
+  const composerSending = isRegretComposer ? sendingRegrets : sendingInvites;
+  const composerSendAction = isRegretComposer ? sendBulkRegrets : sendBulkInvites;
+  const updateComposerSubject = isRegretComposer ? setRegretSubject : setInviteSubject;
+  const updateComposerMessage = isRegretComposer ? setRegretMessage : setInviteMessage;
+
   return (
     <AdminLayout>
       <div className="mt-10 space-y-6">
@@ -408,11 +536,26 @@ export default function AdminFellowshipApplications() {
           </div>
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => setShowInviteComposer((current) => !current)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-4 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-[#F5F9FF]"
+              onClick={() => toggleComposer("invite")}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                composerMode === "invite" && showInviteComposer
+                  ? "border-[#00337C] bg-[#00337C] text-white"
+                  : "border-[#00337C] text-[#00337C] hover:bg-[#F5F9FF]"
+              }`}
             >
               <Mail className="h-4 w-4" />
-              {showInviteComposer ? "Close composer" : "Compose invitation"}
+              Invitation email
+            </button>
+            <button
+              onClick={() => toggleComposer("regret")}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                composerMode === "regret" && showInviteComposer
+                  ? "border-red-700 bg-red-700 text-white"
+                  : "border-red-200 text-red-700 hover:bg-red-50"
+              }`}
+            >
+              <XCircle className="h-4 w-4" />
+              Regret email
             </button>
             <button
               onClick={() => runAutomatedScreening(false)}
@@ -441,8 +584,11 @@ export default function AdminFellowshipApplications() {
 
         <WorkflowPanel
           acceptedCount={acceptedReadyForInvite.length}
-          selectedCount={selectedApplications.length}
-          onOpenComposer={() => setShowInviteComposer(true)}
+          regretCount={notQualifiedReadyForRegret.length}
+          selectedAcceptedCount={selectedAcceptedApplications.length}
+          selectedRegretCount={selectedUnsuccessfulApplications.length}
+          onOpenInviteComposer={() => openComposer("invite")}
+          onOpenRegretComposer={() => openComposer("regret")}
           onRunScreening={() => runAutomatedScreening(false)}
           screening={screening}
         />
@@ -463,19 +609,44 @@ export default function AdminFellowshipApplications() {
         <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-[#10233F]">Invitation email</h2>
+              <h2 className="text-xl font-semibold text-[#10233F]">{composerHeading}</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Target: {selectedApplications.length ? `${selectedApplications.length} selected` : `${acceptedReadyForInvite.length} accepted not invited`}.
+                Target: {selectedComposerTargets ? `${selectedComposerTargets} selected` : `${composerTargets.length} ${composerTargetLabel}`}.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowInviteComposer((current) => !current)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-4 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-[#F5F9FF]"
-            >
-              <Mail className="h-4 w-4" />
-              {showInviteComposer ? "Hide composer" : "Open composer"}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => openComposer("invite")}
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                  composerMode === "invite"
+                    ? "border-[#00337C] bg-[#F5F9FF] text-[#00337C]"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                Invite
+              </button>
+              <button
+                type="button"
+                onClick={() => openComposer("regret")}
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
+                  composerMode === "regret"
+                    ? "border-red-200 bg-red-50 text-red-700"
+                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <XCircle className="h-4 w-4" />
+                Regret
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowInviteComposer((current) => !current)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                {showInviteComposer ? "Hide composer" : "Open composer"}
+              </button>
+            </div>
           </div>
 
           {showInviteComposer ? (
@@ -483,17 +654,17 @@ export default function AdminFellowshipApplications() {
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-gray-700">Subject</span>
                 <input
-                  value={inviteSubject}
-                  onChange={(event) => setInviteSubject(event.target.value)}
+                  value={composerSubject}
+                  onChange={(event) => updateComposerSubject(event.target.value)}
                   className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
                 />
               </label>
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <RichTextEditor
-                  content={inviteMessage}
-                  onChange={setInviteMessage}
+                  content={composerMessage}
+                  onChange={updateComposerMessage}
                   onImageUpload={handleInviteImageUpload}
-                  placeholder="Write the invitation email here..."
+                  placeholder={isRegretComposer ? "Write the regret email here..." : "Write the invitation email here..."}
                 />
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -501,12 +672,14 @@ export default function AdminFellowshipApplications() {
                   Use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"} to personalize each message.
                 </p>
                 <button
-                  onClick={sendBulkInvites}
-                  disabled={sendingInvites}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60"
+                  onClick={composerSendAction}
+                  disabled={composerSending}
+                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
+                    isRegretComposer ? "bg-red-700 hover:bg-red-800" : "bg-[#00337C] hover:bg-[#1E4B9E]"
+                  }`}
                 >
                   <Send className="h-4 w-4" />
-                  {sendingInvites ? "Sending..." : "Send invitations"}
+                  {composerSending ? "Sending..." : composerButtonLabel}
                 </button>
               </div>
             </div>
@@ -514,17 +687,19 @@ export default function AdminFellowshipApplications() {
             <div className="mt-5 grid gap-3 border-t border-gray-100 pt-5 md:grid-cols-3">
               <div className="rounded-lg bg-gray-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-gray-500">Subject</p>
-                <p className="mt-1 text-sm font-medium text-[#10233F]">{inviteSubject}</p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">{composerSubject}</p>
               </div>
               <div className="rounded-lg bg-gray-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-gray-500">Recipients</p>
                 <p className="mt-1 text-sm font-medium text-[#10233F]">
-                  {selectedApplications.length || acceptedReadyForInvite.length}
+                  {composerTargets.length}
                 </p>
               </div>
               <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500">Composer</p>
-                <p className="mt-1 text-sm font-medium text-[#10233F]">Closed until needed</p>
+                <p className="text-xs uppercase tracking-wide text-gray-500">Email type</p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">
+                  {isRegretComposer ? "Regret / unsuccessful" : "Invitation / accepted"}
+                </p>
               </div>
             </div>
           )}
@@ -604,6 +779,7 @@ export default function AdminFellowshipApplications() {
                   onOpen={() => setSelectedApplication(application)}
                   onDelete={() => handleDelete(application)}
                   onInvite={() => sendOneInvite(application)}
+                  onRegret={() => sendOneRegret(application)}
                   onStatusChange={(status) => updateStatus(application, status)}
                   onGroupChange={(group) => updateScreeningGroup(application, group)}
                 />
@@ -624,13 +800,23 @@ export default function AdminFellowshipApplications() {
           onStatusChange={(status) => updateStatus(selectedApplication, status)}
           onGroupChange={(group) => updateScreeningGroup(selectedApplication, group)}
           onSendInvite={() => sendOneInvite(selectedApplication)}
+          onSendRegret={() => sendOneRegret(selectedApplication)}
         />
       )}
     </AdminLayout>
   );
 }
 
-function WorkflowPanel({ acceptedCount, selectedCount, onOpenComposer, onRunScreening, screening }) {
+function WorkflowPanel({
+  acceptedCount,
+  regretCount,
+  selectedAcceptedCount,
+  selectedRegretCount,
+  onOpenInviteComposer,
+  onOpenRegretComposer,
+  onRunScreening,
+  screening,
+}) {
   const steps = [
     {
       title: "Auto-screen",
@@ -648,12 +834,22 @@ function WorkflowPanel({ acceptedCount, selectedCount, onOpenComposer, onRunScre
     },
     {
       title: "Invite",
-      copy: selectedCount
-        ? `${selectedCount} selected applicants ready for the invitation composer.`
+      copy: selectedAcceptedCount
+        ? `${selectedAcceptedCount} selected accepted applicants ready for invitation.`
         : `${acceptedCount} accepted applicants ready for invitations.`,
       action: "Compose",
-      onClick: onOpenComposer,
+      onClick: onOpenInviteComposer,
       icon: <Mail className="h-4 w-4" />,
+    },
+    {
+      title: "Regret",
+      copy: selectedRegretCount
+        ? `${selectedRegretCount} selected unsuccessful applicants ready for regret email.`
+        : `${regretCount} not-qualified applicants ready for regret email.`,
+      action: "Compose",
+      onClick: onOpenRegretComposer,
+      icon: <XCircle className="h-4 w-4" />,
+      danger: true,
     },
   ];
 
@@ -663,11 +859,15 @@ function WorkflowPanel({ acceptedCount, selectedCount, onOpenComposer, onRunScre
         <p className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">Screening workflow</p>
         <h2 className="text-xl font-semibold text-[#10233F]">Review applicants in clear stages</h2>
       </div>
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-4">
         {steps.map((step, index) => (
           <div key={step.title} className="rounded-lg border border-gray-100 bg-gray-50 p-4">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#00337C]">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-lg bg-white ${
+                  step.danger ? "text-red-700" : "text-[#00337C]"
+                }`}
+              >
                 {step.icon}
               </div>
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
@@ -681,7 +881,11 @@ function WorkflowPanel({ acceptedCount, selectedCount, onOpenComposer, onRunScre
                 type="button"
                 onClick={step.onClick}
                 disabled={step.disabled}
-                className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg border border-[#00337C] px-3 py-2 text-sm font-semibold text-[#00337C] transition-colors hover:bg-white disabled:opacity-60"
+                className={`mt-4 inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors hover:bg-white disabled:opacity-60 ${
+                  step.danger
+                    ? "border-red-200 text-red-700"
+                    : "border-[#00337C] text-[#00337C]"
+                }`}
               >
                 {step.icon}
                 {step.action}
@@ -707,10 +911,12 @@ function ApplicationRow({
   onOpen,
   onDelete,
   onInvite,
+  onRegret,
   onStatusChange,
   onGroupChange,
 }) {
   const group = application.screeningGroup || "unscreened";
+  const unsuccessful = isUnsuccessfulApplication(application);
 
   return (
     <div className="grid gap-4 px-5 py-5 lg:grid-cols-[auto_1fr_1fr_0.8fr_0.8fr_0.8fr] lg:items-center">
@@ -767,7 +973,22 @@ function ApplicationRow({
       </p>
       <div className="flex justify-start gap-2 lg:justify-end">
         <IconButton onClick={onOpen} title="View application" icon={<Eye className="h-4 w-4" />} />
-        <IconButton onClick={onInvite} title="Send invite" icon={<Send className="h-4 w-4" />} />
+        {unsuccessful ? (
+          <IconButton
+            onClick={onRegret}
+            title={application.regretSentAt ? "Regret email already sent" : "Send regret email"}
+            icon={<XCircle className="h-4 w-4" />}
+            danger
+            disabled={Boolean(application.regretSentAt)}
+          />
+        ) : (
+          <IconButton
+            onClick={onInvite}
+            title={application.status === "invited" ? "Invitation already sent" : "Send invite"}
+            icon={<Send className="h-4 w-4" />}
+            disabled={application.status === "invited"}
+          />
+        )}
         {canDelete && (
           <IconButton
             onClick={onDelete}
@@ -781,11 +1002,13 @@ function ApplicationRow({
   );
 }
 
-function IconButton({ onClick, title, icon, danger = false }) {
+function IconButton({ onClick, title, icon, danger = false, disabled = false }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors ${
+      disabled={disabled}
+      className={`rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         danger ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-gray-50 hover:text-[#00337C]"
       }`}
       title={title}
@@ -827,8 +1050,10 @@ function ApplicationDrawer({
   onStatusChange,
   onGroupChange,
   onSendInvite,
+  onSendRegret,
 }) {
   const group = application.screeningGroup || "unscreened";
+  const unsuccessful = isUnsuccessfulApplication(application);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
@@ -881,13 +1106,27 @@ function ApplicationDrawer({
                 </select>
               </label>
             </div>
-            <button
-              onClick={onSendInvite}
-              className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E]"
-            >
-              <Send className="h-4 w-4" />
-              Send invite
-            </button>
+            {unsuccessful ? (
+              <button
+                type="button"
+                onClick={onSendRegret}
+                disabled={Boolean(application.regretSentAt)}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-red-700 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <XCircle className="h-4 w-4" />
+                {application.regretSentAt ? "Regret sent" : "Send regret email"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSendInvite}
+                disabled={application.status === "invited"}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+                {application.status === "invited" ? "Invite sent" : "Send invite"}
+              </button>
+            )}
           </div>
 
           <AnswerGrid
@@ -949,6 +1188,17 @@ function ApplicationDrawer({
                 ["Invite sent", new Date(application.inviteSentAt).toLocaleString()],
                 ["Invite subject", application.inviteSubject],
                 ["Invite message", application.inviteMessage],
+              ]}
+            />
+          )}
+
+          {application.regretSentAt && (
+            <AnswerGrid
+              title="Regret Tracking"
+              items={[
+                ["Regret sent", new Date(application.regretSentAt).toLocaleString()],
+                ["Regret subject", application.regretSubject],
+                ["Regret message", application.regretMessage],
               ]}
             />
           )}
