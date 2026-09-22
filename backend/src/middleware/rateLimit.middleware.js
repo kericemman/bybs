@@ -16,6 +16,12 @@ const apiLimiter = createLimiter({
   message: "Too many requests. Please try again shortly.",
 });
 
+const seoPageLimiter = createLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 1200,
+  message: "Too many page requests. Please try again shortly.",
+});
+
 const authLimiter = createLimiter({
   windowMs: 15 * 60 * 1000,
   limit: 8,
@@ -40,4 +46,5 @@ module.exports = {
   authLimiter,
   publicSubmissionLimiter,
   readerHeartbeatLimiter,
+  seoPageLimiter,
 };

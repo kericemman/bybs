@@ -12,7 +12,11 @@ const morgan = require("morgan");
 
 const { config, normalizeOrigin } = require("./config/env");
 const { errorHandler, notFound } = require("./middleware/error.middleware");
-const { apiLimiter, publicSubmissionLimiter } = require("./middleware/rateLimit.middleware");
+const {
+  apiLimiter,
+  publicSubmissionLimiter,
+  seoPageLimiter,
+} = require("./middleware/rateLimit.middleware");
 
 const authRoutes = require("./routes/admin/authRoutes");
 const managerRoutes = require("./routes/admin/managerRoutes");
@@ -26,6 +30,7 @@ const cohortRoutes = require("./routes/admin/cohort.routes");
 const publicCohortRoutes = require("./routes/public/public.cohortRoutes");
 const publicWaitlistRoutes = require("./routes/public/publicWaitlistRoutes");
 const seoRoutes = require("./routes/public/seo.routes");
+const seoPageRoutes = require("./routes/public/seoPage.routes");
 const waitlistRoutes = require("./routes/admin/waitlistRoutes");
 const productRoutes = require("./routes/admin/productRoutes");
 const subscriberRoutes = require("./routes/admin/subscriberRoutes");
@@ -100,6 +105,7 @@ app.use(
     skip: (req) => req.path === "/health" || req.path === "/api/health",
   })
 );
+app.use("/api/seo/page", seoPageLimiter, seoPageRoutes);
 app.use(apiLimiter);
 
 app.use(express.json({ limit: "1mb" }));

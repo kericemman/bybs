@@ -53,6 +53,7 @@ export default function SEO({
   description = DEFAULT_DESCRIPTION,
   canonical,
   image = DEFAULT_IMAGE,
+  imageAlt,
   type = "website",
   noindex = false,
   keywords,
@@ -63,6 +64,7 @@ export default function SEO({
     const cleanDescription = truncate(description || DEFAULT_DESCRIPTION, 160);
     const canonicalUrl = canonical || absoluteUrl(window.location.pathname);
     const imageUrl = absoluteUrl(image || DEFAULT_IMAGE);
+    const cleanImageAlt = truncate(imageAlt || cleanTitle, 120);
     const robots = noindex ? "noindex,follow" : "index,follow,max-image-preview:large";
 
     document.title = cleanTitle;
@@ -85,6 +87,10 @@ export default function SEO({
     upsertMeta('meta[property="og:type"]', { property: "og:type", content: type });
     upsertMeta('meta[property="og:url"]', { property: "og:url", content: canonicalUrl });
     upsertMeta('meta[property="og:image"]', { property: "og:image", content: imageUrl });
+    upsertMeta('meta[property="og:image:alt"]', {
+      property: "og:image:alt",
+      content: cleanImageAlt,
+    });
     upsertMeta('meta[name="twitter:card"]', {
       name: "twitter:card",
       content: "summary_large_image",
@@ -95,14 +101,16 @@ export default function SEO({
       content: cleanDescription,
     });
     upsertMeta('meta[name="twitter:image"]', { name: "twitter:image", content: imageUrl });
+    upsertMeta('meta[name="twitter:image:alt"]', {
+      name: "twitter:image:alt",
+      content: cleanImageAlt,
+    });
 
-    if (keywords) {
-      upsertMeta('meta[name="keywords"]', { name: "keywords", content: keywords });
-    }
+    upsertMeta('meta[name="keywords"]', { name: "keywords", content: keywords || "" });
 
     upsertLink("canonical", canonicalUrl);
-    upsertJsonLd("route-jsonld", schema);
-  }, [canonical, description, image, keywords, noindex, schema, title, type]);
+    upsertJsonLd("seo-jsonld", schema);
+  }, [canonical, description, image, imageAlt, keywords, noindex, schema, title, type]);
 
   return null;
 }

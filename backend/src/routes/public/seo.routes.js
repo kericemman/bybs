@@ -20,6 +20,7 @@ const staticRoutes = [
   { path: "/about", priority: "0.8", changefreq: "monthly" },
   { path: "/programs", priority: "0.9", changefreq: "monthly" },
   { path: "/programs/fellowship", priority: "0.9", changefreq: "weekly" },
+  { path: "/programs/fellowship/cohorts", priority: "0.8", changefreq: "weekly" },
   { path: "/programs/mentorship", priority: "0.7", changefreq: "monthly" },
   { path: "/programs/empowerher", priority: "0.7", changefreq: "monthly" },
   { path: "/programs/outreach", priority: "0.8", changefreq: "monthly" },

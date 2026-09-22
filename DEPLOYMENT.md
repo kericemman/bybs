@@ -72,7 +72,7 @@ npm ci
 npm run build
 ```
 
-The build writes the generated sitemap only to `dist/sitemap.xml`, so deployment no longer modifies tracked source files.
+The build writes the generated sitemap only to `dist/sitemap.xml`, so deployment no longer modifies tracked source files. It also writes route-specific HTML for public pages and all content available from the API at build time. Nginx sends dynamic article, product, cohort, reflection, and impact detail URLs through the API metadata renderer so newly published content has the correct link preview immediately.
 
 ## 4. TLS And Nginx
 
@@ -105,6 +105,8 @@ Run these after every deployment:
 curl --fail --silent --show-error https://buildyourbestself.org/api/health
 curl --fail --silent --show-error https://buildyourbestself.org/api/articles
 curl --head https://buildyourbestself.org
+curl --silent https://buildyourbestself.org/about | grep -E '<title>|og:image'
+curl --silent https://buildyourbestself.org/insights/ARTICLE-SLUG | grep -E '<title>|og:image'
 pm2 status
 pm2 logs bybs-api --lines 100
 ```
