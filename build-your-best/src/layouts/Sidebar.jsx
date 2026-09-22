@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   GraduationCap,
   HandHeart,
+  Heart,
   Menu,
   X,
   ChevronDown,
