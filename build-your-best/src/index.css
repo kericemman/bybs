@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 :root {
+  --bybs-primary: #00337c;
+  --bybs-primary-strong: #00275f;
+  --bybs-accent: #d67a00;
+  --bybs-surface-muted: #f7f9fc;
+  --bybs-border: #e4e9f0;
   color: #111827;
   background: #ffffff;
   font-synthesis: none;
@@ -17,6 +22,42 @@ body {
   margin: 0;
   min-width: 320px;
   background: #ffffff;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.5;
+}
+
+html {
+  scroll-padding-top: 6rem;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.5rem;
+  background: #ffffff;
+  color: #00337c;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.2);
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+#main-content:focus {
+  outline: none;
 }
 
 button,
@@ -32,13 +73,30 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+:focus-visible {
+  outline: 3px solid rgba(214, 122, 0, 0.58);
+  outline-offset: 3px;
+}
+
 ::selection {
   background: rgba(0, 51, 124, 0.15);
   color: #00337c;
 }
 
 .public-section {
-  padding-block: clamp(2rem, 8vw, 6.5rem);
+  padding-block: 1.25rem;
+}
+
+@media (min-width: 48rem) {
+  .public-section {
+    padding-block: 2.5rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  .public-section {
+    padding-block: 3.75rem;
+  }
 }
 
 .public-container {
@@ -87,7 +145,10 @@ a {
   background: #00337c;
   color: #ffffff;
   font-weight: 600;
-  transition: background-color 180ms ease, transform 180ms ease;
+  transition:
+    background-color 180ms ease,
+    transform 180ms ease;
+  min-height: 2.75rem;
 }
 
 .public-button-primary:hover {
@@ -103,10 +164,61 @@ a {
   border: 1px solid rgba(0, 51, 124, 0.18);
   color: #00337c;
   font-weight: 600;
-  transition: background-color 180ms ease, border-color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+  min-height: 2.75rem;
 }
 
 .public-button-secondary:hover {
   background: #f5f9ff;
   border-color: rgba(0, 51, 124, 0.32);
+}
+
+.public-button-accent {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  background: #d67a00;
+  color: #ffffff;
+  font-weight: 650;
+  transition: background-color 180ms ease;
+}
+
+.public-button-accent:hover {
+  background: #b96500;
+}
+
+.public-button-on-dark {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-weight: 600;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.public-button-on-dark:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -88,9 +88,7 @@ exports.createCohort = async (req, res) => {
     const cohort = await Cohort.create({
       ...payload,
       status: payload.status || "upcoming",
-      coverImage: coverImage
-        ? { url: coverImage.path, public_id: coverImage.filename }
-        : undefined,
+      coverImage: coverImage ? { url: coverImage.path, public_id: coverImage.filename } : undefined,
       gallery: buildGalleryImages(galleryFiles),
       createdBy: req.admin._id,
     });

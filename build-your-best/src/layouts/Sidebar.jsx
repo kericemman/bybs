@@ -1,7 +1,7 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, NavLink, useLocation } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LogOut,
   BookOpen,
@@ -14,12 +14,15 @@ import {
   ChevronRight,
   ShoppingBag,
   GraduationCap,
-  Heart,
+  HandHeart,
   Menu,
   X,
   ChevronDown,
   ChevronUp,
-  UserCog
+  UserCog,
+  MessageSquareText,
+  UsersRound,
+  Quote,
 } from "lucide-react";
 import { hasPermission, isFullAdmin, PERMISSIONS } from "../utils/adminPermissions";
 
@@ -30,6 +33,7 @@ const Sidebar = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({});
   const [isMobile, setIsMobile] = useState(false);
+  const sidebarRef = useRef(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -39,6 +43,21 @@ const Sidebar = () => {
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const sidebar = sidebarRef.current;
+    if (!sidebar) return;
+    if (isMobile && !isMobileOpen) sidebar.setAttribute("inert", "");
+    else sidebar.removeAttribute("inert");
+  }, [isMobile, isMobileOpen]);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsMobileOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
   }, []);
 
   const handleLogout = () => {
@@ -54,69 +73,82 @@ const Sidebar = () => {
       label: "Dashboard",
       icon: <Home className="w-5 h-5" />,
       exact: true,
-      adminOnly: true
+      adminOnly: true,
     },
     {
       path: "/admin/articles",
-      label: "Articles",
+      label: "Insights",
       icon: <FileText className="w-5 h-5" />,
-      permission: PERMISSIONS.ARTICLES_MANAGE
-      
+      permission: PERMISSIONS.ARTICLES_MANAGE,
     },
     {
       path: "/admin/orders",
       label: "Orders",
       icon: <DollarSign className="w-5 h-5" />,
-      adminOnly: true
-    
+      adminOnly: true,
     },
 
-    {
-      path: "/admin/charity-merch",
-      label: "Charity Merch",
-      icon: <Heart className="w-5 h-5" />,
-      adminOnly: true
-    },
-   
-   
     {
       path: "/admin/cohorts",
       label: "Cohorts",
       icon: <GraduationCap className="w-5 h-5" />,
-      adminOnly: true
-      
+      adminOnly: true,
+    },
+    {
+      path: "/admin/impact",
+      label: "Impact",
+      icon: <HandHeart className="w-5 h-5" />,
+      adminOnly: true,
+    },
+    {
+      path: "/admin/reflections",
+      label: "Weekly Reflections",
+      icon: <MessageSquareText className="w-5 h-5" />,
+      adminOnly: true,
+    },
+    {
+      path: "/admin/testimonials",
+      label: "Testimonials",
+      icon: <Quote className="w-5 h-5" />,
+      adminOnly: true,
+    },
+    {
+      path: "/admin/participation",
+      label: "Participation",
+      icon: <UsersRound className="w-5 h-5" />,
+      adminOnly: true,
     },
     {
       path: "/admin/fellowship-applications",
       label: "Applications",
       icon: <BookOpen className="w-5 h-5" />,
-      permission: PERMISSIONS.APPLICATIONS_SCREEN
+      permission: PERMISSIONS.APPLICATIONS_SCREEN,
     },
     {
       path: "/admin/products",
       label: "Products",
       icon: <ShoppingBag className="w-5 h-5" />,
-      adminOnly: true
+      adminOnly: true,
     },
     {
       path: "/admin/waitlist",
       label: "Waitlist",
       icon: <BarChart3 className="w-5 h-5" />,
-      adminOnly: true
-    }, 
+      adminOnly: true,
+    },
 
     {
       path: "/admin/subscribers",
       label: "Subscribers",
       icon: <Users className="w-5 h-5" />,
-      adminOnly: true
+      adminOnly: true,
     },
     {
       path: "/admin/managers",
       label: "Admin Managers",
       icon: <UserCog className="w-5 h-5" />,
-      adminOnly: true
-    }
+      adminOnly: true,
+    },
   ];
 
   const visibleMenuItems = menuItems.filter((item) => {
@@ -126,9 +158,9 @@ const Sidebar = () => {
   });
 
   const toggleMenu = (path) => {
-    setExpandedMenus(prev => ({
+    setExpandedMenus((prev) => ({
       ...prev,
-      [path]: !prev[path]
+      [path]: !prev[path],
     }));
   };
 
@@ -147,8 +179,12 @@ const Sidebar = () => {
   // Mobile Toggle Button
   const MobileToggle = () => (
     <button
+      type="button"
       onClick={() => setIsMobileOpen(!isMobileOpen)}
-      className="lg:hidden fixed top-4 left-4 z-50 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white p-2 rounded-lg shadow-lg"
+      aria-label={isMobileOpen ? "Close admin navigation" : "Open admin navigation"}
+      aria-expanded={isMobileOpen}
+      aria-controls="admin-sidebar"
+      className="fixed left-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-lg bg-[#00337C] text-white shadow-lg lg:hidden"
     >
       {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
     </button>
@@ -167,7 +203,7 @@ const Sidebar = () => {
             <p className="text-xs text-gray-400 hidden md:block">Content Management System</p>
           </div>
         </div>
-        
+
         {/* User Info */}
         <div className="bg-gray-800/50 rounded-lg p-3">
           <div className="flex items-center space-x-3">
@@ -188,7 +224,7 @@ const Sidebar = () => {
           {visibleMenuItems.map((item) => {
             const active = isActive(item.path);
             const expanded = expandedMenus[item.path] || (active && !isMobile);
-            
+
             return (
               <div key={item.path} className="mb-1">
                 <NavLink
@@ -198,13 +234,15 @@ const Sidebar = () => {
                   className={({ isActive: navActive }) =>
                     `flex items-center justify-between px-3 md:px-4 py-3 rounded-lg transition-all duration-200 group ${
                       navActive
-                        ? 'bg-gradient-to-r from-[#00337C]/20 to-[#1E4B9E]/20 text-white border-l-2 md:border-l-4 border-[#00337C]'
-                        : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
+                        ? "bg-gradient-to-r from-[#00337C]/20 to-[#1E4B9E]/20 text-white border-l-2 md:border-l-4 border-[#00337C]"
+                        : "text-gray-300 hover:bg-gray-800/50 hover:text-white"
                     }`
                   }
                 >
                   <div className="flex items-center space-x-3">
-                    <div className={`transition-colors ${active ? 'text-[#00337C]' : 'text-gray-400 group-hover:text-[#00337C]'}`}>
+                    <div
+                      className={`transition-colors ${active ? "text-[#00337C]" : "text-gray-400 group-hover:text-[#00337C]"}`}
+                    >
                       {item.icon}
                     </div>
                     <span className="text-sm font-medium truncate">{item.label}</span>
@@ -218,12 +256,14 @@ const Sidebar = () => {
                           <ChevronDown className="w-4 h-4 ml-2" />
                         )
                       ) : (
-                        <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                        <ChevronRight
+                          className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""}`}
+                        />
                       )}
                     </div>
                   )}
                 </NavLink>
-                
+
                 {/* Submenu */}
                 <AnimatePresence>
                   {item.children && expanded && (
@@ -232,7 +272,7 @@ const Sidebar = () => {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
-                      className={`ml-3 md:ml-4 mt-1 space-y-1 border-l border-gray-700 pl-3 md:pl-4 ${isMobile ? 'overflow-hidden' : ''}`}
+                      className={`ml-3 md:ml-4 mt-1 space-y-1 border-l border-gray-700 pl-3 md:pl-4 ${isMobile ? "overflow-hidden" : ""}`}
                     >
                       {item.children.map((child) => (
                         <NavLink
@@ -243,8 +283,8 @@ const Sidebar = () => {
                           className={({ isActive: childActive }) =>
                             `block py-2 px-3 text-xs rounded transition-all duration-200 ${
                               childActive
-                                ? 'text-[#00337C] font-medium bg-[#00337C]/10'
-                                : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800/30'
+                                ? "text-[#00337C] font-medium bg-[#00337C]/10"
+                                : "text-gray-400 hover:text-gray-300 hover:bg-gray-800/30"
                             }`
                           }
                         >
@@ -269,10 +309,10 @@ const Sidebar = () => {
             <span className="text-xs font-medium">Need Help?</span>
           </div>
           <a
-            href="mailto:admin@buildyourbestselfblog.com"
+            href="mailto:info@buildyourbestself.org"
             className="text-xs text-gray-400 hover:text-white transition-colors block truncate"
           >
-            admin@buildyourbestselfblog.com
+            info@buildyourbestself.org
           </a>
         </div>
 
@@ -287,9 +327,7 @@ const Sidebar = () => {
 
         {/* Version Info */}
         <div className="pt-4 border-t border-gray-700/50">
-          <p className="text-xs text-gray-500 text-center">
-            CMS v2.1 • BYBS Admin
-          </p>
+          <p className="text-xs text-gray-500 text-center">CMS v2.1 • BYBS Admin</p>
         </div>
       </div>
     </>
@@ -315,9 +353,12 @@ const Sidebar = () => {
 
       {/* Sidebar */}
       <Motion.aside
+        id="admin-sidebar"
+        ref={sidebarRef}
+        aria-label="Admin navigation"
         initial={false}
         animate={{
-          x: isMobile && !isMobileOpen ? "-100%" : 0
+          x: isMobile && !isMobileOpen ? "-100%" : 0,
         }}
         transition={{ type: "tween", duration: 0.3 }}
         className={`fixed lg:sticky top-0 left-0 h-screen z-40 bg-gradient-to-b from-gray-900 to-gray-800 text-white flex flex-col shadow-xl border-r border-gray-700 ${

@@ -66,6 +66,7 @@ const statusStyles = {
 };
 
 const applicationStatusStyles = {
+  "opening-soon": "bg-amber-50 text-amber-700",
   open: "bg-emerald-50 text-emerald-700",
   closed: "bg-gray-100 text-gray-600",
   "invite-only": "bg-purple-50 text-purple-700",
@@ -174,10 +175,22 @@ export default function AdminCohorts() {
 
   const stats = useMemo(() => {
     return [
-      { label: "Reflections", value: cohorts.length, icon: <Users className="h-5 w-5" /> },
-      { label: "Published", value: cohorts.filter((cohort) => cohort.isPublished).length, icon: <Eye className="h-5 w-5" /> },
-      { label: "Open Applications", value: applications.filter((app) => app.status === "new").length, icon: <Clock className="h-5 w-5" /> },
-      { label: "Invites Sent", value: applications.filter((app) => app.status === "invited").length, icon: <Send className="h-5 w-5" /> },
+      { label: "Cohorts", value: cohorts.length, icon: <Users className="h-5 w-5" /> },
+      {
+        label: "Published",
+        value: cohorts.filter((cohort) => cohort.isPublished).length,
+        icon: <Eye className="h-5 w-5" />,
+      },
+      {
+        label: "Open Applications",
+        value: applications.filter((app) => app.status === "new").length,
+        icon: <Clock className="h-5 w-5" />,
+      },
+      {
+        label: "Invites Sent",
+        value: applications.filter((app) => app.status === "invited").length,
+        icon: <Send className="h-5 w-5" />,
+      },
     ];
   }, [applications, cohorts]);
 
@@ -354,9 +367,7 @@ export default function AdminCohorts() {
   const updateApplicationStatus = async (application, status) => {
     try {
       const { data } = await updateFellowshipApplication(application._id, { status });
-      setApplications((current) =>
-        current.map((item) => (item._id === data._id ? data : item))
-      );
+      setApplications((current) => current.map((item) => (item._id === data._id ? data : item)));
       setSelectedApplication((current) => (current?._id === data._id ? data : current));
     } catch (error) {
       alert(error.response?.data?.message || "Failed to update application.");
@@ -391,9 +402,10 @@ export default function AdminCohorts() {
       <div className="space-y-6">
         <header className="mt-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-light text-[#00337C]">Cohort Reflections</h1>
+            <h1 className="text-3xl font-light text-[#00337C]">Fellowship Cohorts</h1>
             <p className="mt-1 text-gray-600">
-              Capture the journey of previous cohorts, achievements, impact moments, and graduate galleries.
+              Manage current cohort status, applications, programme details, previous journeys,
+              outcomes, and graduate galleries.
             </p>
           </div>
           <button
@@ -401,13 +413,16 @@ export default function AdminCohorts() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E]"
           >
             <Plus className="h-4 w-4" />
-            Add Reflection
+            Add Cohort
           </button>
         </header>
 
         <div className="grid gap-4 md:grid-cols-4">
           {stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div
+              key={stat.label}
+              className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">{stat.label}</p>
@@ -425,7 +440,7 @@ export default function AdminCohorts() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
               {[
-                ["cohorts", "Reflections"],
+                ["cohorts", "Cohorts"],
                 ["applications", "Applications"],
                 ["gallery", "Graduate Gallery"],
               ].map(([value, label]) => (
@@ -539,13 +554,22 @@ export default function AdminCohorts() {
   );
 }
 
-function CohortCards({ cohorts, applications, onEdit, onDelete, onViewApplications, getApplicationCount }) {
+function CohortCards({
+  cohorts,
+  applications,
+  onEdit,
+  onDelete,
+  onViewApplications,
+  getApplicationCount,
+}) {
   if (!cohorts.length) {
     return (
       <div className="rounded-xl border border-gray-100 bg-white py-16 text-center shadow-sm">
         <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-        <h2 className="text-xl font-light text-gray-700">No cohort reflections found</h2>
-        <p className="mt-2 text-gray-500">Add a reflection from a previous cohort to begin documenting the journey.</p>
+        <h2 className="text-xl font-light text-gray-700">No cohort records found</h2>
+        <p className="mt-2 text-gray-500">
+          Add the current cohort or a previous cohort reflection to begin documenting the journey.
+        </p>
       </div>
     );
   }
@@ -559,11 +583,18 @@ function CohortCards({ cohorts, applications, onEdit, onDelete, onViewApplicatio
         ).length;
 
         return (
-          <article key={cohort._id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
+          <article
+            key={cohort._id}
+            className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm"
+          >
             <div className="grid md:grid-cols-[190px_1fr]">
               <div className="h-52 bg-gray-100 md:h-full">
                 {cohort.coverImage?.url ? (
-                  <img src={cohort.coverImage.url} alt={cohort.title} className="h-full w-full object-cover" />
+                  <img
+                    src={cohort.coverImage.url}
+                    alt={cohort.title}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center text-gray-300">
                     <ImageIcon className="h-12 w-12" />
@@ -572,39 +603,67 @@ function CohortCards({ cohorts, applications, onEdit, onDelete, onViewApplicatio
               </div>
               <div className="p-5">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status]}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status]}`}
+                  >
                     {cohort.status}
                   </span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStatusStyles[cohort.applicationStatus]}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStatusStyles[cohort.applicationStatus]}`}
+                  >
                     Applications {cohort.applicationStatus || "closed"}
                   </span>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${cohort.isPublished ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${cohort.isPublished ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}
+                  >
                     {cohort.isPublished ? "Published" : "Draft"}
                   </span>
                 </div>
                 <h2 className="text-xl font-semibold text-[#00337C]">{cohort.title}</h2>
-                {cohort.tagline && <p className="mt-1 text-sm font-medium text-[#B76E79]">{cohort.tagline}</p>}
+                {cohort.tagline && (
+                  <p className="mt-1 text-sm font-medium text-[#B76E79]">{cohort.tagline}</p>
+                )}
                 <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
                   {cohort.description || cohort.overview || "No description added yet."}
                 </p>
 
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-gray-600">
-                  <InfoChip icon={<Calendar className="h-4 w-4" />} text={cohort.startDate ? new Date(cohort.startDate).toLocaleDateString() : "No date"} />
-                  <InfoChip icon={<Users className="h-4 w-4" />} text={`${cohort.capacity || 0} spots`} />
-                  <InfoChip icon={<Mail className="h-4 w-4" />} text={`${applicationCount} applications`} />
+                  <InfoChip
+                    icon={<Calendar className="h-4 w-4" />}
+                    text={
+                      cohort.startDate ? new Date(cohort.startDate).toLocaleDateString() : "No date"
+                    }
+                  />
+                  <InfoChip
+                    icon={<Users className="h-4 w-4" />}
+                    text={`${cohort.capacity || 0} spots`}
+                  />
+                  <InfoChip
+                    icon={<Mail className="h-4 w-4" />}
+                    text={`${applicationCount} applications`}
+                  />
                   <InfoChip icon={<Send className="h-4 w-4" />} text={`${invitedCount} invites`} />
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <button onClick={() => onEdit(cohort)} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <button
+                    onClick={() => onEdit(cohort)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
                     <Edit2 className="h-4 w-4" />
                     Edit
                   </button>
-                  <button onClick={() => onViewApplications(cohort)} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                  <button
+                    onClick={() => onViewApplications(cohort)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
                     <Eye className="h-4 w-4" />
                     Applications
                   </button>
-                  <button onClick={() => onDelete(cohort)} className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                  <button
+                    onClick={() => onDelete(cohort)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
                     <Trash2 className="h-4 w-4" />
                     Delete
                   </button>
@@ -624,7 +683,9 @@ function ApplicationsTable({ applications, onStatusChange, onSendInvite, onViewA
       <div className="rounded-xl border border-gray-100 bg-white py-16 text-center shadow-sm">
         <Mail className="mx-auto mb-4 h-12 w-12 text-gray-300" />
         <h2 className="text-xl font-light text-gray-700">No applications here yet</h2>
-        <p className="mt-2 text-gray-500">Submitted applications will appear in this review queue.</p>
+        <p className="mt-2 text-gray-500">
+          Submitted applications will appear in this review queue.
+        </p>
       </div>
     );
   }
@@ -640,7 +701,10 @@ function ApplicationsTable({ applications, onStatusChange, onSendInvite, onViewA
       </div>
       <div className="divide-y divide-gray-100">
         {applications.map((application) => (
-          <div key={application._id} className="grid gap-4 px-5 py-5 lg:grid-cols-[1.05fr_1.2fr_0.75fr_0.7fr_0.9fr] lg:items-center">
+          <div
+            key={application._id}
+            className="grid gap-4 px-5 py-5 lg:grid-cols-[1.05fr_1.2fr_0.75fr_0.7fr_0.9fr] lg:items-center"
+          >
             <div>
               <p className="font-semibold text-[#10233F]">
                 {application.firstName} {application.lastName}
@@ -671,15 +735,30 @@ function ApplicationsTable({ applications, onStatusChange, onSendInvite, onViewA
                 </option>
               ))}
             </select>
-            <p className="text-sm text-gray-500">{new Date(application.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500">
+              {new Date(application.createdAt).toLocaleDateString()}
+            </p>
             <div className="flex justify-start gap-2 lg:justify-end">
-              <button onClick={() => onViewApplication(application)} className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 hover:text-[#00337C]">
+              <button
+                type="button"
+                onClick={() => onViewApplication(application)}
+                aria-label={`Review ${application.firstName} ${application.lastName}'s application`}
+                className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 hover:text-[#00337C]"
+              >
                 <Eye className="h-4 w-4" />
               </button>
-              <a href={`mailto:${application.email}`} className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50">
+              <a
+                href={`mailto:${application.email}`}
+                aria-label={`Email ${application.firstName} ${application.lastName}`}
+                className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
+              >
                 <Mail className="h-4 w-4" />
               </a>
-              <button onClick={() => onSendInvite(application)} className="inline-flex items-center gap-2 rounded-lg bg-[#00337C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1E4B9E]">
+              <button
+                type="button"
+                onClick={() => onSendInvite(application)}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#00337C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1E4B9E]"
+              >
                 <Send className="h-4 w-4" />
                 Invite
               </button>
@@ -693,18 +772,25 @@ function ApplicationsTable({ applications, onStatusChange, onSendInvite, onViewA
 
 function ApplicationAnswersDrawer({ application, onClose, onStatusChange, onSendInvite }) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/45">
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-black/45"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="application-review-title"
+    >
       <div className="h-full w-full max-w-3xl overflow-y-auto bg-white shadow-xl">
         <div className="sticky top-0 z-10 flex items-start justify-between border-b border-gray-100 bg-white p-5">
           <div>
             <p className="text-sm uppercase tracking-wide text-gray-500">Apply-cohort answers</p>
-            <h2 className="mt-1 text-2xl font-light text-[#00337C]">
+            <h2 id="application-review-title" className="mt-1 text-2xl font-light text-[#00337C]">
               {application.firstName} {application.lastName}
             </h2>
             <p className="mt-1 text-sm text-gray-500">{application.cohort}</p>
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Close application review"
             className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="h-5 w-5" />
@@ -727,6 +813,7 @@ function ApplicationAnswersDrawer({ application, onClose, onStatusChange, onSend
                 ))}
               </select>
               <button
+                type="button"
                 onClick={onSendInvite}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#00337C] px-4 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E]"
               >
@@ -754,7 +841,10 @@ function ApplicationAnswersDrawer({ application, onClose, onStatusChange, onSend
           <AnswerBlock title={`Why ${application.cohort}`} value={application.motivation} />
           <AnswerBlock title="Growth goals" value={application.growthGoals} />
           <AnswerBlock title="Current challenge" value={application.challenge} />
-          <AnswerBlock title="Contribution to the cohort community" value={application.contribution} />
+          <AnswerBlock
+            title="Contribution to the cohort community"
+            value={application.contribution}
+          />
 
           <AnswerGrid
             title="Schedule and Focus"
@@ -763,7 +853,10 @@ function ApplicationAnswersDrawer({ application, onClose, onStatusChange, onSend
               ["Can commit to schedule", formatAvailability(application.availability)],
               ["Growth focus areas", application.focusAreas?.join(", ")],
               ["How they heard about this", application.heardFrom],
-              ["Submitted", application.createdAt ? new Date(application.createdAt).toLocaleString() : ""],
+              [
+                "Submitted",
+                application.createdAt ? new Date(application.createdAt).toLocaleString() : "",
+              ],
             ]}
           />
 
@@ -792,7 +885,12 @@ function AnswerGrid({ title, items }) {
           <div key={label} className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
             {label === "Professional profile link" && value ? (
-              <a href={value} target="_blank" rel="noreferrer" className="mt-1 block break-words text-sm font-medium text-[#00337C]">
+              <a
+                href={value}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 block break-words text-sm font-medium text-[#00337C]"
+              >
                 {value}
               </a>
             ) : (
@@ -826,7 +924,9 @@ function GraduateGallery({ cohorts, onEdit, onDeleteImage }) {
       <div className="rounded-xl border border-gray-100 bg-white py-16 text-center shadow-sm">
         <ImageIcon className="mx-auto mb-4 h-12 w-12 text-gray-300" />
         <h2 className="text-xl font-light text-gray-700">No graduate images yet</h2>
-        <p className="mt-2 text-gray-500">Edit a completed cohort and upload previous graduate gallery images.</p>
+        <p className="mt-2 text-gray-500">
+          Edit a completed cohort and upload previous graduate gallery images.
+        </p>
       </div>
     );
   }
@@ -834,21 +934,34 @@ function GraduateGallery({ cohorts, onEdit, onDeleteImage }) {
   return (
     <div className="space-y-6">
       {cohorts.map((cohort) => (
-        <section key={cohort._id} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <section
+          key={cohort._id}
+          className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+        >
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-[#00337C]">{cohort.title}</h2>
               <p className="text-sm text-gray-500">{cohort.gallery?.length || 0} images</p>
             </div>
-            <button onClick={() => onEdit(cohort)} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            <button
+              onClick={() => onEdit(cohort)}
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
               <Upload className="h-4 w-4" />
               Add Images
             </button>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {(cohort.gallery || []).map((image) => (
-              <div key={image._id || image.url} className="group relative overflow-hidden rounded-lg border border-gray-100 bg-gray-100">
-                <img src={image.url} alt={image.caption || cohort.title} className="aspect-[4/3] w-full object-cover" />
+              <div
+                key={image._id || image.url}
+                className="group relative overflow-hidden rounded-lg border border-gray-100 bg-gray-100"
+              >
+                <img
+                  src={image.url}
+                  alt={image.caption || cohort.title}
+                  className="aspect-[4/3] w-full object-cover"
+                />
                 <button
                   onClick={() => onDeleteImage(cohort, image)}
                   className="absolute right-2 top-2 rounded-full bg-white/90 p-2 text-red-600 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
@@ -877,14 +990,26 @@ function CohortModal({
   onGalleryChange,
 }) {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 px-4 py-8">
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/45 px-4 py-8"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cohort-form-title"
+    >
       <div className="mx-auto max-w-5xl overflow-hidden rounded-xl bg-white shadow-xl">
         <div className="flex items-start justify-between bg-[#00337C] px-6 py-5 text-white">
           <div>
-            <p className="text-sm text-white/70">Journey archive</p>
-            <h2 className="text-2xl font-light">{editingCohort ? "Edit Reflection" : "Add Cohort Reflection"}</h2>
+            <p className="text-sm text-white/70">Fellowship source of truth</p>
+            <h2 id="cohort-form-title" className="text-2xl font-light">
+              {editingCohort ? "Edit Cohort Record" : "Add Cohort Record"}
+            </h2>
           </div>
-          <button onClick={onClose} className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close cohort form"
+            className="rounded-lg p-2 text-white/80 hover:bg-white/10 hover:text-white"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -892,9 +1017,18 @@ function CohortModal({
         <form onSubmit={onSubmit} className="max-h-[78vh] overflow-y-auto p-6">
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-6">
-              <FormSection title="Reflection Basics">
-                <Field label="Cohort name" required value={form.title} onChange={(value) => updateForm("title", value)} />
-                <Field label="Short reflection tagline" value={form.tagline} onChange={(value) => updateForm("tagline", value)} />
+              <FormSection title="Cohort Basics">
+                <Field
+                  label="Cohort name"
+                  required
+                  value={form.title}
+                  onChange={(value) => updateForm("title", value)}
+                />
+                <Field
+                  label="Short reflection tagline"
+                  value={form.tagline}
+                  onChange={(value) => updateForm("tagline", value)}
+                />
                 <TextArea
                   label="Journey summary"
                   value={form.description}
@@ -908,28 +1042,126 @@ function CohortModal({
                   rows={7}
                 />
                 <div className="grid gap-4 md:grid-cols-2">
-                  <SelectField label="Public visibility" value={String(form.isPublished)} onChange={(value) => updateForm("isPublished", value === "true")} options={[["false", "Draft"], ["true", "Published"]]} />
-                  <Field type="date" label="Cohort date or start" value={form.startDate} onChange={(value) => updateForm("startDate", value)} />
-                  <Field type="date" label="Cohort end date" value={form.endDate} onChange={(value) => updateForm("endDate", value)} />
-                  <Field label="Participants / graduates" type="number" value={form.capacity} onChange={(value) => updateForm("capacity", value)} />
+                  <SelectField
+                    label="Public visibility"
+                    value={String(form.isPublished)}
+                    onChange={(value) => updateForm("isPublished", value === "true")}
+                    options={[
+                      ["false", "Draft"],
+                      ["true", "Published"],
+                    ]}
+                  />
+                  <SelectField
+                    label="Cohort stage"
+                    value={form.status}
+                    onChange={(value) => updateForm("status", value)}
+                    options={[
+                      ["upcoming", "Upcoming"],
+                      ["ongoing", "Underway"],
+                      ["completed", "Completed"],
+                    ]}
+                  />
+                  <SelectField
+                    label="Application status"
+                    value={form.applicationStatus}
+                    onChange={(value) => updateForm("applicationStatus", value)}
+                    options={[
+                      ["opening-soon", "Opening soon"],
+                      ["open", "Open"],
+                      ["closed", "Closed"],
+                      ["invite-only", "Invitation only"],
+                    ]}
+                  />
+                  <SelectField
+                    label="Delivery format"
+                    value={form.format}
+                    onChange={(value) => updateForm("format", value)}
+                    options={[
+                      ["online", "Online"],
+                      ["hybrid", "Hybrid"],
+                      ["in-person", "In person"],
+                      ["flexible", "Flexible"],
+                    ]}
+                  />
+                  <Field
+                    type="date"
+                    label="Cohort date or start"
+                    value={form.startDate}
+                    onChange={(value) => updateForm("startDate", value)}
+                  />
+                  <Field
+                    type="date"
+                    label="Cohort end date"
+                    value={form.endDate}
+                    onChange={(value) => updateForm("endDate", value)}
+                  />
+                  <Field
+                    type="date"
+                    label="Application deadline"
+                    value={form.applicationDeadline}
+                    onChange={(value) => updateForm("applicationDeadline", value)}
+                  />
+                  <Field
+                    label="Participants / graduates"
+                    type="number"
+                    value={form.capacity}
+                    onChange={(value) => updateForm("capacity", value)}
+                  />
+                  <Field
+                    label="Location"
+                    value={form.location}
+                    onChange={(value) => updateForm("location", value)}
+                  />
+                  <Field
+                    label="Schedule"
+                    value={form.schedule}
+                    onChange={(value) => updateForm("schedule", value)}
+                  />
                 </div>
               </FormSection>
 
               <FormSection title="Cover and Graduate Gallery">
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-gray-700">Cover image</span>
-                  <input type="file" accept="image/*" onChange={onCoverChange} className="hidden" id="cohortCoverImage" />
-                  <label htmlFor="cohortCoverImage" className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-4 text-sm text-gray-600 hover:border-[#00337C]">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={onCoverChange}
+                    className="hidden"
+                    id="cohortCoverImage"
+                  />
+                  <label
+                    htmlFor="cohortCoverImage"
+                    className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-4 text-sm text-gray-600 hover:border-[#00337C]"
+                  >
                     <Upload className="h-4 w-4" />
                     Choose cover image
                   </label>
                 </label>
-                {coverPreview && <img src={coverPreview} alt="Cover preview" className="h-40 w-full rounded-lg object-cover" />}
+                {coverPreview && (
+                  <img
+                    src={coverPreview}
+                    alt="Cover preview"
+                    className="h-40 w-full rounded-lg object-cover"
+                  />
+                )}
 
                 <label className="block">
-                  <span className="mb-2 block text-sm font-medium text-gray-700">Gallery from this cohort</span>
-                  <input type="file" accept="image/*" multiple onChange={onGalleryChange} className="hidden" id="cohortGalleryImages" />
-                  <label htmlFor="cohortGalleryImages" className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-4 text-sm text-gray-600 hover:border-[#00337C]">
+                  <span className="mb-2 block text-sm font-medium text-gray-700">
+                    Gallery from this cohort
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={onGalleryChange}
+                    className="hidden"
+                    id="cohortGalleryImages"
+                  />
+                  <label
+                    htmlFor="cohortGalleryImages"
+                    className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 px-4 py-4 text-sm text-gray-600 hover:border-[#00337C]"
+                  >
                     <ImageIcon className="h-4 w-4" />
                     Add cohort images
                   </label>
@@ -937,7 +1169,12 @@ function CohortModal({
                 {galleryPreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
                     {galleryPreviews.map((preview, index) => (
-                      <img key={preview || index} src={preview} alt="Gallery preview" className="aspect-square rounded-lg object-cover" />
+                      <img
+                        key={preview || index}
+                        src={preview}
+                        alt="Gallery preview"
+                        className="aspect-square rounded-lg object-cover"
+                      />
                     ))}
                   </div>
                 )}
@@ -945,6 +1182,50 @@ function CohortModal({
             </div>
 
             <div className="space-y-6">
+              <FormSection title="Public Programme Details">
+                <ArrayTextarea
+                  label="Who it is for"
+                  values={form.whoIsItFor}
+                  onChange={(items) => updateForm("whoIsItFor", items)}
+                  placeholder="One audience description per line"
+                />
+                <ArrayTextarea
+                  label="Who can apply"
+                  values={form.whoCanApply}
+                  onChange={(items) => updateForm("whoCanApply", items)}
+                  placeholder="One eligibility point per line"
+                />
+                <ArrayTextarea
+                  label="Commitment"
+                  values={form.commitment}
+                  onChange={(items) => updateForm("commitment", items)}
+                  placeholder="One commitment expectation per line"
+                />
+                <ArrayTextarea
+                  label="Curriculum or modules"
+                  values={form.curriculum}
+                  onChange={(items) => updateForm("curriculum", items)}
+                  placeholder="One module per line"
+                />
+                <ArrayTextarea
+                  label="Activities and experience"
+                  values={form.features}
+                  onChange={(items) => updateForm("features", items)}
+                  placeholder="One programme feature per line"
+                />
+                <ArrayTextarea
+                  label="Mentors and facilitators"
+                  values={form.facilitators}
+                  onChange={(items) => updateForm("facilitators", items)}
+                  placeholder="One name per line"
+                />
+                <ArrayTextarea
+                  label="Expected or documented outcomes"
+                  values={form.outcomes}
+                  onChange={(items) => updateForm("outcomes", items)}
+                  placeholder="One outcome per line"
+                />
+              </FormSection>
               <FormSection title="Journey Reflections">
                 <ArrayTextarea
                   label="Previous cohort reflections"
@@ -975,11 +1256,19 @@ function CohortModal({
           </div>
 
           <div className="mt-8 flex justify-end gap-3 border-t border-gray-100 pt-5">
-            <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60">
-              {saving ? "Saving..." : editingCohort ? "Update Reflection" : "Save Reflection"}
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1E4B9E] disabled:opacity-60"
+            >
+              {saving ? "Saving..." : editingCohort ? "Update Cohort" : "Save Cohort"}
             </button>
           </div>
         </form>

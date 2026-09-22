@@ -33,6 +33,7 @@ const Articles = () => {
   const [editing, setEditing] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
@@ -60,26 +61,30 @@ const Articles = () => {
     let filtered = [...articles];
 
     if (searchTerm) {
-      filtered = filtered.filter((article) =>
-        article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        article.content?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (article) =>
+          article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          article.content?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     if (statusFilter !== "all") {
+      filtered = filtered.filter((article) => article.status === statusFilter);
+    }
+
+    if (categoryFilter !== "all") {
       filtered = filtered.filter(
-        (article) => article.status === statusFilter
+        (article) => (article.category || "Personal Growth") === categoryFilter
       );
     }
 
     setFilteredArticles(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, articles]);
+  }, [searchTerm, statusFilter, categoryFilter, articles]);
 
   // 🔹 Delete article
   const handleDelete = async (id, title) => {
-    if (!window.confirm(`Delete "${title}"? This action cannot be undone.`))
-      return;
+    if (!window.confirm(`Delete "${title}"? This action cannot be undone.`)) return;
 
     try {
       await deleteArticle(id);
@@ -96,17 +101,17 @@ const Articles = () => {
       published: {
         color: "bg-green-50 text-green-700 border border-green-200",
         icon: <CheckCircle className="w-4 h-4" />,
-        label: "Published"
+        label: "Published",
       },
       draft: {
         color: "bg-yellow-50 text-yellow-700 border border-yellow-200",
         icon: <Clock className="w-4 h-4" />,
-        label: "Draft"
+        label: "Draft",
       },
       archived: {
         color: "bg-gray-100 text-gray-700 border border-gray-200",
         icon: <Archive className="w-4 h-4" />,
-        label: "Archived"
+        label: "Archived",
       },
     };
 
@@ -131,7 +136,10 @@ const Articles = () => {
 
   const getArticlePreview = (article, maxLength = 150) => {
     const source = article.excerpt || article.description || article.content || "";
-    const plainText = source.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    const plainText = source
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
     if (plainText.length <= maxLength) return plainText;
     return `${plainText.slice(0, maxLength).trim()}...`;
@@ -146,9 +154,9 @@ const Articles = () => {
   // 🔹 Stats
   const stats = {
     total: articles.length,
-    published: articles.filter(a => a.status === 'published').length,
-    drafts: articles.filter(a => a.status === 'draft').length,
-    archived: articles.filter(a => a.status === 'archived').length,
+    published: articles.filter((a) => a.status === "published").length,
+    drafts: articles.filter((a) => a.status === "draft").length,
+    archived: articles.filter((a) => a.status === "archived").length,
   };
 
   return (
@@ -164,9 +172,11 @@ const Articles = () => {
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl mt-10 sm:text-3xl font-light text-gray-900">Articles</h1>
+                <h1 className="text-2xl mt-10 sm:text-3xl font-light text-gray-900">
+                  BYBS Insights
+                </h1>
                 <p className="text-gray-600 mt-1 text-sm sm:text-base">
-                  Manage and publish your content
+                  Manage thought leadership, categories, and community reflection links
                 </p>
               </div>
 
@@ -178,7 +188,7 @@ const Articles = () => {
                 className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white rounded-xl shadow-lg hover:shadow-xl hover:opacity-90 transition-all duration-200 w-full sm:w-auto"
               >
                 <Plus className="w-5 h-5 mr-2" />
-                <span>New Article</span>
+                <span>New Insight</span>
               </button>
             </div>
 
@@ -187,7 +197,7 @@ const Articles = () => {
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Articles</p>
+                    <p className="text-sm text-gray-600">Total Insights</p>
                     <p className="text-2xl font-semibold text-gray-900 mt-1">{stats.total}</p>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -230,7 +240,7 @@ const Articles = () => {
                 <input
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search articles by title or content..."
+                  placeholder="Search Insights by title or content..."
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00337C]/20 focus:border-[#00337C] outline-none transition-all"
                 />
               </div>
@@ -250,15 +260,26 @@ const Articles = () => {
                   </select>
                 </div>
 
-                <button className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-gray-600" />
-                  <span className="hidden sm:inline ml-2 text-gray-700">Tags</span>
-                </button>
+                <div className="relative flex-1 md:flex-none">
+                  <Tag className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+                  <select
+                    value={categoryFilter}
+                    onChange={(event) => setCategoryFilter(event.target.value)}
+                    className="w-full appearance-none rounded-lg border border-gray-300 bg-white py-3 pl-10 pr-8 outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20"
+                  >
+                    <option value="all">All Categories</option>
+                    {[
+                      ...new Set(articles.map((article) => article.category || "Personal Growth")),
+                    ].map((category) => (
+                      <option key={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Active Filters */}
-            {(searchTerm || statusFilter !== "all") && (
+            {(searchTerm || statusFilter !== "all" || categoryFilter !== "all") && (
               <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
                 <span className="text-sm text-gray-600">Active filters:</span>
                 {searchTerm && (
@@ -274,6 +295,14 @@ const Articles = () => {
                     Status: {statusFilter}
                     <button onClick={() => setStatusFilter("all")} className="ml-2">
                       <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {categoryFilter !== "all" && (
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
+                    Category: {categoryFilter}
+                    <button onClick={() => setCategoryFilter("all")} className="ml-2">
+                      <X className="h-3 w-3" />
                     </button>
                   </span>
                 )}
@@ -305,13 +334,13 @@ const Articles = () => {
             ) : filteredArticles.length === 0 ? (
               <div className="p-12 text-center">
                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No articles found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No Insights found</h3>
                 <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  {searchTerm || statusFilter !== "all" 
+                  {searchTerm || statusFilter !== "all" || categoryFilter !== "all"
                     ? "Try adjusting your search or filters"
-                    : "Get started by creating your first article"}
+                    : "Get started by creating your first Insight"}
                 </p>
-                {!searchTerm && statusFilter === "all" && (
+                {!searchTerm && statusFilter === "all" && categoryFilter === "all" && (
                   <button
                     onClick={() => {
                       setEditing(null);
@@ -320,7 +349,7 @@ const Articles = () => {
                     className="inline-flex items-center px-4 py-3 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white rounded-lg hover:opacity-90"
                   >
                     <Plus className="w-5 h-5 mr-2" />
-                    Create Article
+                    Create Insight
                   </button>
                 )}
               </div>
@@ -331,10 +360,18 @@ const Articles = () => {
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Article</th>
-                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Status</th>
-                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Date</th>
-                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">Actions</th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">
+                          Insight
+                        </th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">
+                          Status
+                        </th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">
+                          Date
+                        </th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-gray-700">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -345,14 +382,15 @@ const Articles = () => {
                               <h3 className="font-medium text-gray-900 group-hover:text-[#00337C] transition-colors">
                                 {article.title}
                               </h3>
+                              <p className="mt-1 text-xs font-semibold uppercase text-[#B96500]">
+                                {article.category || "Personal Growth"}
+                              </p>
                               <p className="text-sm text-gray-500 line-clamp-2 mt-1">
                                 {getArticlePreview(article)}
                               </p>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            {getStatusBadge(article.status)}
-                          </td>
+                          <td className="px-6 py-4">{getStatusBadge(article.status)}</td>
                           <td className="px-6 py-4">
                             <div className="flex items-center text-sm text-gray-600">
                               <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
@@ -363,7 +401,7 @@ const Articles = () => {
                             <div className="flex items-center gap-2">
                               {article.status === "published" && (
                                 <a
-                                  href={`/articles/${article.slug}`}
+                                  href={`/insights/${article.slug}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="p-2 hover:bg-blue-50 rounded-lg transition-colors text-blue-600 hover:text-blue-700"
@@ -401,10 +439,18 @@ const Articles = () => {
                 <div className="lg:hidden">
                   <div className="p-4 space-y-4">
                     {currentArticles.map((article) => (
-                      <div key={article._id} className="bg-gray-50/50 border border-gray-200 rounded-xl p-4">
+                      <div
+                        key={article._id}
+                        className="bg-gray-50/50 border border-gray-200 rounded-xl p-4"
+                      >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900 line-clamp-2">{article.title}</h3>
+                            <h3 className="font-medium text-gray-900 line-clamp-2">
+                              {article.title}
+                            </h3>
+                            <p className="mt-1 text-xs font-semibold uppercase text-[#B96500]">
+                              {article.category || "Personal Growth"}
+                            </p>
                             <div className="flex items-center mt-2">
                               {getStatusBadge(article.status)}
                               <span className="flex items-center text-sm text-gray-500 ml-3">
@@ -414,7 +460,9 @@ const Articles = () => {
                             </div>
                           </div>
                           <button
-                            onClick={() => setMobileMenuOpen(mobileMenuOpen === article._id ? null : article._id)}
+                            onClick={() =>
+                              setMobileMenuOpen(mobileMenuOpen === article._id ? null : article._id)
+                            }
                             className="p-2 hover:bg-gray-200 rounded-lg transition-colors ml-2"
                           >
                             <MoreVertical className="w-4 h-4 text-gray-600" />
@@ -428,14 +476,14 @@ const Articles = () => {
                         {mobileMenuOpen === article._id && (
                           <Motion.div
                             initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
+                            animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
                             className="border-t border-gray-200 pt-4 mt-4"
                           >
                             <div className="flex gap-2">
                               {article.status === "published" && (
                                 <a
-                                  href={`/articles/${article.slug}`}
+                                  href={`/insights/${article.slug}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="flex-1 flex items-center justify-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
@@ -477,17 +525,18 @@ const Articles = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                     <div className="text-sm text-gray-600">
-                      Showing {startIndex + 1}-{Math.min(endIndex, filteredArticles.length)} of {filteredArticles.length} articles
+                      Showing {startIndex + 1}-{Math.min(endIndex, filteredArticles.length)} of{" "}
+                      {filteredArticles.length} Insights
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
                         className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
-                      
+
                       <div className="flex items-center gap-1">
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                           let pageNum;
@@ -500,15 +549,15 @@ const Articles = () => {
                           } else {
                             pageNum = currentPage - 2 + i;
                           }
-                          
+
                           return (
                             <button
                               key={pageNum}
                               onClick={() => setCurrentPage(pageNum)}
                               className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                                 currentPage === pageNum
-                                  ? 'bg-[#00337C] text-white'
-                                  : 'text-gray-700 hover:bg-gray-100'
+                                  ? "bg-[#00337C] text-white"
+                                  : "text-gray-700 hover:bg-gray-100"
                               }`}
                             >
                               {pageNum}
@@ -516,9 +565,9 @@ const Articles = () => {
                           );
                         })}
                       </div>
-                      
+
                       <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                         disabled={currentPage === totalPages}
                         className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
@@ -535,10 +584,8 @@ const Articles = () => {
           {!loading && articles.length > 0 && (
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-gray-500">
-                <span className="font-medium">{filteredArticles.length}</span> articles found
-                {searchTerm && (
-                  <span className="ml-2">for "{searchTerm}"</span>
-                )}
+                <span className="font-medium">{filteredArticles.length}</span> Insights found
+                {searchTerm && <span className="ml-2">for "{searchTerm}"</span>}
               </div>
               <button className="flex items-center text-[#00337C] hover:text-[#1E4B9E] transition-colors">
                 <Download className="w-4 h-4 mr-2" />

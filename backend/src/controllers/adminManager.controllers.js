@@ -3,7 +3,10 @@ const resend = require("../utils/resendClient");
 
 const managerPermissions = ["applications:screen", "articles:manage"];
 const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS Admin <no-reply@updates.buildyourbestself.org>";
-const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(/\/$/, "");
+const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(
+  /\/$/,
+  ""
+);
 
 const sanitizeManager = (admin) => ({
   _id: admin._id,
@@ -156,7 +159,8 @@ exports.updateManager = async (req, res) => {
 
     if (req.body.name !== undefined) manager.name = req.body.name?.trim();
     if (req.body.email !== undefined) manager.email = req.body.email.trim().toLowerCase();
-    if (req.body.permissions !== undefined) manager.permissions = normalizePermissions(req.body.permissions);
+    if (req.body.permissions !== undefined)
+      manager.permissions = normalizePermissions(req.body.permissions);
     if (req.body.active !== undefined) manager.active = normalizeBoolean(req.body.active);
     const passwordChanged = Boolean(req.body.password?.trim());
     if (passwordChanged) {

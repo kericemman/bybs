@@ -1,14 +1,14 @@
-
-
 const Waitlist = require("../models/Waitlist");
+const { cleanText, isValidEmail, normalizeEmail } = require("../utils/inputValidation");
 
 exports.joinWaitlist = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const name = cleanText(req.body?.name, 120);
+    const email = normalizeEmail(req.body?.email);
 
-    if (!email) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({
-        message: "Email is required",
+        message: "A valid email is required",
       });
     }
 
@@ -29,7 +29,6 @@ exports.joinWaitlist = async (req, res) => {
       message: "Successfully joined the waitlist",
       entry,
     });
-
   } catch (error) {
     console.error("Waitlist error:", error);
 

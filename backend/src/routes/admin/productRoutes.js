@@ -1,13 +1,15 @@
-const express = require("express"); 
-const protect = require("../../middleware/auth.middleware"); 
+const express = require("express");
+const protect = require("../../middleware/auth.middleware");
 const { requireAdmin } = require("../../middleware/permission.middleware");
-const upload = require("../../utils/clodinaryUpload"); 
-const{ createProduct, updateProduct, 
-    deleteProduct, 
-    getAllProducts, 
-    getPublicProducts, 
-    getProductBySlug, } = require("../../controllers/product.controllers"); 
-    
+const upload = require("../../utils/clodinaryUpload");
+const {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getAllProducts,
+  getPublicProducts,
+  getProductBySlug,
+} = require("../../controllers/product.controllers");
 
 const router = express.Router();
 
@@ -18,14 +20,14 @@ const productUpload = (req, res, next) => {
   ])(req, res, (error) => {
     if (!error) return next();
 
-    const message = error.code === "LIMIT_FILE_SIZE"
-      ? "File is too large. Please upload files under 20MB."
-      : error.message || "File upload failed. Please check the file type and try again.";
+    const message =
+      error.code === "LIMIT_FILE_SIZE"
+        ? "File is too large. Please upload files under 20MB."
+        : error.message || "File upload failed. Please check the file type and try again.";
 
     return res.status(400).json({ message });
   });
 };
-
 
 // Public
 router.get("/", getPublicProducts);
@@ -33,21 +35,9 @@ router.get("/", getPublicProducts);
 // Admin routes first
 router.get("/admin/all", protect, requireAdmin, getAllProducts);
 
-router.post(
-  "/admin",
-  protect,
-  requireAdmin,
-  productUpload,
-  createProduct
-);
+router.post("/admin", protect, requireAdmin, productUpload, createProduct);
 
-router.put(
-  "/admin/:id",
-  protect,
-  requireAdmin,
-  productUpload,
-  updateProduct
-);
+router.put("/admin/:id", protect, requireAdmin, productUpload, updateProduct);
 
 router.delete("/admin/:id", protect, requireAdmin, deleteProduct);
 

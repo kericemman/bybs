@@ -1,0 +1,21 @@
+.DS_Store
+*.log
+node_modules/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+backend/.env
+build-your-best/.env
+build-your-best/.env.local
+
+# Generated output and runtime files
+build-your-best/dist/
+backend/invoices/
+backend/src/uploads/
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp

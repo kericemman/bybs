@@ -1,11 +1,15 @@
 const Subscriber = require("../models/Subscriber");
+const mongoose = require("mongoose");
 const resend = require("./resendClient");
 
 const FROM_EMAIL =
   process.env.ARTICLE_NEWSLETTER_FROM_EMAIL ||
   process.env.FROM_EMAIL ||
   "BYBS Newsletter <no-reply@updates.buildyourbestself.org>";
-const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(/\/$/, "");
+const FRONTEND_URL = (process.env.FRONTEND_URL || "https://buildyourbestself.org").replace(
+  /\/$/,
+  ""
+);
 const BATCH_SIZE = 100;
 
 const escapeHtml = (value = "") =>
@@ -77,7 +81,7 @@ const buildArticleNewsletterHtml = ({ article, subscriber, articleUrl, preview }
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:680px;background:#ffffff;border:1px solid #e5eaf2;border-radius:14px;overflow:hidden;">
               <tr>
                 <td style="padding:26px 30px;background:#00337C;color:#ffffff;">
-                  <p style="margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#bfdbfe;">BYBS Article</p>
+                  <p style="margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#bfdbfe;">BYBS Insights</p>
                   <h1 style="margin:0;font-size:28px;line-height:1.25;font-weight:500;">${title}</h1>
                 </td>
               </tr>
@@ -112,7 +116,10 @@ const buildArticleNewsletterText = ({ article, articleUrl, preview }) =>
   `${article.title}\n\n${preview}\n\nRead the full article: ${articleUrl}`;
 
 const sendArticleNewsletter = async (article) => {
-  const subscribers = await Subscriber.find({ isActive: true, email: { $exists: true, $ne: "" } })
+  const subscribers = await Subscriber.find({
+    isActive: true,
+    email: mongoose.trusted({ $exists: true, $ne: "" }),
+  })
     .select("email name")
     .lean();
   const validSubscribers = subscribers.filter((subscriber) => isValidEmail(subscriber.email));
@@ -130,9 +137,9 @@ const sendArticleNewsletter = async (article) => {
     };
   }
 
-  const articleUrl = `${FRONTEND_URL}/articles/${article.slug}`;
+  const articleUrl = `${FRONTEND_URL}/insights/${article.slug}`;
   const preview = createPreview(article);
-  const subject = `New article: ${article.title}`;
+  const subject = `New BYBS Insight: ${article.title}`;
   const emailPayloads = validSubscribers.map((subscriber) => ({
     from: FROM_EMAIL,
     to: [subscriber.email],

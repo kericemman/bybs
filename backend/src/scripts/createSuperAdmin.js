@@ -9,8 +9,7 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-const ask = (question) =>
-  new Promise((resolve) => rl.question(question, resolve));
+const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
 
 const run = async () => {
   try {

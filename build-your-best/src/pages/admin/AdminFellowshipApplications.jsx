@@ -110,7 +110,9 @@ export default function AdminFellowshipApplications() {
   const [inviteSubject, setInviteSubject] = useState("Invitation: BYBS Fellowship Cohort 4");
   const [inviteMessage, setInviteMessage] = useState(defaultInviteMessage);
   const [sendingInvites, setSendingInvites] = useState(false);
-  const [regretSubject, setRegretSubject] = useState("Update on your BYBS Fellowship Cohort 4 application");
+  const [regretSubject, setRegretSubject] = useState(
+    "Update on your BYBS Fellowship Cohort 4 application"
+  );
   const [regretMessage, setRegretMessage] = useState(defaultRegretMessage);
   const [sendingRegrets, setSendingRegrets] = useState(false);
   const [composerMode, setComposerMode] = useState("invite");
@@ -207,9 +209,7 @@ export default function AdminFellowshipApplications() {
   const notQualifiedReadyForRegret = useMemo(
     () =>
       applications.filter(
-        (application) =>
-          isUnsuccessfulApplication(application) &&
-          !application.regretSentAt
+        (application) => isUnsuccessfulApplication(application) && !application.regretSentAt
       ),
     [applications]
   );
@@ -217,15 +217,17 @@ export default function AdminFellowshipApplications() {
   const selectedUnsuccessfulApplications = useMemo(
     () =>
       selectedApplications.filter(
-        (application) =>
-          isUnsuccessfulApplication(application) &&
-          !application.regretSentAt
+        (application) => isUnsuccessfulApplication(application) && !application.regretSentAt
       ),
     [selectedApplications]
   );
 
-  const inviteTargets = selectedAcceptedApplications.length ? selectedAcceptedApplications : acceptedReadyForInvite;
-  const regretTargets = selectedUnsuccessfulApplications.length ? selectedUnsuccessfulApplications : notQualifiedReadyForRegret;
+  const inviteTargets = selectedAcceptedApplications.length
+    ? selectedAcceptedApplications
+    : acceptedReadyForInvite;
+  const regretTargets = selectedUnsuccessfulApplications.length
+    ? selectedUnsuccessfulApplications
+    : notQualifiedReadyForRegret;
 
   const mergeApplication = (updatedApplication) => {
     setApplications((current) =>
@@ -257,7 +259,12 @@ export default function AdminFellowshipApplications() {
 
   const updateScreeningGroup = async (application, screeningGroup) => {
     try {
-      const status = screeningGroup === "accepted" ? "accepted" : screeningGroup === "not_qualified" ? "declined" : application.status;
+      const status =
+        screeningGroup === "accepted"
+          ? "accepted"
+          : screeningGroup === "not_qualified"
+            ? "declined"
+            : application.status;
       const { data } = await updateFellowshipApplication(application._id, {
         screeningGroup,
         status,
@@ -292,7 +299,9 @@ export default function AdminFellowshipApplications() {
       setScreeningSummary(data.summary);
       if (Array.isArray(data.applications)) {
         setApplications((current) => {
-          const updates = new Map(data.applications.map((application) => [application._id, application]));
+          const updates = new Map(
+            data.applications.map((application) => [application._id, application])
+          );
           return current.map((application) => updates.get(application._id) || application);
         });
       }
@@ -341,7 +350,8 @@ export default function AdminFellowshipApplications() {
       return;
     }
 
-    if (!window.confirm(`Send regret email to ${application.firstName} ${application.lastName}?`)) return;
+    if (!window.confirm(`Send regret email to ${application.firstName} ${application.lastName}?`))
+      return;
 
     try {
       const { data } = await sendFellowshipRegret(application._id, {
@@ -362,7 +372,12 @@ export default function AdminFellowshipApplications() {
       return;
     }
 
-    if (!window.confirm(`Send invitation email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`)) return;
+    if (
+      !window.confirm(
+        `Send invitation email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`
+      )
+    )
+      return;
 
     try {
       setSendingInvites(true);
@@ -393,7 +408,10 @@ export default function AdminFellowshipApplications() {
       return;
     }
 
-    if (!window.confirm(`Send regret email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`)) return;
+    if (
+      !window.confirm(`Send regret email to ${ids.length} applicant${ids.length === 1 ? "" : "s"}?`)
+    )
+      return;
 
     try {
       setSendingRegrets(true);
@@ -495,9 +513,7 @@ export default function AdminFellowshipApplications() {
       new Date(application.createdAt).toLocaleString(),
     ]);
 
-    const csv = [headers, ...rows]
-      .map((row) => row.map(escapeCsv).join(","))
-      .join("\n");
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -576,10 +592,30 @@ export default function AdminFellowshipApplications() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <StatCard label="Total" value={counts.total || 0} icon={<Users className="h-5 w-5" />} tone="blue" />
-          <StatCard label="Unscreened" value={counts.unscreened || 0} icon={<Clock className="h-5 w-5" />} tone="slate" />
-          <StatCard label="Accepted group" value={counts.accepted || 0} icon={<CheckCircle2 className="h-5 w-5" />} tone="green" />
-          <StatCard label="Not qualified" value={counts.not_qualified || 0} icon={<XCircle className="h-5 w-5" />} tone="red" />
+          <StatCard
+            label="Total"
+            value={counts.total || 0}
+            icon={<Users className="h-5 w-5" />}
+            tone="blue"
+          />
+          <StatCard
+            label="Unscreened"
+            value={counts.unscreened || 0}
+            icon={<Clock className="h-5 w-5" />}
+            tone="slate"
+          />
+          <StatCard
+            label="Accepted group"
+            value={counts.accepted || 0}
+            icon={<CheckCircle2 className="h-5 w-5" />}
+            tone="green"
+          />
+          <StatCard
+            label="Not qualified"
+            value={counts.not_qualified || 0}
+            icon={<XCircle className="h-5 w-5" />}
+            tone="red"
+          />
         </div>
 
         <WorkflowPanel
@@ -595,7 +631,8 @@ export default function AdminFellowshipApplications() {
 
         {screeningSummary && (
           <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Auto-screening completed: {screeningSummary.screened} screened, {screeningSummary.accepted} accepted, {screeningSummary.notQualified} not qualified.
+            Auto-screening completed: {screeningSummary.screened} screened,{" "}
+            {screeningSummary.accepted} accepted, {screeningSummary.notQualified} not qualified.
             <button
               onClick={() => runAutomatedScreening(true)}
               disabled={screening}
@@ -611,7 +648,11 @@ export default function AdminFellowshipApplications() {
             <div>
               <h2 className="text-xl font-semibold text-[#10233F]">{composerHeading}</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Target: {selectedComposerTargets ? `${selectedComposerTargets} selected` : `${composerTargets.length} ${composerTargetLabel}`}.
+                Target:{" "}
+                {selectedComposerTargets
+                  ? `${selectedComposerTargets} selected`
+                  : `${composerTargets.length} ${composerTargetLabel}`}
+                .
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -664,18 +705,25 @@ export default function AdminFellowshipApplications() {
                   content={composerMessage}
                   onChange={updateComposerMessage}
                   onImageUpload={handleInviteImageUpload}
-                  placeholder={isRegretComposer ? "Write the regret email here..." : "Write the invitation email here..."}
+                  placeholder={
+                    isRegretComposer
+                      ? "Write the regret email here..."
+                      : "Write the invitation email here..."
+                  }
                 />
               </div>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-gray-500">
-                  Use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"} to personalize each message.
+                  Use {"{{firstName}}"}, {"{{fullName}}"}, and {"{{cohort}}"} to personalize each
+                  message.
                 </p>
                 <button
                   onClick={composerSendAction}
                   disabled={composerSending}
                   className={`inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 ${
-                    isRegretComposer ? "bg-red-700 hover:bg-red-800" : "bg-[#00337C] hover:bg-[#1E4B9E]"
+                    isRegretComposer
+                      ? "bg-red-700 hover:bg-red-800"
+                      : "bg-[#00337C] hover:bg-[#1E4B9E]"
                   }`}
                 >
                   <Send className="h-4 w-4" />
@@ -691,9 +739,7 @@ export default function AdminFellowshipApplications() {
               </div>
               <div className="rounded-lg bg-gray-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-gray-500">Recipients</p>
-                <p className="mt-1 text-sm font-medium text-[#10233F]">
-                  {composerTargets.length}
-                </p>
+                <p className="mt-1 text-sm font-medium text-[#10233F]">{composerTargets.length}</p>
               </div>
               <div className="rounded-lg bg-gray-50 p-4">
                 <p className="text-xs uppercase tracking-wide text-gray-500">Email type</p>
@@ -742,9 +788,7 @@ export default function AdminFellowshipApplications() {
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">{error}</div>
         )}
 
         {loading ? (
@@ -755,12 +799,16 @@ export default function AdminFellowshipApplications() {
           <div className="rounded-xl border border-gray-100 bg-white py-16 text-center shadow-sm">
             <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
             <h2 className="text-xl font-light text-gray-700">No applications found</h2>
-            <p className="mt-2 text-gray-500">Applications will appear here when people submit a cohort form.</p>
+            <p className="mt-2 text-gray-500">
+              Applications will appear here when people submit a cohort form.
+            </p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
             <div className="hidden grid-cols-[auto_1fr_1fr_0.8fr_0.8fr_0.8fr] gap-4 border-b border-gray-100 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 lg:grid">
-              <button onClick={toggleAllVisible} className="text-left">Select</button>
+              <button onClick={toggleAllVisible} className="text-left">
+                Select
+              </button>
               <span>Applicant</span>
               <span>Screening</span>
               <span>Status</span>
@@ -856,7 +904,9 @@ function WorkflowPanel({
   return (
     <section className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-col gap-1">
-        <p className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">Screening workflow</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">
+          Screening workflow
+        </p>
         <h2 className="text-xl font-semibold text-[#10233F]">Review applicants in clear stages</h2>
       </div>
       <div className="grid gap-3 lg:grid-cols-4">
@@ -882,9 +932,7 @@ function WorkflowPanel({
                 onClick={step.onClick}
                 disabled={step.disabled}
                 className={`mt-4 inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors hover:bg-white disabled:opacity-60 ${
-                  step.danger
-                    ? "border-red-200 text-red-700"
-                    : "border-[#00337C] text-[#00337C]"
+                  step.danger ? "border-red-200 text-red-700" : "border-[#00337C] text-[#00337C]"
                 }`}
               >
                 {step.icon}
@@ -936,7 +984,9 @@ function ApplicationRow({
           <Mail className="h-3.5 w-3.5" />
           {application.email}
         </div>
-        <p className="mt-1 text-xs text-gray-400">{application.country} {application.city ? `- ${application.city}` : ""}</p>
+        <p className="mt-1 text-xs text-gray-400">
+          {application.country} {application.city ? `- ${application.city}` : ""}
+        </p>
       </div>
       <div className="space-y-2 text-sm text-gray-600">
         <select
@@ -944,15 +994,15 @@ function ApplicationRow({
           onChange={(event) => onGroupChange(event.target.value)}
           className={`w-full rounded-full border px-3 py-2 text-xs font-semibold outline-none ${groupStyles[group]}`}
         >
-          {screeningGroups.filter((item) => item.value !== "all").map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
+          {screeningGroups
+            .filter((item) => item.value !== "all")
+            .map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
         </select>
-        <p className="text-xs text-gray-500">
-          Score: {application.screeningScore ?? 0}/100
-        </p>
+        <p className="text-xs text-gray-500">Score: {application.screeningScore ?? 0}/100</p>
         <p className="line-clamp-1 text-xs text-gray-400">
           {application.screeningReasons?.[0] || "Not screened yet"}
         </p>
@@ -962,11 +1012,13 @@ function ApplicationRow({
         onChange={(event) => onStatusChange(event.target.value)}
         className={`w-full rounded-full border px-3 py-2 text-xs font-semibold capitalize outline-none ${statusStyles[application.status]}`}
       >
-        {statuses.filter((status) => status.value !== "all").map((status) => (
-          <option key={status.value} value={status.value}>
-            {status.label}
-          </option>
-        ))}
+        {statuses
+          .filter((status) => status.value !== "all")
+          .map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
       </select>
       <p className="text-sm text-gray-500">
         {new Date(application.createdAt).toLocaleDateString()}
@@ -1084,11 +1136,13 @@ function ApplicationDrawer({
                   onChange={(event) => onStatusChange(event.target.value)}
                   className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
                 >
-                  {statuses.filter((status) => status.value !== "all").map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
+                  {statuses
+                    .filter((status) => status.value !== "all")
+                    .map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
                 </select>
               </label>
               <label className="text-sm font-medium text-gray-700">
@@ -1098,11 +1152,13 @@ function ApplicationDrawer({
                   onChange={(event) => onGroupChange(event.target.value)}
                   className="mt-2 w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
                 >
-                  {screeningGroups.filter((item) => item.value !== "all").map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
+                  {screeningGroups
+                    .filter((item) => item.value !== "all")
+                    .map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
                 </select>
               </label>
             </div>
@@ -1134,14 +1190,21 @@ function ApplicationDrawer({
             items={[
               ["Group", formatGroup(group)],
               ["Score", `${application.screeningScore ?? 0}/100`],
-              ["Screened", application.screenedAt ? new Date(application.screenedAt).toLocaleString() : "Not screened"],
+              [
+                "Screened",
+                application.screenedAt
+                  ? new Date(application.screenedAt).toLocaleString()
+                  : "Not screened",
+              ],
               ["Mode", application.screeningMode || "manual"],
             ]}
           />
 
           {application.screeningReasons?.length > 0 && (
             <section className="rounded-xl border border-gray-100 p-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">Screening reasons</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">
+                Screening reasons
+              </h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-gray-600">
                 {application.screeningReasons.map((reason) => (
                   <li key={reason}>{reason}</li>
@@ -1168,7 +1231,10 @@ function ApplicationDrawer({
           <LongAnswer title={`Why ${application.cohort}`} value={application.motivation} />
           <LongAnswer title="Growth goals" value={application.growthGoals} />
           <LongAnswer title="Current challenge" value={application.challenge} />
-          <LongAnswer title="Contribution to the cohort community" value={application.contribution} />
+          <LongAnswer
+            title="Contribution to the cohort community"
+            value={application.contribution}
+          />
 
           <AnswerGrid
             title="Schedule and Focus"
@@ -1177,7 +1243,10 @@ function ApplicationDrawer({
               ["Can commit to schedule", formatAvailability(application.availability)],
               ["Growth focus areas", application.focusAreas?.join(", ")],
               ["How they heard about this", application.heardFrom],
-              ["Submitted", application.createdAt ? new Date(application.createdAt).toLocaleString() : ""],
+              [
+                "Submitted",
+                application.createdAt ? new Date(application.createdAt).toLocaleString() : "",
+              ],
             ]}
           />
 
@@ -1235,7 +1304,12 @@ function AnswerGrid({ title, items }) {
           <div key={label} className="rounded-lg bg-gray-50 p-4">
             <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
             {label === "Professional profile link" && value ? (
-              <a href={value} target="_blank" rel="noreferrer" className="mt-1 block break-words text-sm font-medium text-[#00337C]">
+              <a
+                href={value}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-1 block break-words text-sm font-medium text-[#00337C]"
+              >
                 {value}
               </a>
             ) : (

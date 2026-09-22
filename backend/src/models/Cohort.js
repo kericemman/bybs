@@ -33,7 +33,7 @@ const cohortSchema = new mongoose.Schema(
 
     applicationStatus: {
       type: String,
-      enum: ["open", "closed", "invite-only"],
+      enum: ["opening-soon", "open", "closed", "invite-only"],
       default: "closed",
     },
 

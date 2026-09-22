@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
-import {
-  getAdminProducts,
-  deleteProduct,
-} from "../../api/product.api";
+import { getAdminProducts, deleteProduct } from "../../api/product.api";
 import AdminProductForm from "./AdminProductForm";
 import { Package } from "lucide-react"; // Add this
 
@@ -45,21 +42,14 @@ const AdminProducts = () => {
     }
   };
 
-  const filteredProducts =
-    filter === "all"
-      ? products
-      : products.filter((p) => p.type === filter);
+  const filteredProducts = filter === "all" ? products : products.filter((p) => p.type === filter);
 
   return (
     <AdminLayout>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl mt-10 font-light text-[#00337C] mb-2">
-            Products
-          </h1>
-          <p className="text-gray-600">
-            Manage your ebooks and merchandise
-          </p>
+          <h1 className="text-3xl mt-10 font-light text-[#00337C] mb-2">Products</h1>
+          <p className="text-gray-600">Manage your ebooks and merchandise</p>
         </div>
 
         <button
@@ -90,7 +80,7 @@ const AdminProducts = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
           <p className="text-red-600 mb-4">{error}</p>
-          <button 
+          <button
             onClick={fetchProducts}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
@@ -110,12 +100,10 @@ const AdminProducts = () => {
           {!error && filteredProducts.length === 0 && (
             <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-200">
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-light text-gray-700 mb-2">
-                No products found
-              </h3>
+              <h3 className="text-xl font-light text-gray-700 mb-2">No products found</h3>
               <p className="text-gray-500 mb-6">
-                {filter === "all" 
-                  ? "Get started by adding your first product" 
+                {filter === "all"
+                  ? "Get started by adding your first product"
                   : `No ${filter} products available`}
               </p>
               <button
@@ -152,30 +140,24 @@ const AdminProducts = () => {
 
                   <div className="p-5">
                     <div className="flex items-start justify-between mb-2">
-                      <h2 className="text-lg font-medium text-gray-900">
-                        {product.title}
-                      </h2>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        product.type === 'ebook' 
-                          ? 'bg-blue-100 text-blue-700' 
-                          : 'bg-purple-100 text-purple-700'
-                      }`}>
+                      <h2 className="text-lg font-medium text-gray-900">{product.title}</h2>
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          product.type === "ebook"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
                         {product.type}
                       </span>
                     </div>
 
-                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">
-                      {product.description}
-                    </p>
+                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">{product.description}</p>
 
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-lg font-light text-[#B76E79]">
-                        ${product.price}
-                      </span>
+                      <span className="text-lg font-light text-[#B76E79]">${product.price}</span>
                       {product.type === "merch" && (
-                        <span className="text-sm text-gray-500">
-                          Stock: {product.stock || 0}
-                        </span>
+                        <span className="text-sm text-gray-500">Stock: {product.stock || 0}</span>
                       )}
                     </div>
 

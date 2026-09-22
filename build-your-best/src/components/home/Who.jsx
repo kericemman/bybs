@@ -14,13 +14,11 @@ const WhoWeServe = () => {
     },
     {
       title: "Professionals",
-      description:
-        "Striving with ambition while needing balance, grounding, and renewed purpose.",
+      description: "Striving with ambition while needing balance, grounding, and renewed purpose.",
     },
     {
       title: "Leaders",
-      description:
-        "Seeking deeper fulfillment, authenticity, and impact beyond achievement.",
+      description: "Seeking deeper fulfillment, authenticity, and impact beyond achievement.",
     },
   ];
 
@@ -35,12 +33,12 @@ const WhoWeServe = () => {
           className="max-w-2xl mb-12"
         >
           <p className="public-eyebrow mb-5">Who we serve</p>
-          <h2 className="public-heading text-3xl md:text-5xl mb-5">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl public-heading mb-5">
             For people ready to transform from the inside out.
           </h2>
           <p className="public-copy text-lg">
-            We walk with individuals and groups who want clarity, healing,
-            confidence, and a more intentional way to grow.
+            We walk with individuals and groups who want clarity, healing, confidence, and a more
+            intentional way to grow.
           </p>
         </Motion.div>
 
@@ -59,9 +57,7 @@ const WhoWeServe = () => {
                   {index + 1}
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-[#00337C] mb-2">
-                    {group.title}
-                  </h3>
+                  <h3 className="text-xl font-semibold text-[#00337C] mb-2">{group.title}</h3>
                   <p className="public-copy">{group.description}</p>
                 </div>
               </div>

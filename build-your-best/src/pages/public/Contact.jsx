@@ -1,18 +1,18 @@
 import { motion as Motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import {
   CalendarDays,
   CheckCircle,
   Facebook,
   Instagram,
-  InstagramIcon,
   Linkedin,
   Mail,
   MessageCircle,
   Send,
 } from "lucide-react";
 import { BsTiktok } from "react-icons/bs";
+import { SITE, SOCIAL_LINKS } from "../../config/site";
+import api from "../../utils/axios";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -42,10 +42,7 @@ export default function ContactPage() {
     setSubmitStatus({ success: false, message: "" });
 
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/contact`,
-        formData
-      );
+      const res = await api.post("/contact", formData);
 
       if (res.data.success) {
         setSubmitStatus({
@@ -63,7 +60,7 @@ export default function ContactPage() {
       console.error("Form submission error:", error);
       setSubmitStatus({
         success: false,
-        message: "Failed to send message. Please try again.",
+        message: error.response?.data?.message || "Failed to send message. Please try again.",
       });
     } finally {
       setLoading(false);
@@ -76,23 +73,22 @@ export default function ContactPage() {
   const contactCards = [
     {
       title: "Book a session",
-      description:
-        "Schedule a discovery call or coaching session when you are ready for support.",
-      href: "https://calendly.com/buildyourbestselfblog-info",
+      description: "Schedule a discovery call or coaching session when you are ready for support.",
+      href: SITE.calendlyUrl,
       label: "View availability",
       icon: CalendarDays,
     },
     {
       title: "Email directly",
       description: "Prefer a direct note? Send us a message by email.",
-      href: "mailto:info@buildyourbestself.org",
-      label: "info@buildyourbestself.org",
+      href: `mailto:${SITE.email}`,
+      label: SITE.email,
       icon: Mail,
     },
     {
       title: "WhatsApp",
       description: "Reach the team for quick support and order questions.",
-      href: "https://wa.me/211921650576",
+      href: SITE.whatsappUrl,
       label: "Message on WhatsApp",
       icon: MessageCircle,
     },
@@ -108,10 +104,12 @@ export default function ContactPage() {
             transition={{ duration: 0.6 }}
           >
             <p className="public-eyebrow mb-5">Contact</p>
-            
+            <h1 className="text-2xl md:text-3xl lg:text-4xl public-heading mb-5">
+              Start the right conversation with BYBS.
+            </h1>
             <p className="public-copy text-lg">
-              Have a question, partnership idea, product issue, or coaching
-              inquiry? Send a message and the BYBS team will respond.
+              Have a programme question, partnership idea, volunteer interest, product issue, or
+              coaching inquiry? Send a message to the team.
             </p>
           </Motion.div>
         </div>
@@ -127,12 +125,8 @@ export default function ContactPage() {
             transition={{ duration: 0.5 }}
             className="public-card p-6 md:p-8"
           >
-            <h2 className="text-2xl font-light text-[#00337C] mb-2">
-              Send a message
-            </h2>
-            <p className="text-gray-500 mb-6">
-              We usually respond within 24 hours.
-            </p>
+            <h2 className="text-2xl font-light text-[#00337C] mb-2">Send a message</h2>
+            <p className="text-gray-500 mb-6">We usually respond within 24 hours.</p>
 
             {submitStatus.message && (
               <div
@@ -149,9 +143,7 @@ export default function ContactPage() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <label>
-                <span className="block text-sm font-medium text-gray-700 mb-2">
-                  Name
-                </span>
+                <span className="block text-sm font-medium text-gray-700 mb-2">Name</span>
                 <input
                   type="text"
                   name="name"
@@ -164,9 +156,7 @@ export default function ContactPage() {
               </label>
 
               <label>
-                <span className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </span>
+                <span className="block text-sm font-medium text-gray-700 mb-2">Email</span>
                 <input
                   type="email"
                   name="email"
@@ -179,9 +169,7 @@ export default function ContactPage() {
               </label>
 
               <label className="md:col-span-2">
-                <span className="block text-sm font-medium text-gray-700 mb-2">
-                  Topic
-                </span>
+                <span className="block text-sm font-medium text-gray-700 mb-2">Topic</span>
                 <select
                   name="subject"
                   value={formData.subject}
@@ -191,16 +179,17 @@ export default function ContactPage() {
                 >
                   <option value="">Select a topic</option>
                   <option value="coaching">Coaching inquiry</option>
-                  <option value="workshop">Workshop question</option>
+                  <option value="fellowship">Fellowship inquiry</option>
+                  <option value="volunteer">Volunteering or mentorship</option>
+                  <option value="partnership">Partnership or support</option>
+                  <option value="community">Community or outreach</option>
                   <option value="product">Product support</option>
                   <option value="other">Other</option>
                 </select>
               </label>
 
               <label className="md:col-span-2">
-                <span className="block text-sm font-medium text-gray-700 mb-2">
-                  Message
-                </span>
+                <span className="block text-sm font-medium text-gray-700 mb-2">Message</span>
                 <textarea
                   name="message"
                   value={formData.message}
@@ -245,15 +234,9 @@ export default function ContactPage() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#00337C] mb-1">
-                      {card.title}
-                    </h3>
-                    <p className="text-sm text-gray-600 leading-6 mb-2">
-                      {card.description}
-                    </p>
-                    <p className="text-sm font-semibold text-[#B76E79]">
-                      {card.label}
-                    </p>
+                    <h3 className="font-semibold text-[#00337C] mb-1">{card.title}</h3>
+                    <p className="text-sm text-gray-600 leading-6 mb-2">{card.description}</p>
+                    <p className="text-sm font-semibold text-[#B76E79]">{card.label}</p>
                   </div>
                 </a>
               );
@@ -263,7 +246,7 @@ export default function ContactPage() {
               <h3 className="font-semibold text-[#00337C] mb-4">Connect</h3>
               <div className="flex gap-3">
                 <a
-                  href="https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk"
+                  href={SOCIAL_LINKS.find((link) => link.label === "Instagram")?.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
@@ -272,7 +255,7 @@ export default function ContactPage() {
                   <Instagram className="w-5 h-5" />
                 </a>
                 <a
-                  href="https://www.facebook.com/share/176ZP54B6X/"
+                  href={SOCIAL_LINKS.find((link) => link.label === "Facebook")?.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
@@ -282,7 +265,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://www.tiktok.com/@buildyourbestselfblog?_t=ZM-8yf0LRoJoT2&_r=1"
+                  href={SOCIAL_LINKS.find((link) => link.label === "TikTok")?.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
@@ -292,17 +275,7 @@ export default function ContactPage() {
                 </a>
 
                 <a
-                  href="https://www.instagram.com/buildyourbestself_25?igsh=ZmFjcTlrMDdtc2Fk"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"
-                  aria-label="instagram"
-                >
-                  <InstagramIcon className="w-5 h-5" />
-                </a>
-
-                <a
-                  href="https://www.linkedin.com/company/109732355"
+                  href={SOCIAL_LINKS.find((link) => link.label === "LinkedIn")?.href}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:text-[#00337C] hover:border-[#00337C]/30"

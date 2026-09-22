@@ -24,7 +24,7 @@ const AdminCohortForm = () => {
     if (isEdit) {
       const fetchCohort = async () => {
         const { data } = await api.get(`/admin/cohorts`);
-        const cohort = data.find(c => c._id === id);
+        const cohort = data.find((c) => c._id === id);
 
         if (cohort) {
           setForm({
@@ -53,7 +53,7 @@ const AdminCohortForm = () => {
 
     const formData = new FormData();
 
-    Object.keys(form).forEach(key => {
+    Object.keys(form).forEach((key) => {
       formData.append(key, form[key]);
     });
 
@@ -73,14 +73,9 @@ const AdminCohortForm = () => {
   return (
     <AdminLayout>
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">
-          {isEdit ? "Edit Cohort" : "Create Cohort"}
-        </h1>
+        <h1 className="text-2xl font-bold mb-6">{isEdit ? "Edit Cohort" : "Create Cohort"}</h1>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white p-6 space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="bg-white p-6 space-y-4">
           <input
             name="title"
             value={form.title}
@@ -127,9 +122,7 @@ const AdminCohortForm = () => {
           </select>
 
           <div>
-            <label className="block mb-2 font-medium">
-              Gallery Images
-            </label>
+            <label className="block mb-2 font-medium">Gallery Images</label>
 
             <input
               type="file"

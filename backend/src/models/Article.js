@@ -20,7 +20,6 @@ const articleSchema = new mongoose.Schema(
       trim: true,
     },
 
-   
     slug: {
       type: String,
       unique: true,
@@ -36,6 +35,42 @@ const articleSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    authorName: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: "",
+    },
+    authorRole: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: "",
+    },
+    authorBio: {
+      type: String,
+      trim: true,
+      maxlength: 600,
+      default: "",
+    },
+    authorImage: {
+      url: String,
+      public_id: String,
+    },
+    category: {
+      type: String,
+      enum: [
+        "Personal Growth",
+        "Career",
+        "Leadership",
+        "Community",
+        "Wellbeing",
+        "Professional Development",
+        "Stories",
+      ],
+      default: "Personal Growth",
+      index: true,
+    },
     tags: {
       type: [String],
       default: [],
@@ -48,6 +83,27 @@ const articleSchema = new mongoose.Schema(
       url: String,
       public_id: String,
     },
+    socialImage: {
+      url: String,
+      public_id: String,
+    },
+    seoTitle: {
+      type: String,
+      trim: true,
+      maxlength: 70,
+      default: "",
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+      maxlength: 180,
+      default: "",
+    },
+    linkedReflection: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "WeeklyReflectionPrompt",
+      default: null,
+    },
     status: {
       type: String,
       enum: ["draft", "published", "archived"],
@@ -57,6 +113,7 @@ const articleSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
     },
+    publishedAt: Date,
     newsletter: {
       sentAt: Date,
       lastAttemptAt: Date,
@@ -102,6 +159,10 @@ articleSchema.pre("save", function (next) {
     const generatedExcerpt = createExcerpt(this.content);
     this.excerpt = generatedExcerpt;
     this.description = generatedExcerpt;
+  }
+
+  if (this.status === "published" && !this.publishedAt) {
+    this.publishedAt = new Date();
   }
 
   next();

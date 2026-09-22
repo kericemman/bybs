@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  createProduct,
-  updateProduct,
-} from "../../api/product.api";
+import { createProduct, updateProduct } from "../../api/product.api";
 import { X, Upload, Loader } from "lucide-react";
 import { compressImageFile } from "../../utils/imageCompression";
 
@@ -139,7 +136,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -152,7 +149,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
     if (form.description) formData.append("description", form.description);
     if (form.type) formData.append("type", form.type);
     if (form.price) formData.append("price", form.price);
-    
+
     // Only append stock for merch
     if (form.type === "merch" && form.stock) {
       formData.append("stock", form.stock);
@@ -176,8 +173,8 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
       onSaved();
       onClose();
     } catch (error) {
-        console.error("Full error:", error.response?.data || error);
-      
+      console.error("Full error:", error.response?.data || error);
+
       setError(error.response?.data?.message || "Failed to save product");
     } finally {
       setLoading(false);
@@ -188,17 +185,14 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose}></div>
-        
+
         <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="sticky top-0 px-6 py-4 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] flex justify-between items-center">
             <h2 className="text-xl font-light text-white">
               {isEdit ? "Edit Product" : "Create New Product"}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
-            >
+            <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -214,33 +208,25 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
               <input
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                 placeholder="e.g., Boundaries and Balance"
                 value={form.title}
-                onChange={(e) =>
-                  setForm({ ...form, title: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
                 required
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
               <textarea
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                 placeholder="Brief description of the product..."
                 rows="3"
                 value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
                 required
               />
             </div>
@@ -248,9 +234,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
             {/* Type & Price Row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
                 <select
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                   value={form.type}
@@ -269,18 +253,14 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price ($) *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                   value={form.price}
-                  onChange={(e) =>
-                    setForm({ ...form, price: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
                   required
                 />
               </div>
@@ -297,9 +277,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
                   placeholder="e.g., 50"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
                   value={form.stock}
-                  onChange={(e) =>
-                    setForm({ ...form, stock: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
                   required
                 />
               </div>
@@ -308,7 +286,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
             {/* Cover Image */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cover Image {!isEdit && '*'}
+                Cover Image {!isEdit && "*"}
               </label>
               <div className="flex items-start space-x-4">
                 <div className="flex-1">
@@ -331,11 +309,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
                 </div>
                 {coverPreview && (
                   <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
-                    <img 
-                      src={coverPreview} 
-                      alt="Preview" 
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={coverPreview} alt="Preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
                       onClick={() => {
@@ -355,7 +329,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
             {form.type === "ebook" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ebook File (PDF) {!isEdit && '*'}
+                  Ebook File (PDF) {!isEdit && "*"}
                 </label>
                 <div className="flex items-center space-x-4">
                   <div className="flex-1">
@@ -371,9 +345,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
                       className="w-full flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#00337C] transition-colors cursor-pointer"
                     >
                       <Upload className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-gray-600">
-                        {ebookFileName || "Choose PDF file"}
-                      </span>
+                      <span className="text-gray-600">{ebookFileName || "Choose PDF file"}</span>
                     </label>
                   </div>
                 </div>
@@ -401,8 +373,10 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
                     <Loader className="w-4 h-4 mr-2 animate-spin" />
                     Saving...
                   </>
+                ) : isEdit ? (
+                  "Update Product"
                 ) : (
-                  isEdit ? "Update Product" : "Create Product"
+                  "Create Product"
                 )}
               </button>
             </div>

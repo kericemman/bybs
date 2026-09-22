@@ -1,30 +1,40 @@
-import React from 'react'
-import { useEffect } from 'react'
-import Hero from '../../components/home/Hero'
-import AboutSection from '../../components/home/About'
-import ServicesProducts from '../../components/home/Services'
+import { useEffect } from "react";
+import Hero from "../../components/home/Hero";
+import AboutSection from "../../components/home/About";
+import WhoWeServe from "../../components/home/Who";
+import Services from "../../components/home/Services";
+import Testimonials from "../../components/home/Testimonials";
+import FeaturedProducts from "../../components/home/FeatureProduct";
+import {
+  CommunityPreview,
+  FeaturedImpact,
+  GetInvolvedPreview,
+  ImpactProof,
+  LatestInsights,
+  StayConnected,
+  WeeklyReflectionPreview,
+} from "../../components/home/HomeSections";
 
-import WhoWeServe from '../../components/home/Who'
-import Testimonials from '../../components/home/Testimonials'
-import FeaturedProducts from '../../components/home/FeatureProduct'
-import FloatingCharityBanner from '../../components/home/FloatingCharity';
-
-const Home = () => {
+export default function Home() {
   useEffect(() => {
     window.scrollTo(0, 0);
-}, []);
+  }, []);
   return (
     <div>
-      
-      <Hero/>
-      <AboutSection/>
-      <WhoWeServe/>
-      <ServicesProducts/>
-      <FeaturedProducts/>
-      <Testimonials/>
-       <FloatingCharityBanner />
-    </div>
-  )
-}
+      <Hero />
+      <ImpactProof />
+      <AboutSection />
+      <WhoWeServe />
+      <Services />
+      <FeaturedImpact />
 
-export default Home
+      <CommunityPreview />
+      <LatestInsights />
+      <WeeklyReflectionPreview />
+      <GetInvolvedPreview />
+      <FeaturedProducts />
+      <Testimonials />
+      <StayConnected />
+    </div>
+  );
+}

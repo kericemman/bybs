@@ -1,4 +1,6 @@
 const Article = require("../models/Article");
+const mongoose = require("mongoose");
+const sanitizeRichText = require("../utils/sanitizeRichText");
 
 const ACTIVE_READER_TTL_MS = 45 * 1000;
 const articleReaders = new Map();
@@ -36,16 +38,19 @@ const getActiveReaderCount = (slug) => {
 
 exports.getPublishedArticles = async (req, res) => {
   const articles = await Article.find({ status: "published" })
-    .sort({ createdAt: -1 })
-    .select("title slug excerpt description tags content coverImage createdAt")
+    .sort({ publishedAt: -1, createdAt: -1 })
+    .select(
+      "title slug excerpt description authorName authorRole authorBio authorImage category tags content coverImage socialImage seoTitle metaDescription publishedAt createdAt updatedAt"
+    )
     .lean();
 
   const articlesWithExcerpt = articles.map((article) => {
-    const excerpt =
-      article.excerpt || article.description || createExcerpt(article.content);
+    const { content, ...publicArticle } = article;
+    const excerpt = article.excerpt || article.description || createExcerpt(content);
 
     return {
-      ...article,
+      ...publicArticle,
+      category: article.category || "Personal Growth",
       excerpt,
       description: article.description || excerpt,
     };
@@ -58,17 +63,35 @@ exports.getArticleBySlug = async (req, res) => {
   const article = await Article.findOne({
     slug: req.params.slug,
     status: "published",
-  }).lean();
+  })
+    .populate({
+      path: "linkedReflection",
+      match: { status: mongoose.trusted({ $in: ["active", "closed"] }) },
+      select: "title slug question description weekLabel opensAt closesAt status featuredImage",
+    })
+    .lean();
 
   if (!article) {
     return res.status(404).json({ message: "Article not found" });
   }
 
-  const excerpt =
-    article.excerpt || article.description || createExcerpt(article.content, 180);
+  const excerpt = article.excerpt || article.description || createExcerpt(article.content, 180);
+
+  const linkedReflection = article.linkedReflection
+    ? {
+        ...article.linkedReflection,
+        canSubmit:
+          article.linkedReflection.status === "active" &&
+          new Date(article.linkedReflection.opensAt) <= new Date() &&
+          new Date(article.linkedReflection.closesAt) >= new Date(),
+      }
+    : null;
 
   res.status(200).json({
     ...article,
+    content: sanitizeRichText(article.content),
+    category: article.category || "Personal Growth",
+    linkedReflection,
     excerpt,
     description: article.description || excerpt,
     activeReaders: getActiveReaderCount(article.slug),
@@ -79,13 +102,11 @@ exports.trackArticleReader = async (req, res) => {
   const { slug } = req.params;
   const { sessionId } = req.body;
 
-  if (!sessionId) {
+  if (typeof sessionId !== "string" || !/^[A-Za-z0-9_-]{8,80}$/.test(sessionId)) {
     return res.status(400).json({ message: "Reader session is required" });
   }
 
-  const article = await Article.findOne({ slug, status: "published" })
-    .select("_id slug")
-    .lean();
+  const article = await Article.findOne({ slug, status: "published" }).select("_id slug").lean();
 
   if (!article) {
     return res.status(404).json({ message: "Article not found" });

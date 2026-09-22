@@ -7,9 +7,7 @@ exports.getWaitlistEntries = async (req, res) => {
     filter.cohort = req.params.cohortId;
   }
 
-  const entries = await Waitlist.find(filter)
-    .populate("cohort", "title")
-    .sort({ createdAt: -1 });
+  const entries = await Waitlist.find(filter).populate("cohort", "title").sort({ createdAt: -1 });
 
   res.status(200).json(entries);
 };

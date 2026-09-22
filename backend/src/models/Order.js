@@ -20,16 +20,19 @@ const orderSchema = new mongoose.Schema(
         quantity: {
           type: Number,
           default: 1,
+          min: 1,
+          max: 20,
         },
         price: Number,
       },
     ],
 
-    email: String,
-    name: String,
-    phone: String,
+    email: { type: String, required: true, trim: true, lowercase: true, maxlength: 254 },
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    phone: { type: String, required: true, trim: true, maxlength: 40 },
 
-    shippingAddress: String, // only for merch
+    country: { type: String, trim: true, maxlength: 120 },
+    shippingAddress: { type: String, trim: true, maxlength: 500 },
 
     amount: Number,
     status: {
@@ -38,7 +41,7 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    reference: String, // Paystack reference
+    reference: { type: String, required: true, unique: true },
 
     delivered: {
       type: Boolean,

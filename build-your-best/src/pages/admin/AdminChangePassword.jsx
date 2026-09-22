@@ -10,7 +10,7 @@ export default function AdminChangePassword() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,8 +18,8 @@ export default function AdminChangePassword() {
     event.preventDefault();
     setError("");
 
-    if (newPassword.length < 8) {
-      setError("Use at least 8 characters for the new password.");
+    if (newPassword.length < 12) {
+      setError("Use at least 12 characters for the new password.");
       return;
     }
 
@@ -52,9 +52,7 @@ export default function AdminChangePassword() {
           <p className="text-sm font-semibold uppercase tracking-wide text-[#00337C]">
             Account security
           </p>
-          <h1 className="mt-2 text-3xl font-light text-[#10233F]">
-            Create your new password
-          </h1>
+          <h1 className="mt-2 text-3xl font-light text-[#10233F]">Create your new password</h1>
           <p className="mt-3 text-sm leading-6 text-gray-600">
             {admin?.mustChangePassword
               ? "You are signing in with a temporary password. Please replace it before opening the admin dashboard."
@@ -86,7 +84,7 @@ export default function AdminChangePassword() {
             onChange={setNewPassword}
             visible={showPassword}
             required
-            helper="Use at least 8 characters. A mix of letters, numbers, and symbols is best."
+            helper="Use at least 12 characters. A longer passphrase is easier to remember and harder to guess."
           />
 
           <PasswordField

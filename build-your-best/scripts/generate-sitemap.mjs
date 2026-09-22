@@ -1,25 +1,40 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { loadEnv } from "vite";
 
-const siteUrl = (process.env.VITE_SITE_URL || process.env.SITE_URL || "https://buildyourbestself.org").replace(/\/$/, "");
-const apiUrl = (process.env.VITE_API_URL || process.env.API_URL || `${siteUrl}/api`).replace(/\/$/, "");
+const loadedEnv = loadEnv(process.env.NODE_ENV || "production", process.cwd(), "");
+const env = { ...loadedEnv, ...process.env };
+const siteUrl = (env.VITE_SITE_URL || env.SITE_URL || "https://buildyourbestself.org").replace(
+  /\/$/,
+  ""
+);
+const configuredApiUrl = env.SITEMAP_API_URL || env.API_URL || env.VITE_API_URL || `${siteUrl}/api`;
+const apiUrl = new URL(configuredApiUrl, `${siteUrl}/`).toString().replace(/\/$/, "");
+const strictMode = env.SITEMAP_STRICT === "true";
+const writeSource = process.argv.includes("--source");
 const today = new Date().toISOString().slice(0, 10);
+const fetchFailures = [];
 
 const staticRoutes = [
   { path: "/", priority: "1.0", changefreq: "weekly" },
   { path: "/about", priority: "0.8", changefreq: "monthly" },
-  { path: "/founder", priority: "0.7", changefreq: "monthly" },
-  { path: "/coaching", priority: "0.9", changefreq: "monthly" },
-  { path: "/fellowship", priority: "0.9", changefreq: "weekly" },
-  { path: "/fellowship/apply", priority: "0.6", changefreq: "monthly" },
-  { path: "/fellowship/cohort-4/apply", priority: "0.7", changefreq: "monthly" },
-  { path: "/cohorts", priority: "0.8", changefreq: "weekly" },
-  { path: "/articles", priority: "0.9", changefreq: "weekly" },
+  { path: "/programs", priority: "0.9", changefreq: "monthly" },
+  { path: "/programs/fellowship", priority: "0.9", changefreq: "weekly" },
+  { path: "/programs/mentorship", priority: "0.7", changefreq: "monthly" },
+  { path: "/programs/empowerher", priority: "0.7", changefreq: "monthly" },
+  { path: "/programs/outreach", priority: "0.8", changefreq: "monthly" },
+  { path: "/community", priority: "0.9", changefreq: "weekly" },
+  { path: "/community/reflections", priority: "0.8", changefreq: "weekly" },
+  { path: "/community/stories", priority: "0.7", changefreq: "monthly" },
+  { path: "/impact", priority: "0.9", changefreq: "weekly" },
+  { path: "/insights", priority: "0.9", changefreq: "weekly" },
+  { path: "/get-involved", priority: "0.9", changefreq: "monthly" },
+  { path: "/get-involved/volunteer", priority: "0.7", changefreq: "monthly" },
+  { path: "/get-involved/mentor", priority: "0.7", changefreq: "monthly" },
+  { path: "/get-involved/partner", priority: "0.7", changefreq: "monthly" },
+  { path: "/support", priority: "0.8", changefreq: "monthly" },
   { path: "/shop", priority: "0.8", changefreq: "weekly" },
-  { path: "/charity-merch", priority: "0.8", changefreq: "weekly" },
   { path: "/discovery", priority: "0.6", changefreq: "monthly" },
-  { path: "/empowerher", priority: "0.6", changefreq: "monthly" },
-  { path: "/outreach", priority: "0.6", changefreq: "monthly" },
   { path: "/faqs", priority: "0.5", changefreq: "monthly" },
   { path: "/contact", priority: "0.7", changefreq: "monthly" },
   { path: "/privacy", priority: "0.3", changefreq: "yearly" },
@@ -34,7 +49,8 @@ const escapeXml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const absoluteUrl = (routePath) => `${siteUrl}${routePath.startsWith("/") ? routePath : `/${routePath}`}`;
+const absoluteUrl = (routePath) =>
+  `${siteUrl}${routePath.startsWith("/") ? routePath : `/${routePath}`}`;
 
 const fetchJson = async (endpoint) => {
   try {
@@ -44,6 +60,7 @@ const fetchJson = async (endpoint) => {
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.warn(`Sitemap: skipped ${endpoint} (${error.message}).`);
+    fetchFailures.push(endpoint);
     return [];
   }
 };
@@ -75,15 +92,23 @@ ${routes
 </urlset>
 `;
 
-const articles = await fetchJson("/articles");
-const products = await fetchJson("/products");
-const cohorts = await fetchJson("/cohorts");
+const [articles, products, cohorts, reflections, impactStories] = await Promise.all([
+  fetchJson("/articles"),
+  fetchJson("/products"),
+  fetchJson("/cohorts"),
+  fetchJson("/reflections/prompts"),
+  fetchJson("/community-actions?limit=50"),
+]);
+
+if (strictMode && fetchFailures.length > 0) {
+  throw new Error(`Sitemap API requests failed: ${fetchFailures.join(", ")}`);
+}
 
 const dynamicRoutes = [
   ...articles
     .filter((article) => article.slug)
     .map((article) => ({
-      path: `/articles/${article.slug}`,
+      path: `/insights/${article.slug}`,
       lastmod: article.updatedAt || article.createdAt || today,
       priority: "0.8",
       changefreq: "monthly",
@@ -100,7 +125,7 @@ const dynamicRoutes = [
     .filter((cohort) => cohort.slug)
     .flatMap((cohort) => [
       {
-        path: `/cohorts/${cohort.slug}`,
+        path: `/programs/fellowship/cohorts/${cohort.slug}`,
         lastmod: cohort.updatedAt || cohort.createdAt || today,
         priority: "0.7",
         changefreq: "monthly",
@@ -108,7 +133,7 @@ const dynamicRoutes = [
       ...(cohort.applicationStatus === "open"
         ? [
             {
-              path: `/cohorts/${cohort.slug}/apply`,
+              path: `/programs/fellowship/cohorts/${cohort.slug}/apply`,
               lastmod: cohort.updatedAt || cohort.createdAt || today,
               priority: "0.6",
               changefreq: "monthly",
@@ -116,14 +141,28 @@ const dynamicRoutes = [
           ]
         : []),
     ]),
+  ...reflections
+    .filter((reflection) => reflection.slug)
+    .map((reflection) => ({
+      path: `/community/reflections/${reflection.slug}`,
+      lastmod: reflection.updatedAt || reflection.createdAt || today,
+      priority: "0.7",
+      changefreq: "weekly",
+    })),
+  ...impactStories
+    .filter((story) => story.slug)
+    .map((story) => ({
+      path: `/impact/${story.slug}`,
+      lastmod: story.updatedAt || story.createdAt || today,
+      priority: "0.8",
+      changefreq: "monthly",
+    })),
 ];
 
 const routes = uniqueRoutes([...staticRoutes, ...dynamicRoutes]);
 const sitemap = buildSitemap(routes);
-const targets = [
-  path.resolve("public/sitemap.xml"),
-  path.resolve("dist/sitemap.xml"),
-];
+const targets = [path.resolve("dist/sitemap.xml")];
+if (writeSource) targets.push(path.resolve("public/sitemap.xml"));
 
 for (const target of targets) {
   try {

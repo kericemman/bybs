@@ -1,28 +1,40 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Article = require("../../models/Article");
 const Product = require("../../models/Product");
 const Cohort = require("../../models/Cohort");
+const WeeklyReflectionPrompt = require("../../models/WeeklyReflectionPrompt");
+const CommunityAction = require("../../models/CommunityAction");
 
 const router = express.Router();
 
-const SITE_URL = (process.env.FRONTEND_URL || process.env.SITE_URL || "https://buildyourbestself.org").replace(/\/$/, "");
+const SITE_URL = (
+  process.env.FRONTEND_URL ||
+  process.env.SITE_URL ||
+  "https://buildyourbestself.org"
+).replace(/\/$/, "");
 const today = () => new Date().toISOString().slice(0, 10);
 
 const staticRoutes = [
   { path: "/", priority: "1.0", changefreq: "weekly" },
   { path: "/about", priority: "0.8", changefreq: "monthly" },
-  { path: "/founder", priority: "0.7", changefreq: "monthly" },
-  { path: "/coaching", priority: "0.9", changefreq: "monthly" },
-  { path: "/fellowship", priority: "0.9", changefreq: "weekly" },
-  { path: "/fellowship/apply", priority: "0.6", changefreq: "monthly" },
-  { path: "/fellowship/cohort-4/apply", priority: "0.7", changefreq: "monthly" },
-  { path: "/cohorts", priority: "0.8", changefreq: "weekly" },
-  { path: "/articles", priority: "0.9", changefreq: "weekly" },
+  { path: "/programs", priority: "0.9", changefreq: "monthly" },
+  { path: "/programs/fellowship", priority: "0.9", changefreq: "weekly" },
+  { path: "/programs/mentorship", priority: "0.7", changefreq: "monthly" },
+  { path: "/programs/empowerher", priority: "0.7", changefreq: "monthly" },
+  { path: "/programs/outreach", priority: "0.8", changefreq: "monthly" },
+  { path: "/community", priority: "0.9", changefreq: "weekly" },
+  { path: "/community/reflections", priority: "0.8", changefreq: "weekly" },
+  { path: "/community/stories", priority: "0.7", changefreq: "monthly" },
+  { path: "/impact", priority: "0.9", changefreq: "weekly" },
+  { path: "/insights", priority: "0.9", changefreq: "weekly" },
+  { path: "/get-involved", priority: "0.9", changefreq: "monthly" },
+  { path: "/get-involved/volunteer", priority: "0.7", changefreq: "monthly" },
+  { path: "/get-involved/mentor", priority: "0.7", changefreq: "monthly" },
+  { path: "/get-involved/partner", priority: "0.7", changefreq: "monthly" },
+  { path: "/support", priority: "0.8", changefreq: "monthly" },
   { path: "/shop", priority: "0.8", changefreq: "weekly" },
-  { path: "/charity-merch", priority: "0.8", changefreq: "weekly" },
   { path: "/discovery", priority: "0.6", changefreq: "monthly" },
-  { path: "/empowerher", priority: "0.6", changefreq: "monthly" },
-  { path: "/outreach", priority: "0.6", changefreq: "monthly" },
   { path: "/faqs", priority: "0.5", changefreq: "monthly" },
   { path: "/contact", priority: "0.7", changefreq: "monthly" },
   { path: "/privacy", priority: "0.3", changefreq: "yearly" },
@@ -71,17 +83,25 @@ ${routes
 
 router.get("/sitemap.xml", async (_req, res) => {
   try {
-    const [articles, products, cohorts] = await Promise.all([
+    const [articles, products, cohorts, reflections, impactStories] = await Promise.all([
       Article.find({ status: "published" }).select("slug updatedAt createdAt").lean(),
       Product.find().select("slug updatedAt createdAt").lean(),
-      Cohort.find({ isPublished: true }).select("slug updatedAt createdAt applicationStatus").lean(),
+      Cohort.find({ isPublished: true })
+        .select("slug updatedAt createdAt applicationStatus")
+        .lean(),
+      WeeklyReflectionPrompt.find({
+        status: mongoose.trusted({ $in: ["active", "closed"] }),
+      })
+        .select("slug updatedAt createdAt")
+        .lean(),
+      CommunityAction.find({ status: "published" }).select("slug updatedAt createdAt").lean(),
     ]);
 
     const dynamicRoutes = [
       ...articles
         .filter((article) => article.slug)
         .map((article) => ({
-          path: `/articles/${article.slug}`,
+          path: `/insights/${article.slug}`,
           lastmod: article.updatedAt || article.createdAt,
           priority: "0.8",
           changefreq: "monthly",
@@ -98,7 +118,7 @@ router.get("/sitemap.xml", async (_req, res) => {
         .filter((cohort) => cohort.slug)
         .flatMap((cohort) => [
           {
-            path: `/cohorts/${cohort.slug}`,
+            path: `/programs/fellowship/cohorts/${cohort.slug}`,
             lastmod: cohort.updatedAt || cohort.createdAt,
             priority: "0.7",
             changefreq: "monthly",
@@ -106,7 +126,7 @@ router.get("/sitemap.xml", async (_req, res) => {
           ...(cohort.applicationStatus === "open"
             ? [
                 {
-                  path: `/cohorts/${cohort.slug}/apply`,
+                  path: `/programs/fellowship/cohorts/${cohort.slug}/apply`,
                   lastmod: cohort.updatedAt || cohort.createdAt,
                   priority: "0.6",
                   changefreq: "monthly",
@@ -114,9 +134,27 @@ router.get("/sitemap.xml", async (_req, res) => {
               ]
             : []),
         ]),
+      ...reflections
+        .filter((reflection) => reflection.slug)
+        .map((reflection) => ({
+          path: `/community/reflections/${reflection.slug}`,
+          lastmod: reflection.updatedAt || reflection.createdAt,
+          priority: "0.7",
+          changefreq: "weekly",
+        })),
+      ...impactStories
+        .filter((story) => story.slug)
+        .map((story) => ({
+          path: `/impact/${story.slug}`,
+          lastmod: story.updatedAt || story.createdAt,
+          priority: "0.8",
+          changefreq: "monthly",
+        })),
     ];
 
-    res.type("application/xml").send(buildSitemap(uniqueRoutes([...staticRoutes, ...dynamicRoutes])));
+    res
+      .type("application/xml")
+      .send(buildSitemap(uniqueRoutes([...staticRoutes, ...dynamicRoutes])));
   } catch (error) {
     console.error("Sitemap generation error:", error);
     res.type("application/xml").send(buildSitemap(staticRoutes));
@@ -127,8 +165,7 @@ router.get("/robots.txt", (_req, res) => {
   res.type("text/plain").send(`User-agent: *
 Allow: /
 Disallow: /admin/
-Disallow: /checkout
-Disallow: /payment/success
+Disallow: /order-request
 
 Sitemap: ${SITE_URL}/sitemap.xml
 Sitemap: ${SITE_URL}/api/sitemap.xml

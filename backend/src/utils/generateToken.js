@@ -1,8 +1,10 @@
 const jwt = require("jsonwebtoken");
+const { config } = require("../config/env");
 
 const generateToken = (adminId) => {
   return jwt.sign({ id: adminId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+    expiresIn: config.jwtExpiresIn,
+    algorithm: "HS256",
   });
 };
 

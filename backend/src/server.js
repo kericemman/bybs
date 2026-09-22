@@ -1,41 +1,60 @@
 // server.js
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
+const mongoose = require("mongoose");
 const connectDB = require("./config/db");
+const { config, validateEnvironment } = require("./config/env");
 const app = require("./app");
 
-const PORT = process.env.PORT || 5000;
-const isProduction = process.env.NODE_ENV === "production";
+let server;
+let shuttingDown = false;
 
-const validateEnvironment = () => {
-  const requiredInProduction = ["MONGO_URI", "JWT_SECRET", "FRONTEND_URL"];
-  const missing = requiredInProduction.filter((key) => !process.env[key]);
+const shutdown = async (signal, exitCode = 0) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received; closing the API cleanly.`);
 
-  if (isProduction && missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  const forceExit = setTimeout(() => {
+    console.error("Graceful shutdown timed out.");
+    process.exit(1);
+  }, config.shutdownTimeoutMs);
+  forceExit.unref();
+
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
   }
-
-  if (
-    isProduction &&
-    process.env.JWT_SECRET === "bybs_super_secure_jwt_secret_change_this_to_long_random_string"
-  ) {
-    throw new Error("JWT_SECRET must be replaced before production deployment");
-  }
+  await mongoose.connection.close(false);
+  clearTimeout(forceExit);
+  process.exit(exitCode);
 };
 
 const startServer = async () => {
   try {
     validateEnvironment();
     await connectDB();
-    console.log("✅ Database connected");
+    console.log("Database connected");
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+    server = app.listen(config.port, config.host, () => {
+      console.log(`API listening on http://${config.host}:${config.port}`);
     });
+    server.keepAliveTimeout = 5000;
+    server.headersTimeout = 15000;
+    server.requestTimeout = 120000;
   } catch (error) {
-    console.error("❌ Failed to start server:", error);
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
 };
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("unhandledRejection", (error) => {
+  console.error("Unhandled promise rejection:", error);
+  shutdown("unhandledRejection", 1);
+});
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception:", error);
+  shutdown("uncaughtException", 1);
+});
 
 startServer();

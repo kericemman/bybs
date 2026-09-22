@@ -1,12 +1,18 @@
 const FellowshipApplication = require("../models/FellowshipApplication");
+const Cohort = require("../models/Cohort");
+const mongoose = require("mongoose");
 const resend = require("../utils/resendClient");
+const sanitizeEmailContent = require("../utils/sanitizeEmailContent");
+const { escapeHtml } = require("../utils/inputValidation");
 
 const allowedStatuses = ["new", "reviewing", "shortlisted", "accepted", "invited", "declined"];
 const autoScreenStatuses = ["new", "reviewing", "shortlisted", "accepted", "declined"];
-const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS Fellowship <no-reply@updates.buildyourbestself.org>";
+const FROM_EMAIL =
+  process.env.FROM_EMAIL || "BYBS Fellowship <no-reply@updates.buildyourbestself.org>";
 
 const normalize = (value) => (typeof value === "string" ? value.trim() : value);
-const normalizeBoolean = (value) => value === true || value === "true" || value === "1" || value === "on";
+const normalizeBoolean = (value) =>
+  value === true || value === "true" || value === "1" || value === "on";
 
 const requiredFields = [
   "firstName",
@@ -28,7 +34,13 @@ const normalizeArray = (value) => {
   return [value].filter(Boolean);
 };
 
-const buildApplicationEmailTemplate = ({ name, cohort, message, label = "Application update", accent = "#00337C" }) => `
+const buildApplicationEmailTemplate = ({
+  name,
+  cohort,
+  message,
+  label = "Application update",
+  accent = "#00337C",
+}) => `
   <div style="font-family:Arial,sans-serif;background:#f6f8fb;padding:30px 0;">
     <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
       <div style="background:${accent};color:#ffffff;padding:28px 30px;">
@@ -44,25 +56,25 @@ const buildApplicationEmailTemplate = ({ name, cohort, message, label = "Applica
   </div>
 `;
 
-const textLength = (value) => String(value || "").replace(/\s+/g, " ").trim().length;
-
-const sanitizeEmailHtml = (html = "") =>
-  String(html)
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, "")
-    .replace(/\son[a-z]+=(["']).*?\1/gi, "");
+const textLength = (value) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .trim().length;
 
 const toEmailHtml = (value = "") => {
-  const clean = sanitizeEmailHtml(value);
+  const clean = sanitizeEmailContent(value);
   return /<[a-z][\s\S]*>/i.test(clean) ? clean : clean.replace(/\n/g, "<br/>");
 };
 
 const personalizeApplicationMessage = (message, application) =>
   message
-    .replaceAll("{{firstName}}", application.firstName || "")
-    .replaceAll("{{lastName}}", application.lastName || "")
-    .replaceAll("{{fullName}}", `${application.firstName || ""} ${application.lastName || ""}`.trim())
-    .replaceAll("{{cohort}}", application.cohort || "BYBS Fellowship");
+    .replaceAll("{{firstName}}", escapeHtml(application.firstName))
+    .replaceAll("{{lastName}}", escapeHtml(application.lastName))
+    .replaceAll(
+      "{{fullName}}",
+      escapeHtml(`${application.firstName || ""} ${application.lastName || ""}`.trim())
+    )
+    .replaceAll("{{cohort}}", escapeHtml(application.cohort || "BYBS Fellowship"));
 
 const isUnsuccessfulApplication = (application) =>
   application.screeningGroup === "not_qualified" || application.status === "declined";
@@ -73,10 +85,10 @@ const sendApplicationEmail = async ({ application, subject, message, label, acce
     to: [application.email],
     subject,
     html: buildApplicationEmailTemplate({
-      name: application.firstName,
-      cohort: application.cohort,
-      message: personalizeApplicationMessage(message, application),
-      label,
+      name: escapeHtml(application.firstName),
+      cohort: escapeHtml(application.cohort),
+      message: toEmailHtml(personalizeApplicationMessage(message, application)),
+      label: escapeHtml(label),
       accent,
     }),
   });
@@ -219,10 +231,21 @@ exports.createFellowshipApplication = async (req, res) => {
       return res.status(400).json({ message: "Consent is required before submitting." });
     }
 
+    if (!payload.cohortSlug) {
+      return res.status(400).json({ message: "Please apply through an active Fellowship cohort." });
+    }
+
+    const cohort = await Cohort.findOne({ slug: payload.cohortSlug, isPublished: true }).select(
+      "title slug applicationStatus"
+    );
+    if (!cohort || cohort.applicationStatus !== "open") {
+      return res.status(403).json({ message: "Applications are not open for this cohort." });
+    }
+
     const application = await FellowshipApplication.create({
       ...payload,
-      cohort: payload.cohort || "BYBS Fellowship Cohort 4",
-      cohortSlug: payload.cohortSlug || "bybs-fellowship-cohort-4",
+      cohort: cohort.title,
+      cohortSlug: cohort.slug,
       source: payload.source || "website",
       email: payload.email.toLowerCase(),
     });
@@ -316,11 +339,10 @@ exports.updateFellowshipApplication = async (req, res) => {
       updates.screenedBy = req.admin._id;
     }
 
-    const application = await FellowshipApplication.findByIdAndUpdate(
-      req.params.id,
-      updates,
-      { new: true, runValidators: true }
-    );
+    const application = await FellowshipApplication.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!application) {
       return res.status(404).json({ message: "Application not found." });
@@ -336,7 +358,7 @@ exports.updateFellowshipApplication = async (req, res) => {
 exports.screenFellowshipApplications = async (req, res) => {
   try {
     const filter = {
-      status: { $in: autoScreenStatuses },
+      status: mongoose.trusted({ $in: autoScreenStatuses }),
     };
 
     if (req.body.cohortSlug) {
@@ -345,7 +367,7 @@ exports.screenFellowshipApplications = async (req, res) => {
 
     if (!req.body.force) {
       filter.$or = [
-        { screeningGroup: { $exists: false } },
+        { screeningGroup: mongoose.trusted({ $exists: false }) },
         { screeningGroup: "unscreened" },
       ];
     }
@@ -392,8 +414,8 @@ exports.sendFellowshipInvite = async (req, res) => {
     const subject = normalize(req.body.subject) || `Invitation: ${application.cohort}`;
     const message = toEmailHtml(
       req.body.message ||
-      req.body.messageHtml ||
-      `Congratulations ${application.firstName},\n\nAfter reviewing your application, we would like to invite you to the next step for ${application.cohort}. Please reply to this email to confirm your availability and receive onboarding details.`
+        req.body.messageHtml ||
+        `Congratulations ${application.firstName},\n\nAfter reviewing your application, we would like to invite you to the next step for ${application.cohort}. Please reply to this email to confirm your availability and receive onboarding details.`
     );
 
     await sendApplicationEmail({
@@ -430,15 +452,15 @@ exports.sendBulkFellowshipInvites = async (req, res) => {
     }
 
     const applications = await FellowshipApplication.find({
-      _id: { $in: ids },
-      status: { $ne: "invited" },
+      _id: mongoose.trusted({ $in: ids }),
+      status: mongoose.trusted({ $ne: "invited" }),
     });
 
     const subject = normalize(req.body.subject) || "Invitation: BYBS Fellowship";
     const message = toEmailHtml(
       req.body.message ||
-      req.body.messageHtml ||
-      "Congratulations. After reviewing your application, we would like to invite you to the next step."
+        req.body.messageHtml ||
+        "Congratulations. After reviewing your application, we would like to invite you to the next step."
     );
 
     const sent = [];
@@ -497,14 +519,17 @@ exports.sendFellowshipRegret = async (req, res) => {
     }
 
     if (application.regretSentAt) {
-      return res.status(409).json({ message: "A regret email has already been sent to this applicant." });
+      return res
+        .status(409)
+        .json({ message: "A regret email has already been sent to this applicant." });
     }
 
-    const subject = normalize(req.body.subject) || `Update on your ${application.cohort} application`;
+    const subject =
+      normalize(req.body.subject) || `Update on your ${application.cohort} application`;
     const message = toEmailHtml(
       req.body.message ||
-      req.body.messageHtml ||
-      `Thank you ${application.firstName},\n\nWe are grateful for the time and thought you put into your application. After careful review, we are not able to offer you a place in this cohort. Please keep growing with the BYBS community and look out for future opportunities.`
+        req.body.messageHtml ||
+        `Thank you ${application.firstName},\n\nWe are grateful for the time and thought you put into your application. After careful review, we are not able to offer you a place in this cohort. Please keep growing with the BYBS community and look out for future opportunities.`
     );
 
     await sendApplicationEmail({
@@ -542,19 +567,13 @@ exports.sendBulkFellowshipRegrets = async (req, res) => {
     }
 
     const applications = await FellowshipApplication.find({
-      _id: { $in: ids },
+      _id: mongoose.trusted({ $in: ids }),
       $and: [
         {
-          $or: [
-            { regretSentAt: { $exists: false } },
-            { regretSentAt: null },
-          ],
+          $or: [{ regretSentAt: mongoose.trusted({ $exists: false }) }, { regretSentAt: null }],
         },
         {
-          $or: [
-            { screeningGroup: "not_qualified" },
-            { status: "declined" },
-          ],
+          $or: [{ screeningGroup: "not_qualified" }, { status: "declined" }],
         },
       ],
     });
@@ -562,8 +581,8 @@ exports.sendBulkFellowshipRegrets = async (req, res) => {
     const subject = normalize(req.body.subject) || "Update on your BYBS Fellowship application";
     const message = toEmailHtml(
       req.body.message ||
-      req.body.messageHtml ||
-      "Thank you for applying. After careful review, we are not able to offer you a place in this cohort. We are grateful for your courage and interest, and we encourage you to stay connected for future opportunities."
+        req.body.messageHtml ||
+        "Thank you for applying. After careful review, we are not able to offer you a place in this cohort. We are grateful for your courage and interest, and we encourage you to stay connected for future opportunities."
     );
 
     const sent = [];

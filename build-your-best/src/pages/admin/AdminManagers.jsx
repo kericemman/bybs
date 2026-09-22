@@ -7,7 +7,18 @@ import {
   updateAdminManager,
 } from "../../api/adminManager.api";
 import { MANAGER_PERMISSIONS } from "../../utils/adminPermissions";
-import { Copy, KeyRound, MailCheck, Plus, RefreshCw, Save, ShieldCheck, Trash2, UserCog, X } from "lucide-react";
+import {
+  Copy,
+  KeyRound,
+  MailCheck,
+  Plus,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  Trash2,
+  UserCog,
+  X,
+} from "lucide-react";
 
 const defaultPermissions = MANAGER_PERMISSIONS.map((permission) => permission.value);
 const emptyForm = {
@@ -131,7 +142,9 @@ export default function AdminManagers() {
         const payload = { ...form, password: temporaryPassword };
         if (!payload.password) delete payload.password;
         const { data } = await updateAdminManager(editingId, payload);
-        setManagers((current) => current.map((manager) => (manager._id === data._id ? data : manager)));
+        setManagers((current) =>
+          current.map((manager) => (manager._id === data._id ? data : manager))
+        );
         setNotice({
           title: "Manager updated",
           message: temporaryPassword
@@ -180,7 +193,8 @@ export default function AdminManagers() {
           <div>
             <h1 className="text-3xl font-light text-[#00337C]">Admin Managers</h1>
             <p className="mt-1 text-gray-600">
-              Add managers who can screen applications and manage articles without full admin access.
+              Add managers who can screen applications and manage articles without full admin
+              access.
             </p>
           </div>
           <button
@@ -210,8 +224,12 @@ export default function AdminManagers() {
                 <p className="mt-2 text-emerald-800">{notice.message}</p>
                 {notice.password && (
                   <div className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2">
-                    <span className="text-xs uppercase tracking-wide text-emerald-700">Temporary password</span>
-                    <strong className="font-mono text-base text-[#10233F]">{notice.password}</strong>
+                    <span className="text-xs uppercase tracking-wide text-emerald-700">
+                      Temporary password
+                    </span>
+                    <strong className="font-mono text-base text-[#10233F]">
+                      {notice.password}
+                    </strong>
                   </div>
                 )}
                 {notice.emailSent === false && (
@@ -220,7 +238,9 @@ export default function AdminManagers() {
                   </p>
                 )}
                 {notice.emailSent === true && (
-                  <p className="mt-2 text-xs text-emerald-700">Welcome email sent to the manager.</p>
+                  <p className="mt-2 text-xs text-emerald-700">
+                    Welcome email sent to the manager.
+                  </p>
                 )}
               </div>
               <button
@@ -236,7 +256,10 @@ export default function AdminManagers() {
         )}
 
         {showForm ? (
-          <form onSubmit={handleSubmit} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+          >
             <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F5F9FF] text-[#00337C]">
@@ -262,7 +285,11 @@ export default function AdminManagers() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <Input label="Name" value={form.name} onChange={(value) => setForm({ ...form, name: value })} />
+              <Input
+                label="Name"
+                value={form.name}
+                onChange={(value) => setForm({ ...form, name: value })}
+              />
               <Input
                 label="Email"
                 type="email"
@@ -330,9 +357,12 @@ export default function AdminManagers() {
                   <KeyRound className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#10233F]">Manager onboarding is ready</h2>
+                  <h2 className="text-lg font-semibold text-[#10233F]">
+                    Manager onboarding is ready
+                  </h2>
                   <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-600">
-                    Open the form only when you need to create or edit a manager. New managers receive a temporary password by email and must change it after login.
+                    Open the form only when you need to create or edit a manager. New managers
+                    receive a temporary password by email and must change it after login.
                   </p>
                 </div>
               </div>
@@ -363,18 +393,28 @@ export default function AdminManagers() {
           ) : (
             <div className="divide-y divide-gray-100">
               {managers.map((manager) => (
-                <div key={manager._id} className="grid gap-4 px-5 py-5 lg:grid-cols-[1fr_1fr_auto] lg:items-center">
+                <div
+                  key={manager._id}
+                  className="grid gap-4 px-5 py-5 lg:grid-cols-[1fr_1fr_auto] lg:items-center"
+                >
                   <div>
-                    <p className="font-semibold text-[#10233F]">{manager.name || "Unnamed manager"}</p>
+                    <p className="font-semibold text-[#10233F]">
+                      {manager.name || "Unnamed manager"}
+                    </p>
                     <p className="mt-1 text-sm text-gray-500">{manager.email}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {(manager.permissions || []).map((permission) => (
-                      <span key={permission} className="rounded-full bg-[#F5F9FF] px-3 py-1 text-xs text-[#00337C]">
+                      <span
+                        key={permission}
+                        className="rounded-full bg-[#F5F9FF] px-3 py-1 text-xs text-[#00337C]"
+                      >
                         {permission}
                       </span>
                     ))}
-                    <span className={`rounded-full px-3 py-1 text-xs ${manager.active === false ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs ${manager.active === false ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}
+                    >
                       {manager.active === false ? "Inactive" : "Active"}
                     </span>
                     {manager.mustChangePassword && (

@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
+import { getOrders, markDelivered, deleteOrder, getOrderDetails } from "../../api/order.api";
 import {
-  getOrders,
-  markDelivered,
-  downloadInvoice,
-  deleteOrder,
-  getOrderDetails,
-} from "../../api/order.api";
-import { 
-  Download, 
-  CheckCircle, 
-  AlertCircle, 
+  CheckCircle,
+  AlertCircle,
   Search,
   Package,
   BookOpen,
@@ -22,10 +15,9 @@ import {
   Calendar,
   User,
   Mail,
-  CreditCard,
-  MapPin
+  MapPin,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -35,19 +27,8 @@ const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [orderDetails, setOrderDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [mobileView, setMobileView] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setMobileView(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -82,33 +63,11 @@ const AdminOrders = () => {
     }
   };
 
-  const handleDownloadInvoice = async (id) => {
-    try {
-      const response = await downloadInvoice(id);
-      
-      if (!response?.data) {
-        throw new Error("No invoice data received");
-      }
-
-      const url = window.URL.createObjectURL(
-        new Blob([response.data], { type: 'application/pdf' })
-      );
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `invoice-${id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading invoice:", error);
-      alert("Failed to download invoice. Please try again.");
-    }
-  };
-
   const handleDeleteOrder = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+    if (
+      !window.confirm("Are you sure you want to delete this order? This action cannot be undone.")
+    )
+      return;
     try {
       await deleteOrder(id);
       fetchOrders();
@@ -125,32 +84,27 @@ const AdminOrders = () => {
   const handleViewOrder = async (order) => {
     setSelectedOrder(order);
     setViewModalOpen(true);
-    
+
     if (order._id && !order.details) {
       try {
         setDetailsLoading(true);
         const { data } = await getOrderDetails(order._id);
-        setOrderDetails(data);
+        setSelectedOrder(data?.order || data || order);
       } catch (error) {
         console.error("Error fetching order details:", error);
       } finally {
         setDetailsLoading(false);
       }
-    } else {
-      setOrderDetails(order.details);
     }
   };
 
-  // Calculate total revenue
-  const totalRevenue = orders
-    .filter((o) => o.status === "paid")
-    .reduce((sum, o) => sum + (o.amount || 0), 0);
+  const requestValue = orders.reduce((sum, order) => sum + (order.amount || 0), 0);
 
   // Filter orders
   const filteredOrders = orders
     .filter((order) => {
       if (filter === "all") return true;
-      if (filter === "paid") return order.status === "paid";
+      if (filter === "pending") return order.status === "pending";
       if (filter === "ebook") return order.product?.type === "ebook";
       if (filter === "merch") return order.product?.type === "merch";
       return true;
@@ -161,6 +115,7 @@ const AdminOrders = () => {
       return (
         order.name?.toLowerCase().includes(term) ||
         order.email?.toLowerCase().includes(term) ||
+        order.country?.toLowerCase().includes(term) ||
         order.product?.title?.toLowerCase().includes(term) ||
         order._id?.toLowerCase().includes(term) ||
         order.reference?.toLowerCase().includes(term)
@@ -176,17 +131,15 @@ const AdminOrders = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
         <div>
-          <h1 className="text-3xl mt-10 font-light text-[#00337C] mb-2">
-            Orders
-          </h1>
+          <h1 className="text-3xl mt-10 font-light text-[#00337C] mb-2">Orders</h1>
           <p className="text-gray-600">
-            Manage customer orders and fulfillments
+            Review website order requests and continue customer follow-up on WhatsApp
           </p>
         </div>
 
         <div className="mt-4 sm:mt-0 p-4 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] rounded-lg text-white w-full sm:w-auto">
-          <p className="text-sm opacity-90">Total Revenue</p>
-          <p className="text-2xl font-light">${totalRevenue.toFixed(2)}</p>
+          <p className="text-sm opacity-90">Estimated Request Value</p>
+          <p className="text-2xl font-light">${requestValue.toFixed(2)}</p>
         </div>
       </div>
 
@@ -198,7 +151,7 @@ const AdminOrders = () => {
           className="w-full sm:w-48 px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all bg-white"
         >
           <option value="all">All Orders</option>
-          <option value="paid">Paid Only</option>
+          <option value="pending">Awaiting Follow-up</option>
           <option value="ebook">Ebooks</option>
           <option value="merch">Merchandise</option>
         </select>
@@ -245,9 +198,7 @@ const AdminOrders = () => {
           {!error && filteredOrders.length === 0 && (
             <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-light text-gray-700 mb-2">
-                No orders found
-              </h3>
+              <h3 className="text-xl font-light text-gray-700 mb-2">No orders found</h3>
               <p className="text-gray-500">
                 {searchTerm || filter !== "all"
                   ? "Try adjusting your filters or search term"
@@ -293,12 +244,8 @@ const AdminOrders = () => {
                       <tr key={order._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-medium text-gray-900">
-                              {order.name || "N/A"}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {order.email || "N/A"}
-                            </p>
+                            <p className="font-medium text-gray-900">{order.name || "N/A"}</p>
+                            <p className="text-sm text-gray-500">{order.email || "N/A"}</p>
                           </div>
                         </td>
 
@@ -316,11 +263,13 @@ const AdminOrders = () => {
                         </td>
 
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            order.product?.type === "ebook"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-purple-100 text-purple-700"
-                          }`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              order.product?.type === "ebook"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-purple-100 text-purple-700"
+                            }`}
+                          >
                             {order.product?.type || "Unknown"}
                           </span>
                         </td>
@@ -332,12 +281,14 @@ const AdminOrders = () => {
                         </td>
 
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            order.status === "paid"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}>
-                            {order.status || "pending"}
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              order.status === "paid"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {order.status === "pending" ? "Awaiting follow-up" : order.status}
                           </span>
                         </td>
 
@@ -367,14 +318,6 @@ const AdminOrders = () => {
                               title="View Details"
                             >
                               <Eye className="w-4 h-4" />
-                            </button>
-                            
-                            <button
-                              onClick={() => handleDownloadInvoice(order._id)}
-                              className="p-2 text-gray-600 hover:text-[#00337C] hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Download Invoice"
-                            >
-                              <Download className="w-4 h-4" />
                             </button>
 
                             {order.product?.type === "merch" && !order.delivered && (
@@ -411,12 +354,14 @@ const AdminOrders = () => {
                         <p className="font-medium text-gray-900">{order.name || "N/A"}</p>
                         <p className="text-sm text-gray-500">{order.email || "N/A"}</p>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.status === "paid"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}>
-                        {order.status || "pending"}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          order.status === "paid"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {order.status === "pending" ? "Awaiting follow-up" : order.status}
                       </span>
                     </div>
 
@@ -427,7 +372,9 @@ const AdminOrders = () => {
                       </div>
                       <div>
                         <span className="text-gray-500">Amount:</span>
-                        <p className="font-medium text-[#B76E79]">${order.amount?.toFixed(2) || "0.00"}</p>
+                        <p className="font-medium text-[#B76E79]">
+                          ${order.amount?.toFixed(2) || "0.00"}
+                        </p>
                       </div>
                     </div>
 
@@ -438,14 +385,6 @@ const AdminOrders = () => {
                       >
                         <Eye className="w-4 h-4 mr-1" />
                         View
-                      </button>
-                      
-                      <button
-                        onClick={() => handleDownloadInvoice(order._id)}
-                        className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors"
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        Invoice
                       </button>
 
                       {order.product?.type === "merch" && !order.delivered && (
@@ -486,21 +425,37 @@ const AdminOrders = () => {
 
                     <AnimatePresence>
                       {expandedOrder === order._id && (
-                        <motion.div
+                        <Motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           className="mt-3 pt-3 border-t border-gray-100"
                         >
                           <div className="space-y-2 text-sm">
-                            <p><span className="text-gray-500">Order ID:</span> {order._id}</p>
-                            <p><span className="text-gray-500">Type:</span> {order.product?.type || "Unknown"}</p>
-                            <p><span className="text-gray-500">Delivered:</span> {order.delivered ? "Yes" : "No"}</p>
+                            <p>
+                              <span className="text-gray-500">Order ID:</span> {order._id}
+                            </p>
+                            <p>
+                              <span className="text-gray-500">Type:</span>{" "}
+                              {order.product?.type || "Unknown"}
+                            </p>
+                            <p>
+                              <span className="text-gray-500">Delivered:</span>{" "}
+                              {order.delivered ? "Yes" : "No"}
+                            </p>
+                            {order.country && (
+                              <p>
+                                <span className="text-gray-500">Country:</span> {order.country}
+                              </p>
+                            )}
                             {order.shippingAddress && (
-                              <p><span className="text-gray-500">Shipping:</span> {order.shippingAddress}</p>
+                              <p>
+                                <span className="text-gray-500">Shipping:</span>{" "}
+                                {order.shippingAddress}
+                              </p>
                             )}
                           </div>
-                        </motion.div>
+                        </Motion.div>
                       )}
                     </AnimatePresence>
                   </div>
@@ -524,10 +479,13 @@ const AdminOrders = () => {
           <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
               <div className="fixed inset-0 transition-opacity">
-                <div className="absolute inset-0 bg-black/50" onClick={() => setViewModalOpen(false)}></div>
+                <div
+                  className="absolute inset-0 bg-black/50"
+                  onClick={() => setViewModalOpen(false)}
+                ></div>
               </div>
 
-              <motion.div
+              <Motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -568,6 +526,12 @@ const AdminOrders = () => {
                             <Mail className="w-4 h-4 text-gray-400 mr-3" />
                             <span className="text-gray-900">{selectedOrder.email || "N/A"}</span>
                           </div>
+                          {selectedOrder.country && (
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 text-gray-400 mr-3" />
+                              <span className="text-gray-900">{selectedOrder.country}</span>
+                            </div>
+                          )}
                           {selectedOrder.shippingAddress && (
                             <div className="flex items-start">
                               <MapPin className="w-4 h-4 text-gray-400 mr-3 mt-0.5" />
@@ -585,11 +549,15 @@ const AdminOrders = () => {
                         <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Order ID:</span>
-                            <span className="text-gray-900 font-mono text-sm">{selectedOrder._id}</span>
+                            <span className="text-gray-900 font-mono text-sm">
+                              {selectedOrder._id}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Reference:</span>
-                            <span className="text-gray-900 font-mono text-sm">{selectedOrder.reference || "N/A"}</span>
+                            <span className="text-gray-900 font-mono text-sm">
+                              {selectedOrder.reference || "N/A"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Date:</span>
@@ -599,12 +567,16 @@ const AdminOrders = () => {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Status:</span>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              selectedOrder.status === "paid"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}>
-                              {selectedOrder.status || "pending"}
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                selectedOrder.status === "paid"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-yellow-100 text-yellow-700"
+                              }`}
+                            >
+                              {selectedOrder.status === "pending"
+                                ? "Awaiting follow-up"
+                                : selectedOrder.status}
                             </span>
                           </div>
                         </div>
@@ -633,13 +605,17 @@ const AdminOrders = () => {
                               </div>
                             )}
                             <div className="flex-1">
-                              <p className="font-medium text-gray-900">{selectedOrder.product?.title || "N/A"}</p>
+                              <p className="font-medium text-gray-900">
+                                {selectedOrder.product?.title || "N/A"}
+                              </p>
                               <div className="flex items-center mt-1">
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  selectedOrder.product?.type === "ebook"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-purple-100 text-purple-700"
-                                }`}>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    selectedOrder.product?.type === "ebook"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : "bg-purple-100 text-purple-700"
+                                  }`}
+                                >
                                   {selectedOrder.product?.type || "Unknown"}
                                 </span>
                                 <span className="ml-2 text-[#B76E79] font-medium">
@@ -681,20 +657,13 @@ const AdminOrders = () => {
 
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end space-x-3">
                   <button
-                    onClick={() => handleDownloadInvoice(selectedOrder._id)}
-                    className="px-4 py-2 bg-[#00337C] text-white rounded-lg hover:bg-[#1E4B9E] transition-colors flex items-center"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Invoice
-                  </button>
-                  <button
                     onClick={() => setViewModalOpen(false)}
                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     Close
                   </button>
                 </div>
-              </motion.div>
+              </Motion.div>
             </div>
           </div>
         )}

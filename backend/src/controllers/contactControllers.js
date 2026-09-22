@@ -1,47 +1,55 @@
 const Contact = require("../models/Contact");
 const resend = require("../utils/resendClient");
+const { cleanText, escapeHtml, isValidEmail, normalizeEmail } = require("../utils/inputValidation");
 
 const sendContactMessage = async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const name = cleanText(req.body?.name, 120);
+    const email = normalizeEmail(req.body?.email);
+    const subject = cleanText(req.body?.subject, 180) || "General Inquiry";
+    const message = cleanText(req.body?.message, 5000);
 
-    if (!name || !email || !message) {
+    if (!name || !isValidEmail(email) || !message) {
       return res
         .status(400)
-        .json({ success: false, message: "All fields are required" });
+        .json({ success: false, message: "Please provide a valid name, email, and message." });
     }
 
     // ✅ Save message in MongoDB
     const newMessage = await Contact.create({
       name,
       email,
-      subject: subject || "General Inquiry",
+      subject,
       message,
     });
 
     // ✅ Send email notifications with rate limiting
     const adminEmail = process.env.ADMIN_EMAIL;
+    const fromEmail = process.env.FROM_EMAIL;
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeSubject = escapeHtml(subject);
+    const safeMessage = escapeHtml(message);
 
     try {
       // User confirmation email first
       await sendEmailWithRetry({
-        from: "Build Your Best Self <admin@updates.buildyourbestselfblog.com>",
+        from: fromEmail,
         to: [email],
         subject: `Thank you for reaching out, ${name}!`,
-        html: getUserConfirmationTemplate(name, email, subject, message),
+        html: getUserConfirmationTemplate(safeName, safeEmail, safeSubject, safeMessage),
       });
 
       // Wait 1.5 seconds before sending admin email
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Admin notification email
       await sendEmailWithRetry({
-        from: "Build Your Best Self <admin@updates.buildyourbestselfblog.com>",
+        from: fromEmail,
         to: [adminEmail],
-        subject: `📩 New Contact: ${name} - ${subject || 'General Inquiry'}`,
-        html: getAdminNotificationTemplate(name, email, subject, message),
+        subject: `New Contact: ${name} - ${subject}`,
+        html: getAdminNotificationTemplate(safeName, safeEmail, safeSubject, safeMessage),
       });
-
     } catch (emailErr) {
       console.warn("Email sending warning:", emailErr.message);
       // Don't fail the contact submission if emails fail
@@ -114,7 +122,7 @@ const getUserConfirmationTemplate = (name, email, subject, message) => `
                 <strong>Subject:</strong>
               </td>
               <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; text-align: right;">
-                ${subject || 'General Inquiry'}
+                ${subject || "General Inquiry"}
               </td>
             </tr>
             <tr>
@@ -231,7 +239,7 @@ const getAdminNotificationTemplate = (name, email, subject, message) => `
                 <strong>Subject:</strong>
               </td>
               <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">
-                ${subject || 'General Inquiry'}
+                ${subject || "General Inquiry"}
               </td>
             </tr>
             <tr>
@@ -257,7 +265,7 @@ const getAdminNotificationTemplate = (name, email, subject, message) => `
         <div style="background-color: #dcfce7; border: 1px solid #bbf7d0; border-radius: 6px; padding: 16px; margin: 0 0 25px 0;">
           <h4 style="color: #166534; margin: 0 0 8px 0; font-size: 14px; font-weight: 500;">Quick Actions</h4>
           <p style="color: #166534; margin: 0; font-size: 13px;">
-            • <a href="mailto:${email}?subject=Re: ${subject || 'Your inquiry'}" style="color: #166534; text-decoration: underline;">Reply to ${name}</a><br>
+            • <a href="mailto:${email}?subject=Re: ${subject || "Your inquiry"}" style="color: #166534; text-decoration: underline;">Reply to ${name}</a><br>
             • Customer has been automatically notified of receipt
           </p>
         </div>
@@ -291,7 +299,7 @@ const sendEmailWithRetry = async (emailData, retries = 2) => {
       if (error.statusCode === 429 && i < retries - 1) {
         const waitTime = 1500 * (i + 1); // 1.5s, then 3s
         console.log(`Rate limited. Retrying in ${waitTime}ms...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
         continue;
       }
       throw error;

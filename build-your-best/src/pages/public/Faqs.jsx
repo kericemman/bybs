@@ -43,12 +43,12 @@ const faqCategories = [
     ],
   },
   {
-    title: "Payments & Privacy",
+    title: "Arrangements & Privacy",
     questions: [
       {
-        question: "How do payments and cancellations work?",
+        question: "How are payments and cancellations arranged?",
         answer:
-          "Payments are processed securely. If you need to reschedule, please give as much notice as possible so the session can be moved.",
+          "No payment is collected on the website. The BYBS admin confirms availability, payment instructions, and cancellation or rescheduling terms directly on WhatsApp before you commit.",
       },
       {
         question: "Is my information kept confidential?",
@@ -91,8 +91,7 @@ export default function FAQPage() {
         ...category,
         questions: category.questions.filter(
           (item) =>
-            item.question.toLowerCase().includes(term) ||
-            item.answer.toLowerCase().includes(term)
+            item.question.toLowerCase().includes(term) || item.answer.toLowerCase().includes(term)
         ),
       }))
       .filter((category) => category.questions.length > 0);
@@ -107,12 +106,12 @@ export default function FAQPage() {
       <section className="public-section bg-[#F7F9FC]">
         <div className="public-container max-w-4xl text-center">
           <p className="public-eyebrow mb-5">FAQs</p>
-          <h1 className="public-heading text-4xl md:text-6xl mb-6">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl public-heading mb-6">
             Questions before you begin?
           </h1>
           <p className="public-copy text-lg mb-8">
-            Find quick answers about coaching, sessions, payments, privacy, and
-            what to expect from BYBS.
+            Find quick answers about coaching, sessions, arrangements, privacy, and what to expect
+            from BYBS.
           </p>
 
           <div className="relative max-w-2xl mx-auto">
@@ -138,9 +137,7 @@ export default function FAQPage() {
             <div className="space-y-10">
               {filteredCategories.map((category, catIndex) => (
                 <div key={category.title}>
-                  <h2 className="text-2xl font-light text-[#00337C] mb-5">
-                    {category.title}
-                  </h2>
+                  <h2 className="text-2xl font-light text-[#00337C] mb-5">{category.title}</h2>
 
                   <div className="space-y-3">
                     {category.questions.map((item, index) => {
@@ -148,17 +145,12 @@ export default function FAQPage() {
                       const open = activeIndex === questionId;
 
                       return (
-                        <div
-                          key={item.question}
-                          className="public-card overflow-hidden"
-                        >
+                        <div key={item.question} className="public-card overflow-hidden">
                           <button
                             className="flex justify-between items-center gap-4 w-full px-5 md:px-6 py-5 text-left"
                             onClick={() => toggleAccordion(questionId)}
                           >
-                            <span className="font-semibold text-[#00337C]">
-                              {item.question}
-                            </span>
+                            <span className="font-semibold text-[#00337C]">{item.question}</span>
                             {open ? (
                               <ChevronUp className="w-5 h-5 text-[#00337C] flex-shrink-0" />
                             ) : (

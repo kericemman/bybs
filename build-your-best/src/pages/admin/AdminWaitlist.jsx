@@ -17,7 +17,7 @@ import {
   MoreVertical,
   ArrowUpDown,
   MailOpen,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 const AdminWaitlist = () => {
@@ -29,7 +29,6 @@ const AdminWaitlist = () => {
   const [sortBy, setSortBy] = useState("date-desc");
   const [selectedEntries, setSelectedEntries] = useState([]);
   const [selectedEntry, setSelectedEntry] = useState(null);
- 
 
   const fetchEntries = async () => {
     try {
@@ -53,16 +52,17 @@ const AdminWaitlist = () => {
 
     // Apply search filter
     if (searchTerm) {
-      results = results.filter(entry =>
-        entry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+      results = results.filter(
+        (entry) =>
+          entry.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.phone?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply cohort filter
     if (cohortFilter !== "all") {
-      results = results.filter(entry => entry.cohort?._id === cohortFilter);
+      results = results.filter((entry) => entry.cohort?._id === cohortFilter);
     }
 
     // Apply sorting
@@ -88,27 +88,29 @@ const AdminWaitlist = () => {
     const headers = ["Name", "Email", "Phone", "Cohort", "Date Joined", "Notes"];
     const csvContent = [
       headers.join(","),
-      ...filteredEntries.map(entry => [
-        `"${entry.name || ""}"`,
-        `"${entry.email || ""}"`,
-        `"${entry.phone || ""}"`,
-        `"${entry.cohort?.title || "General"}"`,
-        `"${new Date(entry.createdAt).toLocaleDateString()}"`,
-        `"${entry.notes || ""}"`
-      ].join(","))
+      ...filteredEntries.map((entry) =>
+        [
+          `"${entry.name || ""}"`,
+          `"${entry.email || ""}"`,
+          `"${entry.phone || ""}"`,
+          `"${entry.cohort?.title || "General"}"`,
+          `"${new Date(entry.createdAt).toLocaleDateString()}"`,
+          `"${entry.notes || ""}"`,
+        ].join(",")
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `waitlist-entries-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `waitlist-entries-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
   };
 
   const sendWelcomeEmail = async (email) => {
     if (!confirm("Send welcome email to this contact?")) return;
-    
+
     try {
       // You would implement your email sending logic here
       console.log("Sending welcome email to:", email);
@@ -121,7 +123,7 @@ const AdminWaitlist = () => {
 
   const deleteEntry = async (id) => {
     if (!confirm("Are you sure you want to delete this waitlist entry?")) return;
-    
+
     try {
       await api.delete(`/admin/waitlist/${id}`);
       fetchEntries();
@@ -144,21 +146,19 @@ const AdminWaitlist = () => {
     } else if (diffDays < 7) {
       return `${diffDays} days ago`;
     } else {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
     }
   };
 
   const getUniqueCohorts = () => {
     const cohorts = entries
-      .map(entry => entry.cohort)
-      .filter(cohort => cohort)
-      .filter((cohort, index, self) =>
-        index === self.findIndex(c => c._id === cohort._id)
-      );
+      .map((entry) => entry.cohort)
+      .filter((cohort) => cohort)
+      .filter((cohort, index, self) => index === self.findIndex((c) => c._id === cohort._id));
     return cohorts;
   };
 
@@ -179,9 +179,11 @@ const AdminWaitlist = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-light mt-10 text-[#00337C]">Waitlist Management</h1>
-            <p className="text-gray-600 mt-1">Manage interested participants and their information</p>
+            <p className="text-gray-600 mt-1">
+              Manage interested participants and their information
+            </p>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <button
               onClick={exportToCSV}
@@ -212,11 +214,13 @@ const AdminWaitlist = () => {
               <div>
                 <p className="text-sm text-gray-500">New Today</p>
                 <p className="text-3xl font-light text-gray-900 mt-2">
-                  {entries.filter(e => {
-                    const entryDate = new Date(e.createdAt);
-                    const today = new Date();
-                    return entryDate.toDateString() === today.toDateString();
-                  }).length}
+                  {
+                    entries.filter((e) => {
+                      const entryDate = new Date(e.createdAt);
+                      const today = new Date();
+                      return entryDate.toDateString() === today.toDateString();
+                    }).length
+                  }
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center">
@@ -230,12 +234,14 @@ const AdminWaitlist = () => {
               <div>
                 <p className="text-sm text-gray-500">This Week</p>
                 <p className="text-3xl font-light text-gray-900 mt-2">
-                  {entries.filter(e => {
-                    const entryDate = new Date(e.createdAt);
-                    const weekAgo = new Date();
-                    weekAgo.setDate(weekAgo.getDate() - 7);
-                    return entryDate > weekAgo;
-                  }).length}
+                  {
+                    entries.filter((e) => {
+                      const entryDate = new Date(e.createdAt);
+                      const weekAgo = new Date();
+                      weekAgo.setDate(weekAgo.getDate() - 7);
+                      return entryDate > weekAgo;
+                    }).length
+                  }
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center">
@@ -283,7 +289,7 @@ const AdminWaitlist = () => {
                   className="pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:bg-white focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none appearance-none min-w-[150px]"
                 >
                   <option value="all">All Cohorts</option>
-                  {getUniqueCohorts().map(cohort => (
+                  {getUniqueCohorts().map((cohort) => (
                     <option key={cohort._id} value={cohort._id}>
                       {cohort.title}
                     </option>
@@ -321,7 +327,7 @@ const AdminWaitlist = () => {
                         type="checkbox"
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedEntries(filteredEntries.map(e => e._id));
+                            setSelectedEntries(filteredEntries.map((e) => e._id));
                           } else {
                             setSelectedEntries([]);
                           }
@@ -332,7 +338,9 @@ const AdminWaitlist = () => {
                     </div>
                   </th>
                   <th className="py-4 px-6 text-left text-sm font-medium text-gray-700">Cohort</th>
-                  <th className="py-4 px-6 text-left text-sm font-medium text-gray-700">Date Joined</th>
+                  <th className="py-4 px-6 text-left text-sm font-medium text-gray-700">
+                    Date Joined
+                  </th>
                   <th className="py-4 px-6 text-left text-sm font-medium text-gray-700">Status</th>
                   <th className="py-4 px-6 text-left text-sm font-medium text-gray-700">Actions</th>
                 </tr>
@@ -342,16 +350,16 @@ const AdminWaitlist = () => {
                   <tr>
                     <td colSpan="5" className="py-16 text-center">
                       <div className="text-gray-500">
-                        {searchTerm || cohortFilter !== "all" 
-                          ? "No waitlist entries found matching your filters." 
+                        {searchTerm || cohortFilter !== "all"
+                          ? "No waitlist entries found matching your filters."
                           : "No waitlist entries yet. New entries will appear here."}
                       </div>
                     </td>
                   </tr>
                 ) : (
                   filteredEntries.map((entry) => (
-                    <tr 
-                      key={entry._id} 
+                    <tr
+                      key={entry._id}
                       className={`hover:bg-gray-50 transition-colors ${
                         selectedEntries.includes(entry._id) ? "bg-blue-50" : ""
                       }`}
@@ -365,7 +373,9 @@ const AdminWaitlist = () => {
                               if (e.target.checked) {
                                 setSelectedEntries([...selectedEntries, entry._id]);
                               } else {
-                                setSelectedEntries(selectedEntries.filter(id => id !== entry._id));
+                                setSelectedEntries(
+                                  selectedEntries.filter((id) => id !== entry._id)
+                                );
                               }
                             }}
                             className="mr-3 rounded border-gray-300 text-[#00337C] focus:ring-[#00337C]"
@@ -380,9 +390,7 @@ const AdminWaitlist = () => {
                               {entry.email}
                             </div>
                             {entry.phone && (
-                              <div className="text-sm text-gray-500 mt-1">
-                                📱 {entry.phone}
-                              </div>
+                              <div className="text-sm text-gray-500 mt-1">📱 {entry.phone}</div>
                             )}
                           </div>
                         </div>
@@ -410,15 +418,17 @@ const AdminWaitlist = () => {
                           >
                             <MailOpen className="w-4 h-4" />
                           </button>
-                          
+
                           <button
-                            onClick={() => setSelectedEntry(selectedEntry === entry._id ? null : entry._id)}
+                            onClick={() =>
+                              setSelectedEntry(selectedEntry === entry._id ? null : entry._id)
+                            }
                             className="p-2 text-gray-600 hover:text-[#00337C] hover:bg-blue-50 rounded-lg transition-colors"
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          
+
                           <button
                             onClick={() => deleteEntry(entry._id)}
                             className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -439,14 +449,12 @@ const AdminWaitlist = () => {
           {selectedEntries.length > 0 && (
             <div className="px-6 py-4 border-t border-gray-100 bg-blue-50">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-[#00337C]">
-                  {selectedEntries.length} selected
-                </div>
+                <div className="text-sm text-[#00337C]">{selectedEntries.length} selected</div>
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={() => {
-                      selectedEntries.forEach(id => {
-                        const entry = entries.find(e => e._id === id);
+                      selectedEntries.forEach((id) => {
+                        const entry = entries.find((e) => e._id === id);
                         if (entry) sendWelcomeEmail(entry.email);
                       });
                     }}
@@ -458,7 +466,7 @@ const AdminWaitlist = () => {
                   <button
                     onClick={() => {
                       if (confirm(`Delete ${selectedEntries.length} selected entries?`)) {
-                        selectedEntries.forEach(id => deleteEntry(id));
+                        selectedEntries.forEach((id) => deleteEntry(id));
                         setSelectedEntries([]);
                       }
                     }}
@@ -556,10 +564,7 @@ const AdminWaitlist = () => {
 
       {/* Close dropdown when clicking outside */}
       {selectedEntry && (
-        <div 
-          className="fixed inset-0 z-0" 
-          onClick={() => setSelectedEntry(null)}
-        />
+        <div className="fixed inset-0 z-0" onClick={() => setSelectedEntry(null)} />
       )}
     </AdminLayout>
   );

@@ -1,24 +1,24 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import api from "../../utils/axios";
-import { 
-  Users, 
-  Mail, 
-  Send, 
-  Calendar, 
-  Download, 
-  Trash2, 
-  AlertCircle, 
-  CheckCircle, 
+import {
+  Users,
+  Mail,
+  Send,
+  Calendar,
+  Download,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
   X,
   Eye,
   EyeOff,
   Loader,
   Copy,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 
 const AdminSubscribers = () => {
   const [subscribers, setSubscribers] = useState([]);
@@ -46,7 +46,7 @@ const AdminSubscribers = () => {
           <p>Stay tuned for updates!</p>
           <p>— The BYBS Team</p>
         </div>
-      `
+      `,
     },
     newsletter: {
       subject: "BYBS Monthly Newsletter",
@@ -61,7 +61,7 @@ const AdminSubscribers = () => {
           </ul>
           <p>— The BYBS Team</p>
         </div>
-      `
+      `,
     },
     announcement: {
       subject: "Exciting News from BYBS!",
@@ -71,8 +71,8 @@ const AdminSubscribers = () => {
           <p>We're thrilled to share some exciting news with you...</p>
           <p>— The BYBS Team</p>
         </div>
-      `
-    }
+      `,
+    },
   };
 
   useEffect(() => {
@@ -100,7 +100,11 @@ const AdminSubscribers = () => {
     }
 
     // Confirm before sending
-    if (!window.confirm(`Send email to ${selectedSubscribers.length || subscribers.length} subscribers?`)) {
+    if (
+      !window.confirm(
+        `Send email to ${selectedSubscribers.length || subscribers.length} subscribers?`
+      )
+    ) {
       return;
     }
 
@@ -111,18 +115,19 @@ const AdminSubscribers = () => {
       await api.post("/subscribers/admin/send", {
         subject,
         message,
-        recipients: selectedSubscribers.length ? selectedSubscribers : subscribers.map(s => s.email)
+        recipients: selectedSubscribers.length
+          ? selectedSubscribers
+          : subscribers.map((s) => s.email),
       });
-      
+
       setCampaignSuccess(true);
       setTimeout(() => setCampaignSuccess(false), 3000);
-      
+
       // Clear form
       setSubject("");
       setMessage("");
       setSelectedSubscribers([]);
       setSelectAll(false);
-      
     } catch (error) {
       console.error("Error sending email:", error);
       alert(error.response?.data?.message || "Failed to send email");
@@ -133,11 +138,11 @@ const AdminSubscribers = () => {
 
   const handleDeleteSubscriber = async (id, email) => {
     if (!window.confirm(`Remove ${email} from subscribers?`)) return;
-    
+
     try {
       await api.delete(`/subscribers/admin/${id}`);
-      setSubscribers(subscribers.filter(s => s._id !== id));
-      setSelectedSubscribers(selectedSubscribers.filter(s => s !== email));
+      setSubscribers(subscribers.filter((s) => s._id !== id));
+      setSelectedSubscribers(selectedSubscribers.filter((s) => s !== email));
     } catch (error) {
       console.error("Error deleting subscriber:", error);
       alert("Failed to delete subscriber");
@@ -148,14 +153,14 @@ const AdminSubscribers = () => {
     if (selectAll) {
       setSelectedSubscribers([]);
     } else {
-      setSelectedSubscribers(filteredSubscribers.map(s => s.email));
+      setSelectedSubscribers(filteredSubscribers.map((s) => s.email));
     }
     setSelectAll(!selectAll);
   };
 
   const handleSelectSubscriber = (email) => {
     if (selectedSubscribers.includes(email)) {
-      setSelectedSubscribers(selectedSubscribers.filter(e => e !== email));
+      setSelectedSubscribers(selectedSubscribers.filter((e) => e !== email));
       setSelectAll(false);
     } else {
       setSelectedSubscribers([...selectedSubscribers, email]);
@@ -169,25 +174,20 @@ const AdminSubscribers = () => {
 
   const handleExportCSV = () => {
     const headers = ["Email", "Subscribed Date"];
-    const csvData = subscribers.map(s => [
-      s.email,
-      new Date(s.createdAt).toLocaleDateString()
-    ]);
-    
-    const csv = [headers, ...csvData]
-      .map(row => row.join(","))
-      .join("\n");
-    
+    const csvData = subscribers.map((s) => [s.email, new Date(s.createdAt).toLocaleDateString()]);
+
+    const csv = [headers, ...csvData].map((row) => row.join(",")).join("\n");
+
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `subscribers-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `subscribers-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };
 
-  const filteredSubscribers = subscribers.filter(s => 
+  const filteredSubscribers = subscribers.filter((s) =>
     s.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -211,9 +211,7 @@ const AdminSubscribers = () => {
               <Users className="w-6 h-6 mr-3" />
               Subscribers
             </h1>
-            <p className="text-gray-600">
-              Manage your email list and send campaigns
-            </p>
+            <p className="text-gray-600">Manage your email list and send campaigns</p>
           </div>
 
           {subscribers.length > 0 && (
@@ -246,9 +244,11 @@ const AdminSubscribers = () => {
               <div>
                 <p className="text-sm text-gray-600 mb-1">This Month</p>
                 <p className="text-3xl font-light text-[#00337C]">
-                  {subscribers.filter(s => 
-                    new Date(s.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                  ).length}
+                  {
+                    subscribers.filter(
+                      (s) => new Date(s.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    ).length
+                  }
                 </p>
               </div>
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -273,17 +273,15 @@ const AdminSubscribers = () => {
         {/* Success Message */}
         <AnimatePresence>
           {campaignSuccess && (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center"
             >
               <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-              <span className="text-green-700">
-                Email campaign sent successfully!
-              </span>
-            </motion.div>
+              <span className="text-green-700">Email campaign sent successfully!</span>
+            </Motion.div>
           )}
         </AnimatePresence>
 
@@ -299,9 +297,7 @@ const AdminSubscribers = () => {
           <div className="p-6 space-y-4">
             {/* Template Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Use Template
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Use Template</label>
               <div className="flex flex-wrap gap-2">
                 {Object.keys(emailTemplates).map((template) => (
                   <button
@@ -317,9 +313,7 @@ const AdminSubscribers = () => {
 
             {/* Subject */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
               <input
                 placeholder="Enter email subject"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/20 outline-none transition-all"
@@ -331,9 +325,7 @@ const AdminSubscribers = () => {
             {/* Message */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Message (HTML allowed)
-                </label>
+                <label className="text-sm font-medium text-gray-700">Message (HTML allowed)</label>
                 <button
                   onClick={() => setShowPreview(!showPreview)}
                   className="text-sm text-gray-500 hover:text-[#00337C] transition-colors flex items-center"
@@ -364,9 +356,11 @@ const AdminSubscribers = () => {
             {showPreview && (
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Preview:</h4>
-                <div 
+                <div
                   className="prose max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: message || "<p>Your email preview will appear here...</p>" }}
+                  dangerouslySetInnerHTML={{
+                    __html: message || "<p>Your email preview will appear here...</p>",
+                  }}
                 />
               </div>
             )}
@@ -374,7 +368,8 @@ const AdminSubscribers = () => {
             {/* Recipient Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-700">
-                <strong>{selectedSubscribers.length || subscribers.length}</strong> recipient(s) selected
+                <strong>{selectedSubscribers.length || subscribers.length}</strong> recipient(s)
+                selected
               </p>
             </div>
 
@@ -408,9 +403,7 @@ const AdminSubscribers = () => {
         <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h2 className="text-lg font-medium text-[#00337C]">
-                Subscriber List
-              </h2>
+              <h2 className="text-lg font-medium text-[#00337C]">Subscriber List</h2>
 
               {/* Search */}
               <div className="relative w-full sm:w-64">
@@ -440,12 +433,8 @@ const AdminSubscribers = () => {
           ) : subscribers.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-light text-gray-700 mb-2">
-                No subscribers yet
-              </h3>
-              <p className="text-gray-500">
-                Subscribers will appear here when people sign up.
-              </p>
+              <h3 className="text-xl font-light text-gray-700 mb-2">No subscribers yet</h3>
+              <p className="text-gray-500">Subscribers will appear here when people sign up.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -473,7 +462,7 @@ const AdminSubscribers = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredSubscribers.map((subscriber) => (
-                    <motion.tr
+                    <Motion.tr
                       key={subscriber._id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -496,17 +485,19 @@ const AdminSubscribers = () => {
                       <td className="px-6 py-4">
                         <div className="flex items-center text-sm text-gray-600">
                           <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {new Date(subscriber.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
+                          {new Date(subscriber.createdAt).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
                           })}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => {
-                            setExpandedEmail(expandedEmail === subscriber._id ? null : subscriber._id);
+                            setExpandedEmail(
+                              expandedEmail === subscriber._id ? null : subscriber._id
+                            );
                           }}
                           className="p-2 text-gray-500 hover:text-[#00337C] rounded-lg hover:bg-gray-100 transition-colors"
                           title="View details"
@@ -535,7 +526,7 @@ const AdminSubscribers = () => {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
-                    </motion.tr>
+                    </Motion.tr>
                   ))}
                 </tbody>
               </table>

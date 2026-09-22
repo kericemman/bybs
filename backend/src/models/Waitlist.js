@@ -2,10 +2,13 @@ const mongoose = require("mongoose");
 
 const waitlistSchema = new mongoose.Schema(
   {
-    name: String,
+    name: { type: String, trim: true, maxlength: 120 },
     email: {
       type: String,
       required: true,
+      trim: true,
+      lowercase: true,
+      maxlength: 254,
     },
     cohort: {
       type: mongoose.Schema.Types.ObjectId,

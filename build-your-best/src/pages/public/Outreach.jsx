@@ -1,486 +1,383 @@
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { Heart, Users, Target, ArrowRight, Star, Award, Briefcase, Sparkles, ChevronRight, Calendar, HandHeart, BookOpen, Building, Globe, Gift } from 'lucide-react';
+/* eslint-disable no-unused-vars -- dynamic Lucide components are used in JSX below */
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, CalendarDays, HandHeart, Handshake, MapPin, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import PageHero from "../../components/public/PageHero";
+import SectionHeader from "../../components/public/SectionHeader";
+import CTASection from "../../components/public/CTASection";
+import { EmptyState, LoadingState } from "../../components/public/ContentState";
+import { fetchPublishedCommunityActions } from "../../api/communityAction.api";
+import { fetchImpactMetrics } from "../../api/impact.api";
+
+const formatDate = (value) =>
+  value
+    ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(
+        new Date(value)
+      )
+    : "";
+
+function StoryMeta({ story }) {
+  return (
+    <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
+      {story.actionDate && (
+        <span className="inline-flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-[#B96500]" />
+          {formatDate(story.actionDate)}
+        </span>
+      )}
+      {story.location && (
+        <span className="inline-flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-[#B96500]" />
+          {story.location}
+        </span>
+      )}
+      {Number.isFinite(story.participantCount) && (
+        <span className="inline-flex items-center gap-2">
+          <Users className="h-4 w-4 text-[#B96500]" />
+          {story.participantCount.toLocaleString()} participants
+        </span>
+      )}
+    </div>
+  );
+}
+
+function StoryCard({ story, label = "Completed initiative" }) {
+  return (
+    <article className="group border-t border-gray-200 pt-5">
+      <Link to={`/impact/${story.slug}`}>
+        <div className="aspect-[16/10] overflow-hidden rounded-lg bg-gray-100">
+          <img
+            src={story.coverImage?.url || "/assets/commu.jpg"}
+            alt={story.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        </div>
+        <p className="mt-5 text-xs font-semibold uppercase text-[#B96500]">{label}</p>
+        <h3 className="mt-2 text-xl font-semibold text-[#00337C]">{story.title}</h3>
+        <div className="mt-3">
+          <StoryMeta story={story} />
+        </div>
+        <p className="public-copy mt-3 line-clamp-3 text-sm">{story.summary}</p>
+        <span className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#00337C]">
+          Read the full impact story
+          <ArrowRight className="h-4 w-4" />
+        </span>
+      </Link>
+    </article>
+  );
+}
 
 export default function CommunityOutreach() {
-    const [activeInitiative, setActiveInitiative] = useState(0);
-    const [showVolunteerForm, setShowVolunteerForm] = useState(false);
-    const [volunteerData, setVolunteerData] = useState({ name: '', email: '', interest: '', message: '' });
+  const [stories, setStories] = useState([]);
+  const [metrics, setMetrics] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
-
-    const handleVolunteerSubmit = (e) => {
-        e.preventDefault();
-        console.log('Volunteer form submitted:', volunteerData);
-        setShowVolunteerForm(false);
-        setVolunteerData({ name: '', email: '', interest: '', message: '' });
-        alert('Thank you for your interest in volunteering! We will contact you soon.');
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    let active = true;
+    Promise.allSettled([fetchPublishedCommunityActions(50), fetchImpactMetrics()])
+      .then(([storyResult, metricResult]) => {
+        if (!active) return;
+        const published = storyResult.status === "fulfilled" ? storyResult.value.data || [] : [];
+        setStories(published.filter((story) => story.contentType === "outreach"));
+        setMetrics(
+          metricResult.status === "fulfilled"
+            ? (metricResult.value.data || []).filter((metric) =>
+                ["community", "volunteer", "partner"].includes(metric.category)
+              )
+            : []
+        );
+      })
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
     };
+  }, []);
 
-    const initiatives = [
-        {
-            id: 1,
-            icon: <Gift className="w-8 h-8" />,
-            title: "Hospital Donations & Care Drives",
-            subtitle: "Supporting Mothers & Newborns",
-            description: "Providing essential supplies and emotional support to vulnerable families during important life transitions.",
-            impact: "Recently reached 50+ women in maternity wards",
-            features: [
-                "Baby care kits distribution",
-                "Hygiene essential supplies",
-                "Emotional support packages",
-                "Postnatal care resources",
-                "Hope & encouragement outreach"
-            ],
-            color: "from-[#B76E79] to-[#D4A5A5]",
-            image: "hospital-care"
-        },
-        {
-            id: 2,
-            icon: <BookOpen className="w-8 h-8" />,
-            title: "Wellness & Resilience Workshops",
-            subtitle: "Empowering Through Education",
-            description: "Interactive sessions helping youth and professionals navigate life's pressures with clarity and confidence.",
-            impact: "Transforming stress into strength through practical tools",
-            features: [
-                "Stress management techniques",
-                "Emotional resilience building",
-                "Mindfulness practices",
-                "Self-awareness development",
-                "Healthy coping strategies"
-            ],
-            color: "from-[#00337C] to-[#1E4B9E]",
-            image: "wellness-workshops"
-        },
-        {
-            id: 3,
-            icon: <Users className="w-8 h-8" />,
-            title: "Volunteer Mentorship Partnerships",
-            subtitle: "Guiding Future Leaders",
-            description: "Collaborative programs with schools and community groups to foster personal and professional growth.",
-            impact: "Building bridges between potential and opportunity",
-            features: [
-                "Career readiness guidance",
-                "Personal development coaching",
-                "Life skills training",
-                "Goal setting workshops",
-                "Confidence building sessions"
-            ],
-            color: "from-[#06D6A0] to-[#83F9C0]",
-            image: "mentorship"
-        }
-    ];
+  const now = Date.now();
+  const upcoming = useMemo(
+    () => stories.filter((story) => story.actionDate && new Date(story.actionDate).getTime() > now),
+    [stories, now]
+  );
+  const completed = useMemo(
+    () =>
+      stories.filter((story) => !story.actionDate || new Date(story.actionDate).getTime() <= now),
+    [stories, now]
+  );
+  const featured = completed.find((story) => story.isFeatured) || completed[0] || null;
+  const previous = completed.filter((story) => story._id !== featured?._id);
+  const partners = useMemo(
+    () => [...new Set(stories.flatMap((story) => story.partners || []))],
+    [stories]
+  );
+  const gallery = useMemo(
+    () =>
+      stories
+        .flatMap((story) =>
+          [story.coverImage, ...(story.gallery || [])]
+            .filter((image) => image?.url)
+            .map((image) => ({ ...image, title: story.title }))
+        )
+        .slice(0, 8),
+    [stories]
+  );
 
-    const stats = [
-        { number: "100+", label: "Lives Touched", icon: <Heart className="w-6 h-6" /> },
-        { number: "3+", label: "Community Partners", icon: <Building className="w-6 h-6" /> },
-        { number: "5+", label: "Outreach Events", icon: <Calendar className="w-6 h-6" /> },
-        { number: "50+", label: "Trained Volunteers", icon: <Users className="w-6 h-6" /> }
-    ];
+  return (
+    <div className="bg-white">
+      <PageHero
+        eyebrow="Community outreach"
+        title="Personal growth becomes meaningful when it moves into service."
+        description="BYBS works with volunteers, partners, and communities to respond to practical needs through care, learning, giving, and shared action."
+        image={{ src: "/assets/commu.jpg", alt: "BYBS community outreach participants" }}
+        primaryAction={{ label: "See published initiatives", to: "#initiatives" }}
+        secondaryAction={{ label: "Volunteer with BYBS", to: "/get-involved/volunteer" }}
+      />
 
-    const recentActivities = [
-        { title: "Maternal Care Drive", location: "Juba Teaching Hospital", date: "Sep 2025", impact: "Supported 50+ new mothers" },
-        { title: "Youth Resilience Workshop", location: "Community Secondary School", date: "February 2024", impact: "Empowered 100+ students" },
-        { title: "Career Mentorship Program", location: "Women's Development Center", date: "January 2024", impact: "Mentored 30+ young women" }
-    ];
-
-    return (
-        <div className="min-h-screen bg-white">
-            {/* Hero Section */}
-            <section className="relative py-8 bg-gradient-to-br from-[#00337C] via-[#1E4B9E] to-[#2A5BC0] text-white overflow-hidden">
-                <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-20 right-20 w-96 h-96 bg-[#FFD166] rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-20 left-20 w-80 h-80 bg-[#06D6A0] rounded-full blur-3xl"></div>
-                </div>
-                
-                <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="text-center mb-12"
-                    >
-                        <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-sm mb-6">
-                            <Globe className="w-4 h-4 mr-2" />
-                            <span>Build Your Best Self Initiative</span>
-                        </div>
-                        
-                        <h1 className="text-3xl md:text-6xl font-light mb-6 leading-tight">
-                            Community & Outreach 
-                            <span className="px-3 font-bold bg-gradient-to-r from-[#FFD166] to-[#B76E79] bg-clip-text text-transparent">
-                                Initiatives
-                            </span>
-                        </h1>
-                        
-                        <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto leading-relaxed">
-                            Extending Transformation Beyond the Individual
-                        </p>
-                        
-                        <p className="text-lg text-white/90 max-w-2xl mx-auto mb-12 leading-relaxed">
-                            Bridging personal empowerment with collective wellbeing, creating ripples of 
-                            positive change in homes, schools, workplaces, and communities.
-                        </p>
-                    </motion.div>
-                    
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, delay: 0.2 }}
-                        className="flex flex-col sm:flex-row gap-4 justify-center"
-                    >
-                        <button
-                            onClick={() => setShowVolunteerForm(true)}
-                            className="px-8 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-lg"
-                        >
-                            Volunteer With Us
-                        </button>
-                       
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Philosophy Section */}
-            <section className="py-8 bg-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        viewport={{ once: true }}
-                        className="grid md:grid-cols-2 gap-12 items-center"
-                    >
-                        <div>
-                            <h2 className="text-2xl font-light text-[#00337C] mb-6">
-                                Where Personal Growth Meets<br />Collective Impact
-                            </h2>
-                            <div className="w-20 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mb-8"></div>
-                            <p className="text-lg text-gray-700 leading-relaxed mb-6">
-                                At Build Your Best Self, transformation doesn't stop with personal growth — 
-                                it extends outward into homes, schools, workplaces, and communities.
-                            </p>
-                            <p className="text-gray-600 leading-relaxed mb-8">
-                                We believe that when people begin to heal, grow, and discover their inner strength, 
-                                they naturally become catalysts for positive change around them.
-                            </p>
-                            <div className="bg-gradient-to-r from-[#F5F9FF] to-[#FFF0F0] p-6 rounded-xl border-l-4 border-[#00337C]">
-                                <p className="text-gray-700 italic">
-                                    "Every workshop, mentorship session, or donation drive strengthens the collective 
-                                    spirit, bridges gaps, and builds healthier, more resilient communities."
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div className="relative">
-                            <div className="grid grid-cols-2 gap-6">
-                                {stats.map((stat, index) => (
-                                    <motion.div
-                                        key={index}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        whileInView={{ opacity: 1, scale: 1 }}
-                                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                                        viewport={{ once: true }}
-                                        className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl shadow-lg border border-gray-100 text-center"
-                                    >
-                                        <div className="w-12 h-12 mx-auto rounded-full bg-gradient-to-r from-[#00337C] to-[#1E4B9E] flex items-center justify-center text-white mb-4">
-                                            {stat.icon}
-                                        </div>
-                                        <div className="text-3xl font-bold text-[#00337C] mb-1">{stat.number}</div>
-                                        <div className="text-gray-700 font-medium">{stat.label}</div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Initiatives Showcase */}
-            <section id="initiatives" className="py-8 bg-gradient-to-b from-white to-gray-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-2xl md:text-3xl font-light text-[#00337C] mb-4">
-                            Our Community Initiatives
-                        </h2>
-                        <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mx-auto mb-8"></div>
-                        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                            Three pathways to create meaningful impact and foster collective wellbeing
-                        </p>
-                    </motion.div>
-                    
-                    {/* Initiative Tabs */}
-                    <div className="mb-12">
-                        <div className="flex flex-wrap justify-center gap-4 mb-12">
-                            {initiatives.map((initiative, index) => (
-                                <button
-                                    key={initiative.id}
-                                    onClick={() => setActiveInitiative(index)}
-                                    className={`px-6 py-3 rounded-lg font-medium transition-all duration-300 flex items-center ${
-                                        activeInitiative === index
-                                            ? 'bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white shadow-lg'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    
-                                    {initiative.title}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        {/* Active Initiative Details */}
-                        <motion.div
-                            key={activeInitiative}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100"
-                        >
-                            
-                            <div className="p-8 md:p-12">
-                                <div className="grid md:grid-cols-2 gap-12">
-                                    <div>
-                                        
-                                        
-                                        <h3 className="text-2xl font-light text-gray-900 mb-2">
-                                            {initiatives[activeInitiative].title}
-                                        </h3>
-                                        <p className="text-[#B76E79] font-medium text-lg mb-4">
-                                            {initiatives[activeInitiative].subtitle}
-                                        </p>
-                                        
-                                        <p className="text-gray-600 mb-8 leading-relaxed">
-                                            {initiatives[activeInitiative].description}
-                                        </p>
-                                        
-                                        <div className="mb-8">
-                                            <h4 className="text-lg font-medium text-[#00337C] mb-4">What We Do:</h4>
-                                            <ul className="space-y-3">
-                                                {initiatives[activeInitiative].features.map((feature, i) => (
-                                                    <li key={i} className="flex items-start text-gray-700">
-                                                        <div className="w-2 h-2 bg-[#00337C] rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                                                        <span>{feature}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                        
-                                        <div className="bg-gradient-to-r from-[#F5F9FF] to-white p-6 rounded-xl border border-gray-100">
-                                            <p className="text-gray-700 font-medium">
-                                                <span className="text-[#00337C]">Recent Impact: </span>
-                                                {initiatives[activeInitiative].impact}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="relative">
-                                        <div className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-xl border border-gray-100 h-full">
-                                            <div className="text-center mb-8">
-                                                <h4 className="text-xl font-light text-[#00337C] mb-4">Get Involved</h4>
-                                                <p className="text-gray-600 mb-6">
-                                                    Ready to make a difference through {initiatives[activeInitiative].title.toLowerCase()}?
-                                                </p>
-                                                <button
-                                                    onClick={() => setShowVolunteerForm(true)}
-                                                    className="px-6 py-3 bg-gradient-to-r from-[#00337C] to-[#1E4B9E] text-white rounded-lg font-medium hover:opacity-90 transition-all duration-300 w-full"
-                                                >
-                                                    Volunteer for This Initiative
-                                                </button>
-                                            </div>
-                                            
-                                            <div className="space-y-4">
-                                                <h5 className="font-medium text-gray-700">Other Ways to Support:</h5>
-                                                {[
-                                                    "Donate essential supplies",
-                                                    "Sponsor a workshop",
-                                                    "Become a mentor",
-                                                    "Share your expertise",
-                                                    "Host a community event"
-                                                ].map((way, index) => (
-                                                    <div key={index} className="flex items-center text-gray-600">
-                                                        <ArrowRight className="w-4 h-4 mr-3 text-[#00337C]" />
-                                                        <span>{way}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Recent Activities */}
-            <section className="py-8 bg-gradient-to-br from-[#F5F9FF] to-white">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl font-light text-[#00337C] mb-4">
-                            Recent Community Impact
-                        </h2>
-                        <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mx-auto mb-8"></div>
-                        <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                            Real stories of transformation and community building
-                        </p>
-                    </motion.div>
-                    
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {recentActivities.map((activity, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: index * 0.1 }}
-                                viewport={{ once: true }}
-                                className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300"
-                            >
-                                <div className="p-8">
-                                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#00337C] to-[#1E4B9E] flex items-center justify-center text-white mb-6">
-                                        {index === 0 ? <Gift className="w-6 h-6" /> : 
-                                         index === 1 ? <BookOpen className="w-6 h-6" /> : 
-                                         <Users className="w-6 h-6" />}
-                                    </div>
-                                    
-                                    <h3 className="text-xl font-medium text-gray-900 mb-2">{activity.title}</h3>
-                                    <p className="text-gray-600 mb-4">{activity.location}</p>
-                                    
-                                    <div className="flex items-center justify-between mb-6">
-                                        
-                                        <span className="text-[#B76E79] font-medium">{activity.impact}</span>
-                                    </div>
-                                    
-                                    <div className="pt-6 border-t border-gray-100">
-                                        <p className="text-gray-600 text-sm">
-                                            Creating positive impact and fostering community resilience through meaningful outreach.
-                                        </p>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Ripple Effect Section */}
-            <section className="py-20 bg-gradient-to-br from-[#00337C] to-[#1E4B9E] text-white">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        viewport={{ once: true }}
-                    >
-                        <div className="w-20 h-20 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-8">
-                            <Sparkles className="w-10 h-10" />
-                        </div>
-                        
-                        <h2 className="text-2xl md:text-4xl font-light mb-6">
-                            A Ripple Effect of Hope
-                        </h2>
-                        <div className="w-24 h-1 bg-gradient-to-r from-white to-[#FFD166] mx-auto mb-8"></div>
-                        
-                        
-                        <p className="text-lg text-white/80 mb-12 max-w-2xl mx-auto italic">
-                            "At BYBS, we are committed to ensuring that empowerment flows outward, 
-                            touching lives and inspiring change wherever it goes."
-                        </p>
-                        
-                        <button
-                            onClick={() => setShowVolunteerForm(true)}
-                            className="px-10 py-4 bg-white text-[#00337C] font-medium rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-xl text-lg inline-flex items-center"
-                        >
-                            Create Your Ripple Effect
-                            <ChevronRight className="ml-2 w-5 h-5" />
-                        </button>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Volunteer Modal */}
-            {showVolunteerForm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-2xl p-8 max-w-md w-full"
-                    >
-                        <h3 className="text-2xl font-light text-[#00337C] mb-4">Join Our Volunteer Team</h3>
-                        <p className="text-gray-600 mb-6">
-                            Tell us about yourself and how you'd like to contribute to our community initiatives.
-                        </p>
-                        
-                        <form onSubmit={handleVolunteerSubmit}>
-                            <input
-                                type="text"
-                                value={volunteerData.name}
-                                onChange={(e) => setVolunteerData({...volunteerData, name: e.target.value})}
-                                placeholder="Your Name"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4"
-                                required
-                            />
-                            
-                            <input
-                                type="email"
-                                value={volunteerData.email}
-                                onChange={(e) => setVolunteerData({...volunteerData, email: e.target.value})}
-                                placeholder="Your Email"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4"
-                                required
-                            />
-                            
-                            <select
-                                value={volunteerData.interest}
-                                onChange={(e) => setVolunteerData({...volunteerData, interest: e.target.value})}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4"
-                                required
-                            >
-                                <option value="">Primary Interest Area</option>
-                                <option value="hospital-care">Hospital Donations & Care Drives</option>
-                                <option value="wellness-workshops">Wellness & Resilience Workshops</option>
-                                <option value="mentorship">Volunteer Mentorship</option>
-                                <option value="all">All Initiatives</option>
-                            </select>
-                            
-                            <textarea
-                                value={volunteerData.message}
-                                onChange={(e) => setVolunteerData({...volunteerData, message: e.target.value})}
-                                placeholder="Why do you want to volunteer with us? What skills or experience can you share?"
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-6 h-32"
-                                required
-                            />
-                            
-                            <div className="flex gap-4">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-[#00337C] text-white py-3 rounded-lg font-medium"
-                                >
-                                    Submit Application
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowVolunteerForm(false)}
-                                    className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </motion.div>
-                </div>
-            )}
+      <section className="public-section bg-white">
+        <div className="public-container grid gap-12 lg:grid-cols-[0.85fr_1.15fr]">
+          <SectionHeader
+            eyebrow="Why service matters"
+            title="Growth should strengthen the communities around us"
+            description="Outreach is where reflection, empathy, and leadership become practical. BYBS approaches service through listening, responsible collaboration, and work that can be documented honestly."
+          />
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Principle
+              icon={HandHeart}
+              title="Respond to real needs"
+              text="Activities should begin with the people and context involved, not with assumptions about what help should look like."
+            />
+            <Principle
+              icon={Handshake}
+              title="Work in partnership"
+              text="Local knowledge, trusted organisations, volunteers, and useful resources make action more relevant and sustainable."
+            />
+          </div>
         </div>
-    );
+      </section>
+
+      {metrics.length > 0 && (
+        <section className="border-y border-gray-200 bg-[#F7F9FC]">
+          <div className="public-container py-5 md:py-10 lg:py-15">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase text-[#B96500]">
+                  Verified outreach figures
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-[#00337C]">
+                  Evidence published by the BYBS team
+                </h2>
+              </div>
+              <Link
+                to="/impact"
+                className="inline-flex min-h-11 items-center gap-2 font-semibold text-[#00337C]"
+              >
+                See all impact evidence
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <dl className="mt-8 grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+              {metrics.map((metric) => (
+                <div key={metric._id}>
+                  <dd className="text-4xl font-light text-[#00337C]">
+                    {Number(metric.value).toLocaleString()}
+                    {metric.suffix}
+                  </dd>
+                  <dt className="mt-2 font-semibold text-gray-900">{metric.label}</dt>
+                  {metric.description && (
+                    <p className="mt-2 text-sm leading-6 text-gray-600">{metric.description}</p>
+                  )}
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+      )}
+
+      <section id="initiatives" className="public-section scroll-mt-24 bg-white">
+        <div className="public-container">
+          <SectionHeader
+            eyebrow="Current and previous initiatives"
+            title="Every completed initiative links to its evidence"
+            description="Published stories provide the context behind an activity: what happened, who took part, who benefited, what partners contributed, and what outcomes were recorded."
+          />
+          {loading ? (
+            <LoadingState label="Loading outreach initiatives" />
+          ) : !featured ? (
+            <div className="mt-10">
+              <EmptyState
+                title="Published outreach stories are being prepared"
+                message="The team can publish a completed initiative from the Impact area in the admin dashboard when its facts, images, and permissions are ready."
+              />
+            </div>
+          ) : (
+            <>
+              <article className="mt-12 grid gap-10 border-y border-gray-200 py-10 lg:grid-cols-[1fr_1.05fr] lg:items-center">
+                <div className="aspect-[4/3] overflow-hidden rounded-lg bg-gray-100">
+                  <img
+                    src={featured.coverImage?.url || "/assets/commu.jpg"}
+                    alt={featured.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase text-[#B96500]">
+                    Featured completed initiative
+                  </p>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl public-heading mt-4">
+                    {featured.title}
+                  </h2>
+                  <div className="mt-5">
+                    <StoryMeta story={featured} />
+                  </div>
+                  <p className="public-copy mt-5 text-lg">{featured.summary}</p>
+                  <Link
+                    to={`/impact/${featured.slug}`}
+                    className="public-button-primary mt-7 px-6 py-3"
+                  >
+                    Read the impact story
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+              </article>
+              {previous.length > 0 && (
+                <div className="mt-14">
+                  <h2 className="text-2xl font-semibold text-[#00337C]">Previous initiatives</h2>
+                  <div className="mt-7 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {previous.map((story) => (
+                      <StoryCard key={story._id} story={story} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
+
+      <section className="public-section bg-[#F7F9FC]">
+        <div className="public-container">
+          <SectionHeader
+            eyebrow="Upcoming outreach"
+            title="Ways to participate in the next action"
+            description="Future-dated outreach stories published by the BYBS team appear here. Volunteer only through the official opportunity link or BYBS contact channel."
+          />
+          {upcoming.length > 0 ? (
+            <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {upcoming.map((story) => (
+                <StoryCard key={story._id} story={story} label="Upcoming initiative" />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-8">
+              <EmptyState
+                title="No upcoming outreach has been announced"
+                message="Volunteer with BYBS to share your availability, or check back after the next initiative is confirmed."
+              />
+            </div>
+          )}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link to="/get-involved/volunteer" className="public-button-primary px-6 py-3">
+              Volunteer with BYBS
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link to="/support" className="public-button-secondary px-6 py-3">
+              Support an initiative
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {(gallery.length > 0 || partners.length > 0) && (
+        <section className="public-section bg-white">
+          <div className="public-container">
+            {gallery.length > 0 && (
+              <>
+                <SectionHeader eyebrow="Outreach gallery" title="The work, documented" />
+                <div className="mt-9 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {gallery.map((image, index) => (
+                    <figure
+                      key={`${image.url}-${index}`}
+                      className="overflow-hidden rounded-lg bg-gray-100"
+                    >
+                      <img
+                        src={image.url}
+                        alt={image.caption || image.title}
+                        loading="lazy"
+                        className="aspect-square h-full w-full object-cover"
+                      />
+                    </figure>
+                  ))}
+                </div>
+              </>
+            )}
+            {partners.length > 0 && (
+              <div className="mt-14 border-y border-gray-200 py-8">
+                <p className="text-sm font-semibold uppercase text-[#B96500]">
+                  Published initiative partners
+                </p>
+                <div className="mt-5 flex flex-wrap gap-x-8 gap-y-4">
+                  {partners.map((partner) => (
+                    <span key={partner} className="font-semibold text-gray-700">
+                      {partner}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="public-section bg-[#F7F9FC]">
+        <div className="public-container grid gap-12 lg:grid-cols-2">
+          <div>
+            <SectionHeader
+              eyebrow="Volunteer stories"
+              title="Contribution is part of the impact"
+              description="Volunteer reflections and contributions are published in the wider Impact library when the team has reviewed them."
+            />
+            <Link
+              to="/impact"
+              className="mt-6 inline-flex min-h-11 items-center gap-2 font-semibold text-[#00337C]"
+            >
+              Explore volunteer impact
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div>
+            <SectionHeader
+              eyebrow="Partner with outreach"
+              title="Bring local insight, expertise, access, or resources"
+              description="Partnerships can support delivery, safeguarding, logistics, venues, professional services, essential items, documentation, or follow-through."
+            />
+            <Link
+              to="/get-involved/partner?source=outreach"
+              className="public-button-secondary mt-6 px-6 py-3"
+            >
+              Discuss a partnership
+            </Link>
+          </div>
+        </div>
+      </section>
+      <CTASection
+        eyebrow="Put growth into action"
+        title="Contribute your time, skills, partnership, or practical support."
+        actions={[
+          { label: "Volunteer", to: "/get-involved/volunteer" },
+          { label: "Support BYBS", to: "/support" },
+        ]}
+      />
+    </div>
+  );
+}
+
+function Principle({ icon: Icon, title, text }) {
+  return (
+    <article>
+      <Icon className="h-7 w-7 text-[#00337C]" />
+      <h2 className="mt-4 text-xl font-semibold text-[#00337C]">{title}</h2>
+      <p className="public-copy mt-3 text-sm">{text}</p>
+    </article>
+  );
 }

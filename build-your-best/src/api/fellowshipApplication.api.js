@@ -1,7 +1,6 @@
 import api from "../utils/axios";
 
-export const submitFellowshipApplication = (data) =>
-  api.post("/fellowship-applications", data);
+export const submitFellowshipApplication = (data) => api.post("/fellowship-applications", data);
 
 export const getFellowshipApplications = (params = {}) =>
   api.get("/admin/fellowship-applications", { params });

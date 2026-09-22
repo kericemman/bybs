@@ -14,6 +14,10 @@ export const fetchArticle = (id) => {
   return api.get(`/admin/articles/${id}`);
 };
 
+export const fetchArticleReflectionOptions = () => {
+  return api.get("/admin/articles/reflection-options");
+};
+
 /**
  * CREATE ARTICLE
  */
@@ -56,4 +60,3 @@ export const uploadArticleContentImage = (file) => {
 export const deleteArticle = (id) => {
   return api.delete(`/admin/articles/${id}`);
 };
-

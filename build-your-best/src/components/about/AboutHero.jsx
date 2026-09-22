@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion as Motion } from "framer-motion";
 
 export default function AboutHero() {
   return (
@@ -10,61 +10,64 @@ export default function AboutHero() {
       <div className="relative max-w-6xl mx-auto px-6 sm:px-8 lg:px-10 py-16 md:py-24 lg:py-32">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Text Content */}
-          <motion.div 
+          <Motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "backOut" }}
             className="order-2 lg:order-1"
           >
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                About <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00337C] to-[#B76E79]">Brenda</span>
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                About{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00337C] to-[#B76E79]">
+                  Brenda
+                </span>
               </h1>
-              <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mb-8"></div>
-            </motion.div>
-            
-            <motion.h2
+              <div className="mb-8 h-px w-24 bg-[#00337C]/10 shadow-[0_1px_4px_rgba(0,51,124,0.12)]"></div>
+            </Motion.div>
+
+            <Motion.h2
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-2xl text-gray-600 mb-8 font-medium italic"
             >
               From Self-Doubt to Self-Discovery: My Journey to Becoming My Best Self
-            </motion.h2>
-            
-            <motion.p
+            </Motion.h2>
+
+            <Motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
               className="text-lg text-gray-600 mb-8"
             >
-              I'm Brenda Viola, founder of Build Your Best Self. My journey from self-doubt to empowerment fuels my passion for helping women rediscover their worth and purpose.
-            </motion.p>
-            
-            <motion.div
+              I'm Brenda Viola, founder of Build Your Best Self. My journey from self-doubt to
+              empowerment fuels my passion for helping women rediscover their worth and purpose.
+            </Motion.p>
+
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
               className="flex flex-wrap gap-6"
             >
-              
-              <motion.a
+              <Motion.a
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
-                href="/discovery" 
+                href="/discovery"
                 className="px-8 py-4  border-2 border-[#00337C] text-[#00337C] hover:bg-[#00337C]/10 rounded-full font-bold transition-all duration-300"
               >
                 Rediscover Yourself
-              </motion.a>
-            </motion.div>
-          </motion.div>
+              </Motion.a>
+            </Motion.div>
+          </Motion.div>
 
           {/* Image Component */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: "backOut" }}
@@ -83,7 +86,7 @@ export default function AboutHero() {
             {/* Decorative corner accent */}
             <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-tl-full bg-[#00337C]/20 blur-xl z-0"></div>
             <div className="absolute -top-6 -left-6 w-24 h-24 rounded-br-full bg-[#B76E79]/20 blur-xl z-0"></div>
-          </motion.div>
+          </Motion.div>
         </div>
       </div>
     </section>

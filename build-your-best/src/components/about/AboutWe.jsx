@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-
+import { motion as Motion } from "framer-motion";
 
 export default function WhoSheServes() {
   return (
@@ -10,7 +9,7 @@ export default function WhoSheServes() {
 
       <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-10">
         {/* Header */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -22,16 +21,17 @@ export default function WhoSheServes() {
               Who I Serve
             </span>
           </h2>
-          <div className="w-24 h-1 bg-gradient-to-r from-[#00337C] to-[#B76E79] mx-auto mb-8"></div>
+          <div className="mx-auto mb-8 h-px w-24 bg-[#00337C]/10 shadow-[0_1px_4px_rgba(0,51,124,0.12)]"></div>
           <p className="text-l md:text-2xl text-gray-600 max-w-3xl mx-auto">
-            I specialize in helping women who are <span className="font-semibold text-[#00337C]">ready to transform</span> their lives
+            I specialize in helping women who are{" "}
+            <span className="font-semibold text-[#00337C]">ready to transform</span> their lives
           </p>
-        </motion.div>
+        </Motion.div>
 
         {/* Content Grid */}
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Image - Left Column */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
@@ -45,10 +45,10 @@ export default function WhoSheServes() {
               loading="lazy"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#00337C]/30 via-transparent to-transparent"></div>
-          </motion.div>
+          </Motion.div>
 
           {/* List - Right Column */}
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, x: 40 }}
             whileInView={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
@@ -62,9 +62,9 @@ export default function WhoSheServes() {
                 "High-achievers who secretly battle imposter syndrome",
                 "Chronic over-givers and people-pleasers running on autopilot",
                 "Women craving deeper clarity, inner peace, and clear direction",
-                "Those ready to take action but needing the right tools and support"
+                "Those ready to take action but needing the right tools and support",
               ].map((item, index) => (
-                <motion.li
+                <Motion.li
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -74,29 +74,34 @@ export default function WhoSheServes() {
                 >
                   <div className="flex-shrink-0 mt-1 mr-4 text-[#00337C]">
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </div>
                   <span className="text-base md:text-lg text-gray-700">{item}</span>
-                </motion.li>
+                </Motion.li>
               ))}
             </ul>
 
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.6 }}
               viewport={{ once: true }}
               className="pt-8"
             >
-              <div className="border-l-4 border-[#00337C] pl-6 mb-8">
+              <div className="mb-8 border-l border-[#00337C]/10 pl-6 shadow-[-3px_0_8px_rgba(0,51,124,0.05)]">
                 <p className="text-xl md:text-2xl italic text-gray-600">
-                  "Wherever you are in your journey, you'll find <span className="font-semibold text-[#B76E79]">understanding</span> and <span className="font-semibold text-[#00337C]">support</span> here."
+                  "Wherever you are in your journey, you'll find{" "}
+                  <span className="font-semibold text-[#B76E79]">understanding</span> and{" "}
+                  <span className="font-semibold text-[#00337C]">support</span> here."
                 </p>
               </div>
-              
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         </div>
       </div>
     </section>

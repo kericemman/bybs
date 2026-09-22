@@ -29,7 +29,14 @@ const destroyCoverImage = async (publicId) => {
 
 const destroyEbookFile = async (publicId) => {
   if (publicId) {
-    await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+    const result = await cloudinary.uploader.destroy(publicId, {
+      resource_type: "raw",
+      type: "authenticated",
+    });
+
+    if (result?.result === "not found") {
+      await cloudinary.uploader.destroy(publicId, { resource_type: "raw" });
+    }
   }
 };
 
@@ -52,19 +59,12 @@ const handleProductError = (res, error, fallbackMessage) => {
   return res.status(500).json({ message: fallbackMessage });
 };
 
-
 // ========================================
 // 1️⃣ CREATE PRODUCT (ADMIN)
 // ========================================
 exports.createProduct = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      type,
-      price,
-      stock,
-    } = req.body;
+    const { title, description, type, price, stock } = req.body;
 
     const cleanTitle = title?.trim();
     const cleanDescription = description?.trim();
@@ -116,13 +116,10 @@ exports.createProduct = async (req, res) => {
     });
 
     res.status(201).json(product);
-
   } catch (error) {
     handleProductError(res, error, "Error creating product");
   }
 };
-
-
 
 // ========================================
 // 2️⃣ UPDATE PRODUCT (ADMIN)
@@ -135,13 +132,7 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const {
-      title,
-      description,
-      type,
-      price,
-      stock,
-    } = req.body;
+    const { title, description, type, price, stock } = req.body;
 
     const nextType = type || product.type;
 
@@ -211,13 +202,10 @@ exports.updateProduct = async (req, res) => {
     await product.save();
 
     res.json(product);
-
   } catch (error) {
     handleProductError(res, error, "Error updating product");
   }
 };
-
-
 
 // ========================================
 // 3️⃣ DELETE PRODUCT (ADMIN)
@@ -237,31 +225,24 @@ exports.deleteProduct = async (req, res) => {
     await product.deleteOne();
 
     res.json({ message: "Product deleted successfully" });
-
   } catch (error) {
     console.error("Delete product error:", error);
     res.status(500).json({ message: "Error deleting product" });
   }
 };
 
-
-
 // ========================================
 // 4️⃣ ADMIN — GET ALL PRODUCTS
 // ========================================
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find()
-      .sort({ createdAt: -1 });
+    const products = await Product.find().sort({ createdAt: -1 });
 
     res.json(products);
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching products" });
   }
 };
-
-
 
 // ========================================
 // 5️⃣ PUBLIC — GET ALL PRODUCTS
@@ -269,17 +250,14 @@ exports.getAllProducts = async (req, res) => {
 exports.getPublicProducts = async (req, res) => {
   try {
     const products = await Product.find()
-      .select("-fileUrl -createdBy")
+      .select("-fileUrl -filePublicId -createdBy")
       .sort({ createdAt: -1 });
 
     res.json(products);
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching products" });
   }
 };
-
-
 
 // ========================================
 // 6️⃣ PUBLIC — GET SINGLE PRODUCT BY SLUG
@@ -288,7 +266,7 @@ exports.getProductBySlug = async (req, res) => {
   try {
     const product = await Product.findOne({
       slug: req.params.slug,
-    }).select("-fileUrl -createdBy");
+    }).select("-fileUrl -filePublicId -createdBy");
 
     if (!product) {
       return res.status(404).json({
@@ -297,7 +275,6 @@ exports.getProductBySlug = async (req, res) => {
     }
 
     res.json(product);
-
   } catch (error) {
     res.status(500).json({ message: "Error fetching product" });
   }

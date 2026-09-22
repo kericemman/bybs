@@ -20,6 +20,8 @@ import { Link, useParams } from "react-router-dom";
 import api from "../../utils/axios";
 import SEO from "../../components/SEO";
 import { absoluteUrl, breadcrumbSchema, truncate } from "../../lib/seo";
+import { cohortStage, orderCohorts } from "../../lib/cohorts";
+import BrandLoader from "../../components/public/BrandLoader";
 
 const formatDate = (value) => {
   if (!value) return "Date to be announced";
@@ -43,15 +45,23 @@ const statusStyles = {
 };
 
 const applicationStyles = {
+  "opening-soon": "bg-amber-50 text-amber-800",
   open: "bg-emerald-50 text-emerald-700",
   closed: "bg-gray-100 text-gray-600",
   "invite-only": "bg-purple-50 text-purple-700",
 };
 
+const applicationLabel = (status) =>
+  ({
+    "opening-soon": "Applications opening soon",
+    open: "Applications open",
+    closed: "Applications closed",
+    "invite-only": "Applications by invitation",
+  })[status] || "Applications closed";
+
 export default function CohortsPage() {
   useEffect(() => {
     window.scrollTo(0, 0);
-
   }, []);
   const [cohorts, setCohorts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +87,9 @@ export default function CohortsPage() {
     fetchCohorts();
   }, []);
 
-  const heroCohort = cohorts.find((cohort) => cohort.coverImage?.url) || cohorts[0] || null;
+  const orderedCohorts = useMemo(() => orderCohorts(cohorts), [cohorts]);
+  const heroCohort =
+    orderedCohorts.find((cohort) => cohort.coverImage?.url) || orderedCohorts[0] || null;
 
   return (
     <div className="min-h-screen bg-white">
@@ -93,7 +105,7 @@ export default function CohortsPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#061C3D] via-[#00337C]/96 to-[#1E4B9E]/86" />
         </div>
 
-        <div className="relative public-container py-10 md:py-15">
+        <div className="relative public-container py-5 md:py-10 lg:py-15">
           <Motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -101,12 +113,12 @@ export default function CohortsPage() {
             className="max-w-4xl"
           >
             <p className="public-eyebrow mb-5 text-white/70">BYBS Cohorts</p>
-            <h1 className="text-4xl font-light leading-tight md:text-6xl">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-light leading-tight">
               Preview the journey of every BYBS cohort.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">
-              Browse cohort reflections, achievements, graduate stories, and galleries. Open each cohort
-              to see the full journey.
+              Browse cohort reflections, achievements, graduate stories, and galleries. Open each
+              cohort to see the full journey.
             </p>
           </Motion.div>
         </div>
@@ -122,7 +134,7 @@ export default function CohortsPage() {
             <EmptyState />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {cohorts.map((cohort) => (
+              {orderedCohorts.map((cohort) => (
                 <CohortPreviewCard key={cohort._id} cohort={cohort} />
               ))}
             </div>
@@ -221,9 +233,12 @@ export function CohortDetailPage() {
     if (distance < -50) prevImage();
   };
 
-  const cohortUrl = absoluteUrl(`/cohorts/${cohort?.slug || cohortSlug}`);
+  const cohortUrl = absoluteUrl(`/programs/fellowship/cohorts/${cohort?.slug || cohortSlug}`);
   const cohortDescription = truncate(
-    cohort?.tagline || cohort?.overview || cohort?.description || "Explore this BYBS cohort reflection, achievements, stories, and gallery.",
+    cohort?.tagline ||
+      cohort?.overview ||
+      cohort?.description ||
+      "Explore this BYBS cohort reflection, achievements, stories, and gallery.",
     155
   );
   const cohortSchema = cohort
@@ -243,8 +258,8 @@ export function CohortDetailPage() {
         },
         breadcrumbSchema([
           { name: "Home", path: "/" },
-          { name: "Cohorts", path: "/cohorts" },
-          { name: cohort.title, path: `/cohorts/${cohort.slug || cohortSlug}` },
+          { name: "Cohorts", path: "/programs/fellowship/cohorts" },
+          { name: cohort.title, path: `/programs/fellowship/cohorts/${cohort.slug || cohortSlug}` },
         ]),
       ]
     : undefined;
@@ -271,8 +286,11 @@ export function CohortDetailPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#061C3D] via-[#00337C]/96 to-[#1E4B9E]/86" />
         </div>
 
-        <div className="relative public-container py-12 md:py-20">
-          <Link to="/cohorts" className="mb-8 inline-flex items-center gap-2 text-sm text-white/75 hover:text-white">
+        <div className="relative public-container py-5 md:py-10 lg:py-15">
+          <Link
+            to="/programs/fellowship/cohorts"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-white/75 hover:text-white"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to Cohorts
           </Link>
@@ -284,10 +302,12 @@ export function CohortDetailPage() {
             className="max-w-4xl"
           >
             <p className="public-eyebrow mb-5 text-white/70">Cohort Details</p>
-            <h1 className="text-4xl font-light leading-tight md:text-6xl">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-light leading-tight">
               {cohort?.title || "Cohort reflection"}
             </h1>
-            {cohort?.tagline && <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">{cohort.tagline}</p>}
+            {cohort?.tagline && (
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">{cohort.tagline}</p>
+            )}
           </Motion.div>
         </div>
       </section>
@@ -326,25 +346,29 @@ export function CohortDetailPage() {
       </section>
 
       {cohort && (
-        <section className="bg-[#00337C] py-14 text-white md:py-20">
+        <section className="bg-[#E9EEF5] py-5 text-gray-900 md:py-10 lg:py-15">
           <div className="public-container">
-            <div className="rounded-xl border border-white/15 bg-white/10 p-6 backdrop-blur md:flex md:items-center md:justify-between md:p-8">
+            <div className="rounded-lg border border-[#00337C]/10 bg-white/55 p-6 md:flex md:items-center md:justify-between md:p-8">
               <div>
-                <h2 className="text-3xl font-light">Ready to apply?</h2>
-                <p className="mt-3 max-w-2xl text-white/75">
+                <h2 className="text-3xl font-light text-[#00337C]">Ready to apply?</h2>
+                <p className="mt-3 max-w-2xl text-gray-600">
                   When applications are open, you can continue to the full application form.
                 </p>
               </div>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row md:mt-0">
                 {cohort.applicationStatus === "open" && cohort.slug ? (
-                  <Link to={`/cohorts/${cohort.slug}/apply`} className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-[#00337C]">
+                  <Link
+                    to={`/programs/fellowship/cohorts/${cohort.slug}/apply`}
+                    className="public-button-primary px-6 py-3"
+                  >
                     Continue to Application
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 ) : (
-                  <span className="rounded-lg border border-white/20 px-6 py-3 font-semibold text-white/80">
-                    Apply Now
-                  </span>
+                  <Link to="/programs/fellowship" className="public-button-secondary px-6 py-3">
+                    {cohortStage(cohort).label}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
                 )}
               </div>
             </div>
@@ -360,7 +384,11 @@ function CohortPreviewCard({ cohort }) {
     <article className="flex h-full flex-col overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       <div className="h-56 bg-gray-100">
         {cohort.coverImage?.url ? (
-          <img src={cohort.coverImage.url} alt={cohort.title} className="h-full w-full object-cover" />
+          <img
+            src={cohort.coverImage.url}
+            alt={cohort.title}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-gray-300">
             <ImageIcon className="h-12 w-12" />
@@ -370,33 +398,54 @@ function CohortPreviewCard({ cohort }) {
 
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-4 flex flex-wrap gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}
+          >
             {cohort.status || "completed"}
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}>
-            Applications {cohort.applicationStatus || "closed"}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}
+          >
+            {applicationLabel(cohort.applicationStatus)}
           </span>
         </div>
 
         <h2 className="text-2xl font-light text-[#00337C]">{cohort.title}</h2>
-        {cohort.tagline && <p className="mt-2 text-sm font-medium text-[#B76E79]">{cohort.tagline}</p>}
+        {cohort.tagline && (
+          <p className="mt-2 text-sm font-medium text-[#B76E79]">{cohort.tagline}</p>
+        )}
         <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">
-          {cohort.description || cohort.overview || "Open the cohort details to read the reflection."}
+          {cohort.description ||
+            cohort.overview ||
+            "Open the cohort details to read the reflection."}
         </p>
 
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-          <InfoCard icon={<Calendar className="h-4 w-4" />} label="Dates" value={formatDateRange(cohort.startDate, cohort.endDate)} />
-          <InfoCard icon={<Users className="h-4 w-4" />} label="Graduates" value={cohort.capacity ? `${cohort.capacity}` : "TBC"} />
-         
+          <InfoCard
+            icon={<Calendar className="h-4 w-4" />}
+            label="Dates"
+            value={formatDateRange(cohort.startDate, cohort.endDate)}
+          />
+          <InfoCard
+            icon={<Users className="h-4 w-4" />}
+            label={cohort.status === "completed" ? "Participants" : "Planned places"}
+            value={cohort.capacity ? `${cohort.capacity}` : "Not recorded"}
+          />
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Link to={`/cohorts/${cohort.slug}`} className="public-button-primary justify-center px-5 py-3">
+          <Link
+            to={`/programs/fellowship/cohorts/${cohort.slug}`}
+            className="public-button-primary justify-center px-5 py-3"
+          >
             View details
             <ArrowRight className="h-4 w-4" />
           </Link>
           {cohort.applicationStatus === "open" && (
-            <Link to={`/cohorts/${cohort.slug}/apply`} className="public-button-secondary justify-center px-5 py-3">
+            <Link
+              to={`/programs/fellowship/cohorts/${cohort.slug}/apply`}
+              className="public-button-secondary justify-center px-5 py-3"
+            >
               Apply
             </Link>
           )}
@@ -419,30 +468,59 @@ function CohortDetails({ cohort }) {
 
       <div className="p-5 md:p-7">
         <div className="mb-4 flex flex-wrap gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}>
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[cohort.status] || "bg-gray-100 text-gray-600"}`}
+          >
             {cohort.status || "draft"}
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}>
-            Applications {cohort.applicationStatus || "closed"}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${applicationStyles[cohort.applicationStatus] || "bg-gray-100 text-gray-600"}`}
+          >
+            {applicationLabel(cohort.applicationStatus)}
           </span>
         </div>
 
-        <h2 className="text-3xl font-light text-[#00337C] md:text-4xl">{cohort.title}</h2>
-        {cohort.tagline && <p className="mt-3 text-lg font-medium text-[#B76E79]">{cohort.tagline}</p>}
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-light text-[#00337C]">
+          {cohort.title}
+        </h2>
+        {cohort.tagline && (
+          <p className="mt-3 text-lg font-medium text-[#B76E79]">{cohort.tagline}</p>
+        )}
         <p className="mt-5 whitespace-pre-line text-base leading-8 text-gray-700">
           {cohort.overview || cohort.description || "Details for this cohort will be added soon."}
         </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <InfoCard icon={<Calendar className="h-4 w-4" />} label="Dates" value={formatDateRange(cohort.startDate, cohort.endDate)} />
-          <InfoCard icon={<Clock className="h-4 w-4" />} label="Deadline" value={formatDate(cohort.applicationDeadline)} />
-          <InfoCard icon={<Users className="h-4 w-4" />} label="Capacity" value={cohort.capacity ? `${cohort.capacity} spots` : "To be confirmed"} />
-          <InfoCard icon={<MapPin className="h-4 w-4" />} label="Format" value={[cohort.format, cohort.location].filter(Boolean).join(" • ") || "To be confirmed"} />
+          <InfoCard
+            icon={<Calendar className="h-4 w-4" />}
+            label="Dates"
+            value={formatDateRange(cohort.startDate, cohort.endDate)}
+          />
+          <InfoCard
+            icon={<Clock className="h-4 w-4" />}
+            label="Deadline"
+            value={formatDate(cohort.applicationDeadline)}
+          />
+          <InfoCard
+            icon={<Users className="h-4 w-4" />}
+            label="Capacity"
+            value={cohort.capacity ? `${cohort.capacity} spots` : "To be confirmed"}
+          />
+          <InfoCard
+            icon={<MapPin className="h-4 w-4" />}
+            label="Format"
+            value={
+              [cohort.format, cohort.location].filter(Boolean).join(" • ") || "To be confirmed"
+            }
+          />
         </div>
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row">
           {canApply ? (
-            <Link to={`/cohorts/${cohort.slug}/apply`} className="public-button-primary justify-center px-6 py-3">
+            <Link
+              to={`/programs/fellowship/cohorts/${cohort.slug}/apply`}
+              className="public-button-primary justify-center px-6 py-3"
+            >
               Open Full Application
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -467,7 +545,10 @@ function CohortAudience({ cohort }) {
   return (
     <section className="grid gap-5 md:grid-cols-3">
       {sections.map((section) => (
-        <div key={section.title} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div
+          key={section.title}
+          className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+        >
           <h3 className="text-lg font-semibold text-[#00337C]">{section.title}</h3>
           <div className="mt-4 space-y-3">
             {section.items.map((item) => (
@@ -514,12 +595,16 @@ function CohortTrackRecord({ cohort }) {
       <p className="public-eyebrow mb-3">Our Journey So Far</p>
       <h2 className="text-2xl font-light text-[#00337C]">Reflections from previous cohorts</h2>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-        A living record of what BYBS has learned, built, and witnessed through earlier fellowship cohorts.
+        A living record of what BYBS has learned, built, and witnessed through earlier fellowship
+        cohorts.
       </p>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-3">
         {sections.map((section) => (
-          <article key={section.title} className="rounded-xl border border-gray-100 bg-[#F7FAFC] p-5">
+          <article
+            key={section.title}
+            className="rounded-xl border border-gray-100 bg-[#F7FAFC] p-5"
+          >
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-white text-[#00337C] shadow-sm">
               {section.icon}
             </div>
@@ -549,7 +634,10 @@ function SuccessStories({ cohort }) {
       <h2 className="text-2xl font-light text-[#00337C]">What graduates carry forward</h2>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         {cohort.successStories.map((story) => (
-          <blockquote key={story} className="rounded-xl bg-[#F7FAFC] p-5 text-sm leading-7 text-gray-700">
+          <blockquote
+            key={story}
+            className="rounded-xl bg-[#F7FAFC] p-5 text-sm leading-7 text-gray-700"
+          >
             "{story}"
           </blockquote>
         ))}
@@ -599,7 +687,11 @@ function CohortGallery({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <img src={activeImage.url} alt={activeImage.caption || cohort?.title} className="aspect-[4/3] w-full object-cover" />
+            <img
+              src={activeImage.url}
+              alt={activeImage.caption || cohort?.title}
+              className="aspect-[4/3] w-full object-cover"
+            />
             {images.length > 1 && (
               <>
                 <button
@@ -630,10 +722,16 @@ function CohortGallery({
                   key={image._id || image.url}
                   onClick={() => setCurrentImage(index)}
                   className={`overflow-hidden rounded-lg border ${
-                    currentImage === index ? "border-[#00337C] ring-2 ring-[#00337C]/20" : "border-gray-100"
+                    currentImage === index
+                      ? "border-[#00337C] ring-2 ring-[#00337C]/20"
+                      : "border-gray-100"
                   }`}
                 >
-                  <img src={image.url} alt={image.caption || "Gallery thumbnail"} className="aspect-square w-full object-cover" />
+                  <img
+                    src={image.url}
+                    alt={image.caption || "Gallery thumbnail"}
+                    className="aspect-square w-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -644,7 +742,9 @@ function CohortGallery({
           <div>
             <ImageIcon className="mx-auto mb-3 h-10 w-10 text-gray-300" />
             <p className="font-medium text-gray-600">No gallery images yet</p>
-            <p className="mt-1 text-sm text-gray-400">Images added in the admin cohort gallery will appear here.</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Images added in the admin cohort gallery will appear here.
+            </p>
           </div>
         </div>
       )}
@@ -667,7 +767,10 @@ function ProgramDetails({ cohort }) {
   return (
     <section className="grid gap-5 md:grid-cols-2">
       {sections.map((section) => (
-        <div key={section.title} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div
+          key={section.title}
+          className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+        >
           <div className="mb-4 flex items-center gap-2 text-[#00337C]">
             {section.icon}
             <h3 className="font-semibold">{section.title}</h3>
@@ -691,7 +794,10 @@ function ProgramDetails({ cohort }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {cohort.facilitators.map((facilitator) => (
-              <span key={facilitator} className="rounded-full bg-[#EAF1FF] px-3 py-1 text-sm font-medium text-[#00337C]">
+              <span
+                key={facilitator}
+                className="rounded-full bg-[#EAF1FF] px-3 py-1 text-sm font-medium text-[#00337C]"
+              >
                 {facilitator}
               </span>
             ))}
@@ -716,11 +822,8 @@ function InfoCard({ icon, label, value }) {
 
 function LoadingState() {
   return (
-    <div className="flex h-72 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
-      <div className="text-center">
-        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#00337C] border-t-transparent" />
-        <p className="text-gray-600">Loading cohorts...</p>
-      </div>
+    <div className="rounded-lg border border-gray-100 bg-white shadow-sm">
+      <BrandLoader label="Loading cohorts" minHeight="h-72" />
     </div>
   );
 }
@@ -729,7 +832,10 @@ function ErrorState({ message, onRetry }) {
   return (
     <div className="rounded-xl border border-red-100 bg-white p-8 text-center shadow-sm">
       <p className="text-red-600">{message}</p>
-      <button onClick={onRetry} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white">
+      <button
+        onClick={onRetry}
+        className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#00337C] px-5 py-3 text-sm font-semibold text-white"
+      >
         <RefreshCw className="h-4 w-4" />
         Try Again
       </button>
@@ -743,7 +849,8 @@ function EmptyState() {
       <Users className="mx-auto mb-4 h-12 w-12 text-gray-300" />
       <h2 className="text-2xl font-light text-[#00337C]">No cohorts published yet</h2>
       <p className="mx-auto mt-3 max-w-xl leading-7 text-gray-600">
-        Once a cohort is marked as published in the admin dashboard, it will appear here automatically.
+        Once a cohort is marked as published in the admin dashboard, it will appear here
+        automatically.
       </p>
     </div>
   );

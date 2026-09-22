@@ -12,6 +12,8 @@ import {
   Share2,
   Tag,
   Users,
+  UserRound,
+  MessageCircleQuestion,
 } from "lucide-react";
 import {
   fetchArticleBySlug,
@@ -19,12 +21,8 @@ import {
   trackArticleReader,
 } from "../../api/pubclicArticle.api";
 import SEO from "../../components/SEO";
-import {
-  absoluteUrl,
-  breadcrumbSchema,
-  organizationSchema,
-  truncate,
-} from "../../lib/seo";
+import BrandLoader from "../../components/public/BrandLoader";
+import { absoluteUrl, breadcrumbSchema, organizationSchema, truncate } from "../../lib/seo";
 
 const stripHtml = (value = "") =>
   value
@@ -60,9 +58,7 @@ const getExcerpt = (article, maxLength = 190) => {
 };
 
 const normalizeTags = (tags = []) =>
-  Array.isArray(tags)
-    ? tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean)
-    : [];
+  Array.isArray(tags) ? tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean) : [];
 
 const getRelatedArticles = (currentArticle, articles = []) => {
   const currentTags = new Set(normalizeTags(currentArticle?.tags));
@@ -78,8 +74,10 @@ const getRelatedArticles = (currentArticle, articles = []) => {
       const sharedTagCount = normalizeTags(candidate.tags).filter((tag) =>
         currentTags.has(tag)
       ).length;
+      const sameCategory =
+        candidate.category && candidate.category === currentArticle?.category ? 2 : 0;
 
-      return { ...candidate, sharedTagCount };
+      return { ...candidate, sharedTagCount: sharedTagCount + sameCategory };
     })
     .sort((a, b) => {
       if (b.sharedTagCount !== a.sharedTagCount) {
@@ -128,6 +126,7 @@ const ArticleDetails = () => {
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = data.content;
           removeEmptyParagraphs(tempDiv);
+          tempDiv.querySelectorAll("hr").forEach((rule) => rule.remove());
           const headingNodes = Array.from(tempDiv.querySelectorAll("h2, h3"));
           const headingData = headingNodes.map((heading, index) => {
             const id = `heading-${index}`;
@@ -169,8 +168,7 @@ const ArticleDetails = () => {
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
-      const availableHeight =
-        document.documentElement.scrollHeight - window.innerHeight;
+      const availableHeight = document.documentElement.scrollHeight - window.innerHeight;
 
       if (availableHeight <= 0) {
         setReadingProgress(0);
@@ -192,8 +190,7 @@ const ArticleDetails = () => {
     if (!slug || !article) return;
 
     const storageKey = "bybs_article_reader_session";
-    const sessionId =
-      localStorage.getItem(storageKey) || crypto.randomUUID?.() || `${Date.now()}`;
+    const sessionId = localStorage.getItem(storageKey) || crypto.randomUUID?.() || `${Date.now()}`;
 
     localStorage.setItem(storageKey, sessionId);
 
@@ -267,13 +264,9 @@ const ArticleDetails = () => {
       <div className="mb-5 border-b border-slate-100 pb-4">
         <div className="mb-2 flex items-center gap-2 text-[#00337C]">
           <Menu className="h-4 w-4" />
-          <p className="text-xs font-semibold uppercase tracking-wide">
-            Table of contents
-          </p>
+          <p className="text-xs font-semibold uppercase tracking-wide">Table of contents</p>
         </div>
-        <h2 className="text-lg font-light leading-tight text-slate-950">
-          Follow the article
-        </h2>
+        <h2 className="text-lg font-light leading-tight text-slate-950">Follow the article</h2>
       </div>
 
       {headings.length > 0 ? (
@@ -297,58 +290,42 @@ const ArticleDetails = () => {
               >
                 {index + 1}
               </span>
-              <span
-                className={`ml-2 text-sm leading-5 ${
-                  heading.level === "h3" ? "pl-3" : ""
-                }`}
-              >
+              <span className={`ml-2 text-sm leading-5 ${heading.level === "h3" ? "pl-3" : ""}`}>
                 {heading.text}
               </span>
             </button>
           ))}
         </nav>
       ) : (
-        <p className="text-sm text-slate-500">
-          This article does not have section headings yet.
-        </p>
+        <p className="text-sm text-slate-500">This article does not have section headings yet.</p>
       )}
     </>
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white py-20">
-        <div className="public-container text-center">
-          <div className="w-16 h-16 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-          <p className="text-slate-600">Loading article...</p>
-        </div>
-      </div>
-    );
+    return <BrandLoader label="Loading insight" size="lg" fullPage className="bg-white" />;
   }
 
   if (!article) {
     return (
       <div className="min-h-screen bg-white py-20">
         <SEO
-          title="Article not found | Build Your Best Self"
-          description="This BYBS article could not be found."
-          canonical={absoluteUrl(`/articles/${slug}`)}
+          title="Insight not found | Build Your Best Self"
+          description="This BYBS Insight could not be found."
+          canonical={absoluteUrl(`/insights/${slug}`)}
           noindex
         />
         <div className="public-container text-center">
           <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-6" />
-          <h1 className="text-2xl font-light text-slate-700 mb-4">
-            Article not found
+          <h1 className="mb-4 text-2xl font-light text-slate-700 md:text-3xl lg:text-4xl">
+            Insight not found
           </h1>
           <p className="text-slate-500 mb-8">
-            The article you are looking for does not exist or has been moved.
+            The Insight you are looking for does not exist or has been moved.
           </p>
-          <button
-            onClick={() => navigate(-1)}
-            className="public-button-primary px-6 py-3"
-          >
+          <button onClick={() => navigate(-1)} className="public-button-primary px-6 py-3">
             <ArrowLeft className="w-4 h-4" />
-            Back to Articles
+            Back to Insights
           </button>
         </div>
       </div>
@@ -356,9 +333,9 @@ const ArticleDetails = () => {
   }
 
   const excerpt = getExcerpt(article);
-  const articleUrl = absoluteUrl(`/articles/${article.slug || slug}`);
-  const articleDescription = excerpt || truncate(article.content, 155);
-  const articleImage = article.coverImage?.url;
+  const articleUrl = absoluteUrl(`/insights/${article.slug || slug}`);
+  const articleDescription = article.metaDescription || excerpt || truncate(article.content, 155);
+  const articleImage = article.socialImage?.url || article.coverImage?.url;
   const articleSchema = [
     {
       "@context": "https://schema.org",
@@ -366,13 +343,17 @@ const ArticleDetails = () => {
       headline: article.title,
       description: articleDescription,
       image: articleImage ? [articleImage] : undefined,
-      datePublished: article.createdAt,
+      datePublished: article.publishedAt || article.createdAt,
       dateModified: article.updatedAt || article.createdAt,
-      author: {
-        "@type": "Organization",
-        name: "Build Your Best Self",
-        url: absoluteUrl("/"),
-      },
+      author: article.authorName
+        ? {
+            "@type": "Person",
+            name: article.authorName,
+            jobTitle: article.authorRole || undefined,
+            description: article.authorBio || undefined,
+            image: article.authorImage?.url || undefined,
+          }
+        : { "@type": "Organization", name: "Build Your Best Self", url: absoluteUrl("/") },
       publisher: organizationSchema,
       mainEntityOfPage: {
         "@type": "WebPage",
@@ -381,15 +362,15 @@ const ArticleDetails = () => {
     },
     breadcrumbSchema([
       { name: "Home", path: "/" },
-      { name: "Articles", path: "/articles" },
-      { name: article.title, path: `/articles/${article.slug || slug}` },
+      { name: "Insights", path: "/insights" },
+      { name: article.title, path: `/insights/${article.slug || slug}` },
     ]),
   ];
 
   return (
     <main className="min-h-screen bg-[#FBFCFE] text-slate-950">
       <SEO
-        title={`${article.title} | BYBS Articles`}
+        title={article.seoTitle || `${article.title} | BYBS Insights`}
         description={articleDescription}
         canonical={articleUrl}
         image={articleImage}
@@ -411,25 +392,25 @@ const ArticleDetails = () => {
             className="inline-flex items-center text-sm font-medium text-slate-600 transition hover:text-[#00337C]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Articles
+            Back to Insights
           </button>
         </div>
       </div>
 
       <section className="border-b border-slate-100 bg-white">
-        <div className="public-container py-7 md:py-12">
+        <div className="public-container py-5 md:py-10 lg:py-15">
           <Motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.95fr)] lg:items-center"
           >
-            <div className="order-2 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 lg:order-1">
+            <div className="order-1 aspect-[16/10] overflow-hidden lg:aspect-[4/3]">
               {article.coverImage?.url ? (
                 <img
                   src={article.coverImage.url}
                   alt={article.title}
-                  className="aspect-[16/10] w-full object-cover lg:aspect-[5/4] lg:min-h-[440px]"
+                  className="h-full w-full rounded-lg object-contain"
                 />
               ) : (
                 <div className="flex aspect-[16/10] w-full items-center justify-center lg:aspect-[5/4] lg:min-h-[440px]">
@@ -442,7 +423,7 @@ const ArticleDetails = () => {
               <div className="mb-5 flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-2 rounded-full bg-[#F5F9FF] px-3 py-1 text-sm font-semibold text-[#00337C]">
                   <BookOpen className="h-3.5 w-3.5" />
-                  Article
+                  {article.category || "BYBS Insight"}
                 </span>
                 {article.tags?.length > 0 && (
                   <>
@@ -459,7 +440,7 @@ const ArticleDetails = () => {
                 )}
               </div>
 
-              <h1 className="max-w-3xl text-3xl font-light leading-tight text-[#00337C] sm:text-4xl lg:text-6xl">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl max-w-3xl font-light leading-tight text-[#00337C]">
                 {article.title}
               </h1>
 
@@ -469,10 +450,16 @@ const ArticleDetails = () => {
                 </p>
               )}
 
-              <div className="mt-7 grid gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
+                {article.authorName && (
+                  <span className="flex items-center gap-2">
+                    <UserRound className="w-4 h-4" />
+                    {article.authorName}
+                  </span>
+                )}
                 <span className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  {formatDate(article.createdAt)}
+                  {formatDate(article.publishedAt || article.createdAt)}
                 </span>
                 <span className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
@@ -484,7 +471,7 @@ const ArticleDetails = () => {
                 </span>
                 <span className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  {activeReaders || 1} reading now
+                  {activeReaders} reading now
                 </span>
               </div>
             </div>
@@ -492,10 +479,10 @@ const ArticleDetails = () => {
         </div>
       </section>
 
-      <section className="bg-white py-9 md:py-16">
+      <section className="bg-white py-5 md:py-10 lg:py-15">
         <div className="public-container">
           <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[minmax(0,46rem)_18rem] lg:items-start lg:justify-center">
-            <article className="min-w-0 border-t border-slate-200 pt-8 md:pt-12">
+            <article className="min-w-0">
               <Motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -520,25 +507,21 @@ const ArticleDetails = () => {
                 }
 
                 .article-content h2 {
-                  border-top: 1px solid #E5EAF2;
-                  font-size: 1.82rem;
+                  font-size: 1.25rem;
                   font-weight: 400;
                   color: #00337C;
-                  margin-top: 3.75rem;
+                  margin-top: 2.75rem;
                   margin-bottom: 0.75rem;
-                  padding-top: 2.25rem;
                   line-height: 1.2;
                   scroll-margin-top: 7rem;
                 }
 
                 .article-content h2:first-of-type {
                   margin-top: 0;
-                  border-top: 0;
-                  padding-top: 0;
                 }
 
                 .article-content h3 {
-                  font-size: 1.3rem;
+                  font-size: 1.125rem;
                   font-weight: 600;
                   color: #1E4B9E;
                   margin-top: 2.75rem;
@@ -593,9 +576,7 @@ const ArticleDetails = () => {
                 }
 
                 .article-content hr {
-                  border: 0;
-                  border-top: 1px solid #E5EAF2;
-                  margin: 3rem 0;
+                  display: none;
                 }
 
                 .article-content a {
@@ -605,12 +586,44 @@ const ArticleDetails = () => {
                 }
 
                 .article-content img {
+                  display: block;
                   border-radius: 0.75rem;
                   margin: 2.5rem 0;
                   max-width: 100%;
                   height: auto;
+                  object-fit: contain;
                   border: 1px solid #E5E7EB;
                   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+                }
+
+                .article-content div[data-video-embed] {
+                  aspect-ratio: 16 / 9;
+                  margin: 2.5rem 0;
+                  overflow: hidden;
+                  border-radius: 0.75rem;
+                  background: #0f172a;
+                }
+
+                .article-content div[data-video-embed] iframe,
+                .article-content > iframe {
+                  display: block;
+                  width: 100%;
+                  aspect-ratio: 16 / 9;
+                  border: 0;
+                }
+
+                .article-content div[data-video-embed] iframe {
+                  height: 100%;
+                }
+
+                @media (min-width: 1024px) {
+                  .article-content h2 {
+                    font-size: 1.5rem;
+                  }
+
+                  .article-content h3 {
+                    font-size: 1.25rem;
+                  }
                 }
 
                 .article-content strong {
@@ -661,9 +674,7 @@ const ArticleDetails = () => {
 
                 @media (max-width: 767px) {
                   .article-content h2 {
-                    font-size: 1.55rem;
                     margin-top: 2.5rem;
-                    padding-top: 1.75rem;
                   }
 
                   .article-content > p:first-of-type {
@@ -684,7 +695,79 @@ const ArticleDetails = () => {
               `}</style>
               </Motion.div>
 
-              <div className="mt-14 border-t border-slate-100 pt-8">
+              {article.authorName && (
+                <section
+                  className="mt-12 rounded-lg bg-[#F7F9FC] p-5 sm:p-6"
+                  aria-label="About the author"
+                >
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    {article.authorImage?.url ? (
+                      <img
+                        src={article.authorImage.url}
+                        alt={article.authorName}
+                        className="h-20 w-20 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-white text-[#00337C]">
+                        <UserRound className="h-8 w-8" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-[#B96500]">
+                        About the author
+                      </p>
+                      <h2 className="mt-2 text-xl font-semibold text-[#00337C]">
+                        {article.authorName}
+                      </h2>
+                      {article.authorRole && (
+                        <p className="mt-1 text-sm font-medium text-slate-500">
+                          {article.authorRole}
+                        </p>
+                      )}
+                      {article.authorBio && (
+                        <p className="mt-3 leading-7 text-slate-600">{article.authorBio}</p>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {article.linkedReflection && (
+                <section className="mt-12 rounded-lg bg-[#F5F9FF] px-5 py-7 sm:px-7">
+                  <div className="flex items-start gap-3 text-[#00337C]">
+                    <MessageCircleQuestion className="mt-1 h-6 w-6 shrink-0 text-[#D67A00]" />
+                    <div>
+                      <p className="text-sm font-semibold uppercase">This week's BYBS Reflection</p>
+                      <h2 className="mt-3 text-2xl font-light leading-8">
+                        {article.linkedReflection.question}
+                      </h2>
+                      {article.linkedReflection.description && (
+                        <p className="mt-4 leading-7 text-slate-600">
+                          {article.linkedReflection.description}
+                        </p>
+                      )}
+                      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                        {article.linkedReflection.canSubmit && (
+                          <Link
+                            to={`/community/reflections/submit?prompt=${article.linkedReflection.slug}`}
+                            className="public-button-primary px-6 py-3"
+                          >
+                            Share your reflection <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        )}
+                        <Link
+                          to={`/community/reflections/${article.linkedReflection.slug}`}
+                          className="public-button-secondary px-6 py-3"
+                        >
+                          Explore community responses
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              <div className="mt-14">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap gap-3">
                     <button
@@ -695,11 +778,7 @@ const ArticleDetails = () => {
                           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                       }`}
                     >
-                      <Bookmark
-                        className={`w-4 h-4 mr-2 ${
-                          isBookmarked ? "fill-current" : ""
-                        }`}
-                      />
+                      <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? "fill-current" : ""}`} />
                       {isBookmarked ? "Saved" : "Save"}
                     </button>
 
@@ -713,11 +792,11 @@ const ArticleDetails = () => {
                   </div>
 
                   <Link
-                    to="/articles"
+                    to="/insights"
                     className="inline-flex items-center text-sm font-semibold text-[#00337C] hover:text-[#1E4B9E]"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to all articles
+                    Back to all insights
                   </Link>
                 </div>
               </div>
@@ -752,7 +831,7 @@ const ArticleDetails = () => {
       </section>
 
       {relatedArticles.length > 0 && (
-        <section className="border-t border-slate-100 bg-[#F7F9FC] py-10 md:py-16">
+        <section className="border-t border-slate-100 bg-[#F7F9FC] py-5 md:py-10 lg:py-15">
           <div className="public-container">
             <div className="mx-auto max-w-7xl">
               <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -761,15 +840,15 @@ const ArticleDetails = () => {
                     Keep reading
                   </p>
                   <h2 className="text-2xl font-light text-[#00337C] md:text-3xl">
-                    More articles for your season
+                    More insights for your season
                   </h2>
                 </div>
 
                 <Link
-                  to="/articles"
+                  to="/insights"
                   className="inline-flex items-center text-sm font-semibold text-[#00337C] hover:text-[#1E4B9E]"
                 >
-                  View all articles
+                  View all insights
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </div>
@@ -784,7 +863,7 @@ const ArticleDetails = () => {
                     transition={{ duration: 0.35, delay: index * 0.05 }}
                   >
                     <Link
-                      to={`/articles/${relatedArticle.slug}`}
+                      to={`/insights/${relatedArticle.slug}`}
                       className="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-lg"
                     >
                       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -792,7 +871,7 @@ const ArticleDetails = () => {
                           <img
                             src={relatedArticle.coverImage.url}
                             alt={relatedArticle.title}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            className="h-full w-full object-contain"
                             loading="lazy"
                           />
                         ) : (
@@ -814,7 +893,7 @@ const ArticleDetails = () => {
                           <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                             <span className="flex items-center gap-1.5">
                               <Calendar className="h-4 w-4" />
-                              {formatDate(relatedArticle.createdAt)}
+                              {formatDate(relatedArticle.publishedAt || relatedArticle.createdAt)}
                             </span>
                             <span className="flex items-center gap-1.5">
                               <Clock className="h-4 w-4" />
@@ -822,7 +901,7 @@ const ArticleDetails = () => {
                             </span>
                           </div>
                           <span className="inline-flex items-center text-sm font-semibold text-[#00337C]">
-                            Read article
+                            Read insight
                             <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" />
                           </span>
                         </div>

@@ -1,0 +1,5 @@
+**/node_modules
+**/dist
+**/coverage
+build-your-best/public/sitemap.xml
+backend/invoices

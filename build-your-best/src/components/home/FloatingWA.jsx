@@ -1,10 +1,12 @@
-import { FaComment, FaTimes } from 'react-icons/fa';
-import { useState } from 'react';
+import { FaComment, FaTimes } from "react-icons/fa";
+import { useState } from "react";
 
 export default function WhatsAppFloat() {
   const [isOpen, setIsOpen] = useState(false);
-  const phoneNumber = '211921650576';
-  const message = encodeURIComponent("Hi Brenda Viola, I came across your website and would like to learn more about your coaching services. Could you please share more information?");
+  const phoneNumber = "211921650576";
+  const message = encodeURIComponent(
+    "Hi Brenda Viola, I came across your website and would like to learn more about your coaching services. Could you please share more information?"
+  );
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
@@ -12,7 +14,7 @@ export default function WhatsAppFloat() {
         <div className="animate-fade-in-up bg-white rounded-lg shadow-xl overflow-hidden w-72 border border-[#F7D9D9]">
           <div className="bg-gradient-to-r from-[#00337C] to-[#1E40AF] p-3 flex justify-between items-center">
             <h3 className="text-[#F7D9D9] font-medium">Chat with Us</h3>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="text-[#F7D9D9] hover:text-white transition-colors duration-200"
             >

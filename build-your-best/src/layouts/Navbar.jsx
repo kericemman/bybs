@@ -1,164 +1,253 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, Heart, Menu, X } from "lucide-react";
-import { Link, NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, Menu, X } from "lucide-react";
+import { Link, NavLink, useLocation } from "react-router-dom";
+import { COMMUNITY_LINKS, INVOLVEMENT_LINKS, PROGRAM_LINKS, SITE } from "../config/site";
+
+const linkClass = ({ isActive }) =>
+  `inline-flex min-h-11 items-center px-3 text-sm font-medium transition-colors ${
+    isActive ? "text-[#00337C]" : "text-gray-600 hover:text-[#00337C]"
+  }`;
+
+function Dropdown({ id, label, items, open, onToggle }) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-haspopup="menu"
+        className="inline-flex min-h-11 items-center gap-1 px-3 text-sm font-medium text-gray-600 hover:text-[#00337C]"
+      >
+        {label}
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div
+          id={id}
+          className="absolute left-0 top-full z-50 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl"
+        >
+          {items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="block rounded-md px-3 py-2.5 text-sm text-gray-700 hover:bg-[#F5F9FF] hover:text-[#00337C]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileGroup({ label, items }) {
+  const [open, setOpen] = useState(false);
+  const id = `mobile-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={id}
+        className="flex min-h-12 w-full items-center justify-between rounded-md px-3 py-3 text-left font-medium text-gray-800 hover:bg-[#F5F9FF]"
+      >
+        {label}
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div id={id} className="ml-3 border-l border-gray-200 pl-3">
+          {items.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="block rounded-md px-3 py-2.5 text-sm text-gray-600 hover:bg-[#F5F9FF]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState("");
+  const navRef = useRef(null);
+  const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    handleScroll();
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    setMobileOpen(false);
+    setOpenMenu("");
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handlePointer = (event) => {
+      if (!navRef.current?.contains(event.target)) setOpenMenu("");
+    };
+    const handleKey = (event) => {
+      if (event.key === "Escape") setOpenMenu("");
+    };
+    document.addEventListener("pointerdown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, []);
 
-  const navItems = [
-    { name: "Home", to: "/" },
-    { name: "Cohorts", to: "/fellowship" },
-    { name: "Coaching", to: "/coaching" },
-    
-    { name: "Buy Merchandise", to: "/shop" },
-    { name: "News & Updates", to: "/articles" },
-    { name: "Contact Us", to: "/contact" },
-  ];
+  const toggle = (name) => setOpenMenu((current) => (current === name ? "" : name));
 
   return (
-    <>
-      <div className="bg-[#00337C] text-white text-sm relative z-50">
-        <div className="public-container py-2.5 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-4 text-center">
-          <p className="text-white/90">
-            BYBS Charity Campaign: supporting Divine Mercy Charity Home through
-            merchandise purchases.
-          </p>
-
+    <header
+      ref={navRef}
+      className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur"
+    >
+      <nav className="public-container" aria-label="Primary navigation">
+        <div className="flex min-h-20 items-center justify-between gap-5">
           <Link
-            to="/charity-merch"
-            className="inline-flex items-center gap-2 bg-white text-[#00337C] hover:bg-[#FFD166] px-4 py-1.5 rounded-full font-semibold transition-colors text-xs sm:text-sm"
+            to="/"
+            className="flex min-w-0 items-center gap-3"
+            aria-label="Build Your Best Self home"
           >
-            Support the mission
-            <ArrowRight className="w-3.5 h-3.5" />
+            <img src={SITE.logo} alt="" className="h-14 w-11 flex-none object-contain" />
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-[#00337C] sm:text-lg">
+                {SITE.name}
+              </p>
+              <p className="text-[0.67rem] font-semibold uppercase text-[#B96500]">
+                {SITE.tagline}
+              </p>
+            </div>
           </Link>
-        </div>
-      </div>
 
-      <nav
-        className={`bg-white/95 backdrop-blur sticky top-0 z-40 border-b transition-shadow ${
-          scrolled
-            ? "border-gray-200 shadow-sm"
-            : "border-gray-100"
-        }`}
-      >
-        <div className="public-container">
-          <div className="flex justify-between h-18 md:h-20 items-center">
-            <Link to="/" className="flex items-center gap-4 group">
-             
+          <div className="hidden items-center xl:flex">
+            <NavLink to="/" className={linkClass}>
+              Home
+            </NavLink>
+            <NavLink to="/about" className={linkClass}>
+              About
+            </NavLink>
+            <Dropdown
+              id="programs-menu"
+              label="Programs"
+              items={PROGRAM_LINKS}
+              open={openMenu === "programs"}
+              onToggle={() => toggle("programs")}
+            />
+            <Dropdown
+              id="community-menu"
+              label="Community"
+              items={COMMUNITY_LINKS}
+              open={openMenu === "community"}
+              onToggle={() => toggle("community")}
+            />
+            <NavLink to="/impact" className={linkClass}>
+              Impact
+            </NavLink>
+            <NavLink to="/insights" className={linkClass}>
+              Insights
+            </NavLink>
+            <NavLink to="/shop" className={linkClass}>
+              Shop BYBS
+            </NavLink>
+          </div>
 
-              <div>
-                <div className="text-lg font-semibold text-gray-950 group-hover:text-[#00337C] transition-colors">
-                  Build Your Best Self
-                </div>
-                <div className="text-xs uppercase tracking-[0.18em] text-gray-500">
-                  Inspire. Heal. Evolve.
-                </div>
-              </div>
+          <div className="relative hidden items-center gap-1 xl:flex">
+            <Link to="/get-involved" className="public-button-primary px-5 py-2.5 text-sm">
+              Get involved
             </Link>
-
-            <div className="hidden lg:flex items-center gap-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      isActive
-                        ? "text-[#00337C] bg-[#F5F9FF]"
-                        : "text-gray-600 hover:text-[#00337C] hover:bg-gray-50"
-                    }`
-                  }
-                >
-                  {item.name}
-                </NavLink>
-              ))}
-            </div>
-
-            <div className="hidden lg:flex items-center gap-3">
-              <Link
-                to="/charity-merch"
-                className="inline-flex items-center justify-center w-10 h-10 border border-gray-200 rounded-lg text-[#B76E79] hover:border-[#B76E79]/40 hover:bg-[#FFF7F8] transition-colors"
-                aria-label="Charity campaign"
-              >
-                <Heart className="w-5 h-5" />
-              </Link>
-
-              <a
-                href="https://calendly.com/buildyourbestselfblog-info"
-                className="public-button-primary px-5 py-2.5 text-sm"
-              >
-                Book session
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-700 hover:text-[#00337C] hover:bg-gray-50 transition-colors"
-              aria-label="Toggle menu"
+              type="button"
+              onClick={() => toggle("involvement")}
+              aria-label="Show Get Involved options"
+              aria-expanded={openMenu === "involvement"}
+              className="flex h-11 w-9 items-center justify-center rounded-lg text-[#00337C] hover:bg-[#F5F9FF]"
             >
-              {isOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${openMenu === "involvement" ? "rotate-180" : ""}`}
+              />
             </button>
+            {openMenu === "involvement" && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-xl">
+                {INVOLVEMENT_LINKS.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="block rounded-md px-3 py-2.5 text-sm text-gray-700 hover:bg-[#F5F9FF] hover:text-[#00337C]"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((value) => !value)}
+            className="flex h-11 w-11 flex-none items-center justify-center rounded-lg text-[#00337C] hover:bg-[#F5F9FF] xl:hidden"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
 
-        <div
-          className={`lg:hidden transition-all duration-300 ease-in-out overflow-hidden ${
-            isOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="px-4 pb-5 bg-white border-t border-gray-100">
-            <div className="public-container py-3 space-y-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `block px-4 py-3 rounded-lg font-medium transition-colors ${
-                      isActive
-                        ? "text-[#00337C] bg-[#F5F9FF]"
-                        : "text-gray-700 hover:text-[#00337C] hover:bg-gray-50"
-                    }`
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  {item.name}
-                </NavLink>
-              ))}
-
-              <Link
-                to="/charity-merch"
-                className="flex items-center justify-center gap-2 w-full bg-[#FFF7F8] text-[#B76E79] px-4 py-3 rounded-lg font-semibold mt-3"
-                onClick={() => setIsOpen(false)}
+        {mobileOpen && (
+          <div id="mobile-navigation" className="border-t border-gray-100 py-4 xl:hidden">
+            <div className="grid gap-1">
+              <NavLink
+                to="/"
+                className="rounded-md px-3 py-3 font-medium text-gray-800 hover:bg-[#F5F9FF]"
               >
-                <Heart className="w-4 h-4" />
-                Support charity campaign
+                Home
+              </NavLink>
+              <NavLink
+                to="/about"
+                className="rounded-md px-3 py-3 font-medium text-gray-800 hover:bg-[#F5F9FF]"
+              >
+                About
+              </NavLink>
+              <MobileGroup label="Programs" items={PROGRAM_LINKS} />
+              <MobileGroup label="Community" items={COMMUNITY_LINKS} />
+              <NavLink
+                to="/impact"
+                className="rounded-md px-3 py-3 font-medium text-gray-800 hover:bg-[#F5F9FF]"
+              >
+                Impact
+              </NavLink>
+              <NavLink
+                to="/insights"
+                className="rounded-md px-3 py-3 font-medium text-gray-800 hover:bg-[#F5F9FF]"
+              >
+                Insights
+              </NavLink>
+              <NavLink
+                to="/shop"
+                className="rounded-md px-3 py-3 font-medium text-gray-800 hover:bg-[#F5F9FF]"
+              >
+                Shop BYBS
+              </NavLink>
+              <MobileGroup label="Get involved" items={INVOLVEMENT_LINKS} />
+              <Link to="/get-involved" className="public-button-primary mt-2 w-full px-5 py-3">
+                Explore ways to help
               </Link>
-
-              <a
-                href="https://calendly.com/buildyourbestselfblog-info"
-                className="public-button-primary w-full px-4 py-3 mt-2"
-                onClick={() => setIsOpen(false)}
-              >
-                Book a session
-                <ArrowRight className="w-4 h-4" />
-              </a>
             </div>
           </div>
-        </div>
+        )}
       </nav>
-    </>
+    </header>
   );
 }

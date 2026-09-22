@@ -1,42 +1,37 @@
-# Build Your Best Self (BYBS)
+# Build Your Best Self
 
-BYBS is a full-stack MERN platform powering:
+BYBS is a full-stack platform for the organisation's public website and internal administration.
 
-- Fellowship Cohort Management
-- Articles & Content Publishing
-- Ecommerce (Ebooks & Merchandise)
-- Secure Payments (Paystack)
-- Automated Invoice Generation
-- Email Campaign System
-- Subscriber Growth Engine
-- Admin Dashboard Management
+## Current Capabilities
 
-This project is production-ready and built with scalability, security, and modular architecture in mind.
+- Fellowship cohorts, applications, screening, invitations, and regret emails
+- Articles with rich text, images, video embeds, authors, newsletters, and live reader counts
+- Community actions, reflections, testimonials, participation, and impact stories
+- Products, merchandise support requests, and order follow-up through the BYBS team
+- Admin and limited manager roles with permission-based access
+- Cloudinary media storage, Resend email delivery, and MongoDB persistence
 
-For Hostinger VPS deployment steps, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+The website does not collect payment. Shop and support requests are saved for admin follow-up through the official BYBS contact channels.
 
----
+## Applications
 
-## Tech Stack
+- `build-your-best`: React and Vite frontend
+- `backend`: Express and MongoDB API
+- `deploy/nginx`: production reverse-proxy configuration
+- `ecosystem.config.cjs`: PM2 process definition
 
-### Frontend
-- React (Vite)
-- Tailwind CSS
-- Axios
-- Framer Motion
-- Paystack Inline JS
+Node.js 22 LTS is recommended. Copy each `.env.example` to `.env` and replace every placeholder before starting the applications.
 
-### Backend
-- Node.js
-- Express
-- MongoDB (Mongoose)
-- JWT Authentication
-- Paystack Webhooks
-- Cloudinary (Media Storage)
-- Resend (Transactional Emails)
-- ReportLab (PDF Invoice Generation)
+```bash
+cd backend
+npm ci
+npm run dev
+```
 
----
+```bash
+cd build-your-best
+npm ci
+npm run dev
+```
 
-
-# bybs
+For the Hostinger VPS production procedure, security checks, Nginx setup, and routine update commands, see [DEPLOYMENT.md](./DEPLOYMENT.md).

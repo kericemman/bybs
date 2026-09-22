@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../utils/axios";
-import CheckoutModal from "../../components/modal/CheckoutModal";
 import SEO from "../../components/SEO";
+import BrandLoader from "../../components/public/BrandLoader";
 import { absoluteUrl, breadcrumbSchema } from "../../lib/seo";
 import {
   BookOpen,
@@ -11,12 +11,38 @@ import {
   Search,
   ShoppingBag,
   Filter,
+  GraduationCap,
+  HandHeart,
+  HeartHandshake,
   Menu,
   X,
   Plus,
   Trash2,
+  UsersRound,
+  MessageCircle,
 } from "lucide-react";
 import { motion as Motion } from "framer-motion";
+
+const shopImpactAreas = [
+  {
+    icon: GraduationCap,
+    title: "BYBS Fellowship",
+    description:
+      "Help more women and young people access guided learning, mentorship, and practical development.",
+  },
+  {
+    icon: HandHeart,
+    title: "EmpowerHer",
+    description:
+      "Support women building confidence, useful skills, stability, and pathways to new opportunities.",
+  },
+  {
+    icon: UsersRound,
+    title: "Community outreach",
+    description:
+      "Strengthen practical service, learning, care, and connection within the communities BYBS serves.",
+  },
+];
 
 const Shop = () => {
   useEffect(() => {
@@ -34,7 +60,6 @@ const Shop = () => {
 
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [checkoutProduct, setCheckoutProduct] = useState(null);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -90,9 +115,7 @@ const Shop = () => {
 
       if (existing) {
         return prev.map((item) =>
-          item._id === product._id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
 
@@ -109,11 +132,7 @@ const Shop = () => {
   const updateQuantity = (productId, quantity) => {
     if (quantity < 1) return;
 
-    setCart((prev) =>
-      prev.map((item) =>
-        item._id === productId ? { ...item, quantity } : item
-      )
-    );
+    setCart((prev) => prev.map((item) => (item._id === productId ? { ...item, quantity } : item)));
   };
 
   const cartTotal = cart.reduce(
@@ -143,13 +162,13 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-white">
       <SEO
-        title="Shop | BYBS Ebooks and Merchandise"
-        description="Shop BYBS ebooks, resources, and merchandise that support personal growth, reflection, and the BYBS charity mission."
+        title="Shop BYBS | Purchases That Power Our Programmes"
+        description="Shop BYBS ebooks, resources, and merchandise. Every purchase helps sustain Fellowship, EmpowerHer, youth development, mentorship, and community outreach."
         canonical={absoluteUrl("/shop")}
         schema={productListSchema}
       />
       {/* Hero Section */}
-      <section className="py-12 bg-gradient-to-br from-[#F5F9FF] to-[#FFF0F0]">
+      <section className="bg-gradient-to-br from-[#F5F9FF] to-[#FFF0F0] py-5 md:py-10 lg:py-15">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -158,17 +177,38 @@ const Shop = () => {
           >
             <div className="inline-flex items-center px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full text-sm mb-6">
               <BookOpen className="w-4 h-4 mr-2 text-[#00337C]" />
-              <span className="text-[#00337C]">Personal Growth Library</span>
+              <span className="text-[#00337C]">Shop with purpose</span>
             </div>
 
-            <h1 className="text-2xl md:text-5xl font-light text-[#00337C] mb-6">
-              eBooks & Merch for Your Journey
+            <h1 className="text-2xl md:text-3xl md:text-center text-start lg:text-4xl font-light text-[#00337C] mb-6">
+              Useful resources that help BYBS reach further.
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-              Support our mission with every purchase
+            <p className="mx-auto max-w-3xl text-base md:text-center text-start leading-8 text-gray-600 md:text-lg">
+              The BYBS Shop generates revenue that helps us run the organisation and expand
+              programmes for women and youth through Fellowship, EmpowerHer, mentorship, and
+              community outreach.
+            </p>
+            <p className="mx-auto mt-4 max-w-2xl text-sm md:text-center text-start leading-6 text-gray-500">
+              Every ebook or merchandise order supports both programme delivery and the everyday
+              work required to keep BYBS moving.
             </p>
           </Motion.div>
+        </div>
+      </section>
+
+      <section className="bg-[#00337C] text-white" aria-label="How shop purchases support BYBS">
+        <div className="mx-auto grid max-w-7xl gap-px  px-4 sm:px-6 md:grid-cols-3 lg:px-8">
+          {shopImpactAreas.map((area) => {
+            const ImpactIcon = area.icon;
+            return (
+              <div key={area.title} className="bg-[#00337C] py-6 md:px-6 md:py-8">
+                <ImpactIcon className="" aria-hidden="true" />
+                <h2 className="mt-4 text-lg font-semibold">{area.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-white/75">{area.description}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -205,17 +245,13 @@ const Shop = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`relative px-6 py-4 text-sm font-medium transition-all duration-200 ${
-                      activeTab === tab.id
-                        ? "text-[#00337C]"
-                        : "text-gray-600 hover:text-[#00337C]"
+                      activeTab === tab.id ? "text-[#00337C]" : "text-gray-600 hover:text-[#00337C]"
                     }`}
                   >
                     <div className="flex items-center space-x-2">
                       <Icon
                         className={`w-4 h-4 ${
-                          activeTab === tab.id
-                            ? "text-[#00337C]"
-                            : "text-gray-500"
+                          activeTab === tab.id ? "text-[#00337C]" : "text-gray-500"
                         }`}
                       />
 
@@ -271,11 +307,7 @@ const Shop = () => {
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-2 text-gray-600 hover:text-[#00337C] rounded-lg hover:bg-gray-100"
               >
-                {mobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
 
               <div className="flex-1 mx-4">
@@ -373,11 +405,7 @@ const Shop = () => {
         <div className="flex justify-between items-center">
           <p className="text-sm text-gray-600">
             {filteredProducts.length}{" "}
-            {filter === "all"
-              ? "products"
-              : filter === "ebook"
-              ? "eBooks"
-              : "merchandise items"}{" "}
+            {filter === "all" ? "products" : filter === "ebook" ? "eBooks" : "merchandise items"}{" "}
             found
           </p>
 
@@ -402,12 +430,7 @@ const Shop = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600">Loading products...</p>
-          </div>
-        )}
+        {loading && <BrandLoader label="Loading products" className="py-20" />}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center max-w-2xl mx-auto">
@@ -435,8 +458,8 @@ const Shop = () => {
               {searchTerm
                 ? "Try adjusting your search term"
                 : filter !== "all"
-                ? `No ${filter} available at the moment`
-                : "No products available at the moment"}
+                  ? `No ${filter} available at the moment`
+                  : "No products available at the moment"}
             </p>
           </div>
         )}
@@ -490,6 +513,14 @@ const Shop = () => {
                       </p>
                     )}
 
+                    <p className="mb-4 flex items-start gap-2 text-xs leading-5 text-gray-500">
+                      <HeartHandshake
+                        className="mt-0.5 h-4 w-4 shrink-0 text-[#B96500]"
+                        aria-hidden="true"
+                      />
+                      Your purchase helps sustain BYBS programmes for women and youth.
+                    </p>
+
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-light text-[#B76E79]">
                         ${Number(product.price || 0).toFixed(2)}
@@ -501,9 +532,7 @@ const Shop = () => {
                             product.stock > 0 ? "text-gray-500" : "text-red-500"
                           }`}
                         >
-                          {product.stock > 0
-                            ? `${product.stock} left`
-                            : "Sold out"}
+                          {product.stock > 0 ? `${product.stock} left` : "Sold out"}
                         </span>
                       )}
                     </div>
@@ -516,19 +545,26 @@ const Shop = () => {
                         View
                       </Link>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          product.type === "ebook"
-                            ? setCheckoutProduct(product)
-                            : addToCart(product)
-                        }
-                        disabled={product.type === "merch" && product.stock <= 0}
-                        className="flex-1 bg-[#00337C] text-white py-2 rounded-lg text-sm hover:bg-[#1E4B9E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                      >
-                        <Plus className="w-4 h-4" />
-                        {product.type === "ebook" ? "Buy" : "Add"}
-                      </button>
+                      {product.type === "ebook" ? (
+                        <Link
+                          to="/order-request"
+                          state={{ cart: [{ ...product, quantity: 1 }] }}
+                          className="flex-1 bg-[#00337C] text-white py-2 rounded-lg text-sm hover:bg-[#1E4B9E] transition-colors flex items-center justify-center gap-1"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          Request
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => addToCart(product)}
+                          disabled={product.stock <= 0}
+                          className="flex-1 bg-[#00337C] text-white py-2 rounded-lg text-sm hover:bg-[#1E4B9E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -537,11 +573,7 @@ const Shop = () => {
 
             <p className="text-sm text-gray-500 text-center mt-10">
               Showing {filteredProducts.length} of{" "}
-              {
-                products.filter(
-                  (p) => filter === "all" || p.type === filter
-                ).length
-              }{" "}
+              {products.filter((p) => filter === "all" || p.type === filter).length}{" "}
               {filter === "all" ? "products" : filter}
             </p>
           </>
@@ -566,20 +598,13 @@ const Shop = () => {
       {/* Cart Drawer */}
       {cartOpen && (
         <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setCartOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setCartOpen(false)} />
 
           <aside className="absolute right-0 top-0 h-full w-full sm:w-[430px] bg-white shadow-2xl flex flex-col">
             <div className="px-6 py-5 border-b border-gray-100 flex items-start justify-between">
               <div>
-                <p className="text-sm text-[#B76E79] font-medium">
-                  Merch cart
-                </p>
-                <h2 className="text-2xl font-light text-[#00337C]">
-                  Your selection
-                </h2>
+                <p className="text-sm text-[#B76E79] font-medium">Merch cart</p>
+                <h2 className="text-2xl font-light text-[#00337C]">Your selection</h2>
               </div>
 
               <button
@@ -595,11 +620,9 @@ const Shop = () => {
               <div className="flex-1 flex items-center justify-center px-6">
                 <div className="text-center">
                   <ShoppingBag className="w-14 h-14 text-gray-300 mx-auto mb-4" />
-                  <p className="text-lg font-light text-[#00337C]">
-                    Your cart is empty
-                  </p>
+                  <p className="text-lg font-light text-[#00337C]">Your cart is empty</p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Add merch items to start checkout.
+                    Add merchandise, then send the request to the BYBS admin on WhatsApp.
                   </p>
                 </div>
               </div>
@@ -640,23 +663,17 @@ const Shop = () => {
 
                         <div className="flex items-center gap-2 mt-3">
                           <button
-                            onClick={() =>
-                              updateQuantity(item._id, item.quantity - 1)
-                            }
+                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
                             className="w-8 h-8 border border-gray-200 rounded-lg text-gray-700 hover:border-[#00337C] hover:text-[#00337C]"
                             aria-label={`Decrease ${item.title} quantity`}
                           >
                             -
                           </button>
 
-                          <span className="text-sm w-6 text-center">
-                            {item.quantity}
-                          </span>
+                          <span className="text-sm w-6 text-center">{item.quantity}</span>
 
                           <button
-                            onClick={() =>
-                              updateQuantity(item._id, item.quantity + 1)
-                            }
+                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
                             className="w-8 h-8 border border-gray-200 rounded-lg text-gray-700 hover:border-[#00337C] hover:text-[#00337C]"
                             aria-label={`Increase ${item.title} quantity`}
                           >
@@ -682,28 +699,22 @@ const Shop = () => {
                     <span>${cartTotal.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-gray-500 mb-4">
-                    Delivery details are collected on the next step.
+                    No online payment is collected. Add your details next, then continue with the
+                    BYBS admin on WhatsApp.
                   </p>
 
                   <Link
-                    to="/checkout"
+                    to="/order-request"
                     state={{ cart }}
                     className="block w-full text-center bg-[#00337C] text-white py-3.5 rounded-lg hover:bg-[#1E4B9E] transition-colors"
                   >
-                    Proceed to Checkout
+                    Continue on WhatsApp
                   </Link>
                 </div>
               </>
             )}
           </aside>
         </div>
-      )}
-
-      {checkoutProduct && (
-        <CheckoutModal
-          product={checkoutProduct}
-          onClose={() => setCheckoutProduct(null)}
-        />
       )}
     </div>
   );

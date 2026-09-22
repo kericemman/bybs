@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { changeAdminPassword, loginAdmin, getMe } from "../api/auth.api";
+import { changeAdminPassword, getMe, loginAdmin, logoutAdmin } from "../api/auth.api";
 
 const AuthContext = createContext();
 
@@ -8,9 +8,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("token");
     setAdmin(null);
     setLoading(false);
+    logoutAdmin().catch(() => {});
   }, []);
 
   const fetchAdmin = useCallback(async () => {
@@ -28,9 +28,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (email, password) => {
     const { data } = await loginAdmin({ email, password });
-    localStorage.setItem("token", data.token);
-    return fetchAdmin();
-  }, [fetchAdmin]);
+    setAdmin(data);
+    return data;
+  }, []);
 
   const changePassword = useCallback(async (payload) => {
     const { data } = await changeAdminPassword(payload);
@@ -39,11 +39,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (localStorage.getItem("token")) {
-      fetchAdmin();
-    } else {
-      setLoading(false);
-    }
+    localStorage.removeItem("token");
+    fetchAdmin();
   }, [fetchAdmin]);
 
   return (

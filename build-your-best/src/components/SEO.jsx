@@ -1,11 +1,5 @@
 import { useEffect } from "react";
-import {
-  DEFAULT_DESCRIPTION,
-  DEFAULT_IMAGE,
-  SITE_NAME,
-  absoluteUrl,
-  truncate,
-} from "../lib/seo";
+import { DEFAULT_DESCRIPTION, DEFAULT_IMAGE, SITE_NAME, absoluteUrl, truncate } from "../lib/seo";
 
 const upsertMeta = (selector, attributes) => {
   let element = document.head.querySelector(selector);

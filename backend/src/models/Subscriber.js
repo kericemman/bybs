@@ -6,8 +6,11 @@ const subscriberSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
+      maxlength: 254,
     },
-    name: String,
+    name: { type: String, trim: true, maxlength: 120 },
     isActive: {
       type: Boolean,
       default: true,

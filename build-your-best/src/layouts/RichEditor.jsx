@@ -1,11 +1,12 @@
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import TextAlign from '@tiptap/extension-text-align';
-import Placeholder from '@tiptap/extension-placeholder';
-import CharacterCount from '@tiptap/extension-character-count';
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import TextAlign from "@tiptap/extension-text-align";
+import Placeholder from "@tiptap/extension-placeholder";
+import CharacterCount from "@tiptap/extension-character-count";
+import { mergeAttributes, Node } from "@tiptap/core";
 
 import {
   Bold,
@@ -21,26 +22,138 @@ import {
   AlignRight,
   Link as LinkIcon,
   Image as ImageIcon,
+  Video,
   Undo,
   Redo,
   Code,
-  Quote
-} from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+  Quote,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-const normalizeUrl = (value = '') => {
+const normalizeUrl = (value = "") => {
   const trimmed = value.trim();
-  if (!trimmed) return '';
+  if (!trimmed) return "";
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 };
 
+const getVideoEmbedUrl = (input = "") => {
+  let value = input.trim();
+  if (!value) return "";
+
+  if (value.startsWith("<")) {
+    const parsed = new DOMParser().parseFromString(value, "text/html");
+    value = parsed.querySelector("iframe")?.getAttribute("src") || "";
+  }
+
+  try {
+    const url = new URL(normalizeUrl(value));
+    const host = url.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be") {
+      const videoId = url.pathname.split("/").filter(Boolean)[0];
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : "";
+    }
+
+    if (["youtube.com", "m.youtube.com", "youtube-nocookie.com"].includes(host)) {
+      const pathParts = url.pathname.split("/").filter(Boolean);
+      const videoId =
+        url.searchParams.get("v") ||
+        (["embed", "shorts", "live"].includes(pathParts[0]) ? pathParts[1] : "");
+      return videoId ? `https://www.youtube-nocookie.com/embed/${videoId}` : "";
+    }
+
+    if (host === "vimeo.com") {
+      const videoId = url.pathname
+        .split("/")
+        .filter(Boolean)
+        .find((part) => /^\d+$/.test(part));
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : "";
+    }
+
+    if (host === "player.vimeo.com") {
+      const videoId = url.pathname.match(/\/video\/(\d+)/)?.[1];
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : "";
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+};
+
+const VideoEmbed = Node.create({
+  name: "videoEmbed",
+  group: "block",
+  atom: true,
+  draggable: true,
+
+  addAttributes() {
+    return {
+      src: { default: null },
+      title: { default: "Embedded video" },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: "div[data-video-embed]",
+        getAttrs: (element) => {
+          const iframe = element.querySelector("iframe");
+          return {
+            src: iframe?.getAttribute("src"),
+            title: iframe?.getAttribute("title") || "Embedded video",
+          };
+        },
+      },
+      {
+        tag: "iframe[data-video-embed]",
+        getAttrs: (element) => ({
+          src: element.getAttribute("src"),
+          title: element.getAttribute("title") || "Embedded video",
+        }),
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      { "data-video-embed": "true" },
+      [
+        "iframe",
+        mergeAttributes(HTMLAttributes, {
+          "data-video-embed": "true",
+          loading: "lazy",
+          allow:
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+          allowfullscreen: "true",
+          referrerpolicy: "strict-origin-when-cross-origin",
+        }),
+      ],
+    ];
+  },
+
+  addCommands() {
+    return {
+      setVideoEmbed:
+        (attributes) =>
+        ({ commands }) =>
+          commands.insertContent({ type: this.name, attrs: attributes }),
+    };
+  },
+});
+
 const MenuBar = ({ editor, onImageUpload }) => {
-  const [linkUrl, setLinkUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState('');
+  const [imageUploadError, setImageUploadError] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [videoInput, setVideoInput] = useState("");
+  const [showVideoInput, setShowVideoInput] = useState(false);
+  const [videoError, setVideoError] = useState("");
   const imageFileInputRef = useRef(null);
 
   const addLink = () => {
@@ -48,7 +161,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
     if (href) {
       editor.chain().focus().setLink({ href }).run();
-      setLinkUrl('');
+      setLinkUrl("");
       setShowLinkInput(false);
     }
   };
@@ -58,9 +171,9 @@ const MenuBar = ({ editor, onImageUpload }) => {
 
     if (src) {
       editor.chain().focus().setImage({ src }).run();
-      setImageUrl('');
+      setImageUrl("");
       setShowImageInput(false);
-      setImageUploadError('');
+      setImageUploadError("");
     }
   };
 
@@ -69,33 +182,46 @@ const MenuBar = ({ editor, onImageUpload }) => {
     if (!file) return;
 
     if (!onImageUpload) {
-      setImageUploadError('Image uploads are not available in this editor.');
-      event.target.value = '';
+      setImageUploadError("Image uploads are not available in this editor.");
+      event.target.value = "";
       return;
     }
 
     try {
-      setImageUploadError('');
+      setImageUploadError("");
       setIsUploadingImage(true);
       const uploadedUrl = await onImageUpload(file);
 
       if (!uploadedUrl) {
-        throw new Error('The upload did not return an image URL.');
+        throw new Error("The upload did not return an image URL.");
       }
 
       editor.chain().focus().setImage({ src: uploadedUrl, alt: file.name }).run();
       setShowImageInput(false);
-      setImageUrl('');
+      setImageUrl("");
     } catch (error) {
       setImageUploadError(
         error?.response?.data?.message ||
           error?.message ||
-          'Could not upload this image. Please try again.'
+          "Could not upload this image. Please try again."
       );
     } finally {
       setIsUploadingImage(false);
-      event.target.value = '';
+      event.target.value = "";
     }
+  };
+
+  const addVideo = () => {
+    const src = getVideoEmbedUrl(videoInput);
+    if (!src) {
+      setVideoError("Paste a valid YouTube or Vimeo URL or iframe embed code.");
+      return;
+    }
+
+    editor.chain().focus().setVideoEmbed({ src, title: "Embedded article video" }).run();
+    setVideoInput("");
+    setVideoError("");
+    setShowVideoInput(false);
   };
 
   if (!editor) {
@@ -109,25 +235,25 @@ const MenuBar = ({ editor, onImageUpload }) => {
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded ${editor.isActive('bold') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("bold") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Bold"
         >
           <Bold className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded ${editor.isActive('italic') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("italic") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Italic"
         >
           <Italic className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={`p-2 rounded ${editor.isActive('underline') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("underline") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Underline"
         >
           <UnderlineIcon className="w-4 h-4" />
@@ -139,25 +265,25 @@ const MenuBar = ({ editor, onImageUpload }) => {
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-2 rounded ${editor.isActive('heading', { level: 1 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("heading", { level: 1 }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Heading 1"
         >
           <Heading1 className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-2 rounded ${editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("heading", { level: 2 }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Heading 2"
         >
           <Heading2 className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`p-2 rounded ${editor.isActive('heading', { level: 3 }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("heading", { level: 3 }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Heading 3"
         >
           <Heading3 className="w-4 h-4" />
@@ -169,16 +295,16 @@ const MenuBar = ({ editor, onImageUpload }) => {
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded ${editor.isActive('bulletList') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("bulletList") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Bullet List"
         >
           <List className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded ${editor.isActive('orderedList') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("orderedList") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Numbered List"
         >
           <ListOrdered className="w-4 h-4" />
@@ -190,16 +316,16 @@ const MenuBar = ({ editor, onImageUpload }) => {
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded ${editor.isActive('blockquote') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("blockquote") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Quote"
         >
           <Quote className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded ${editor.isActive('codeBlock') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("codeBlock") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Code Block"
         >
           <Code className="w-4 h-4" />
@@ -210,26 +336,26 @@ const MenuBar = ({ editor, onImageUpload }) => {
         {/* Alignment */}
         <button
           type="button"
-          onClick={() => editor.chain().focus().setTextAlign('left').run()}
-          className={`p-2 rounded ${editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+          className={`p-2 rounded ${editor.isActive({ textAlign: "left" }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Align Left"
         >
           <AlignLeft className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
-          onClick={() => editor.chain().focus().setTextAlign('center').run()}
-          className={`p-2 rounded ${editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+          className={`p-2 rounded ${editor.isActive({ textAlign: "center" }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Align Center"
         >
           <AlignCenter className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
-          onClick={() => editor.chain().focus().setTextAlign('right').run()}
-          className={`p-2 rounded ${editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+          className={`p-2 rounded ${editor.isActive({ textAlign: "right" }) ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Align Right"
         >
           <AlignRight className="w-4 h-4" />
@@ -241,7 +367,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         <button
           type="button"
           onClick={() => setShowLinkInput(!showLinkInput)}
-          className={`p-2 rounded ${editor.isActive('link') ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-100'}`}
+          className={`p-2 rounded ${editor.isActive("link") ? "bg-gray-200 text-gray-900" : "text-gray-600 hover:bg-gray-100"}`}
           title="Add Link"
         >
           <LinkIcon className="w-4 h-4" />
@@ -257,6 +383,15 @@ const MenuBar = ({ editor, onImageUpload }) => {
           <ImageIcon className="w-4 h-4" />
         </button>
 
+        <button
+          type="button"
+          onClick={() => setShowVideoInput(!showVideoInput)}
+          className="p-2 rounded text-gray-600 hover:bg-gray-100"
+          title="Embed Video"
+        >
+          <Video className="h-4 w-4" />
+        </button>
+
         <div className="w-px h-6 bg-gray-300 mx-1"></div>
 
         {/* History */}
@@ -268,7 +403,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
         >
           <Undo className="w-4 h-4" />
         </button>
-        
+
         <button
           type="button"
           onClick={() => editor.chain().focus().redo().run()}
@@ -334,7 +469,7 @@ const MenuBar = ({ editor, onImageUpload }) => {
                 type="button"
                 onClick={() => {
                   setShowImageInput(false);
-                  setImageUploadError('');
+                  setImageUploadError("");
                 }}
                 className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
               >
@@ -357,16 +492,47 @@ const MenuBar = ({ editor, onImageUpload }) => {
                 className="inline-flex items-center justify-center rounded bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <ImageIcon className="mr-2 h-4 w-4" />
-                {isUploadingImage ? 'Uploading...' : 'Upload image file'}
+                {isUploadingImage ? "Uploading..." : "Upload image file"}
               </button>
               <p className="text-xs text-gray-500">
                 Uploaded images are inserted directly into the article body.
               </p>
             </div>
           </div>
-          {imageUploadError && (
-            <p className="mt-2 text-xs text-red-600">{imageUploadError}</p>
-          )}
+          {imageUploadError && <p className="mt-2 text-xs text-red-600">{imageUploadError}</p>}
+        </div>
+      )}
+
+      {showVideoInput && (
+        <div className="mb-3 rounded-lg border border-gray-200 bg-white p-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              placeholder="Paste a YouTube/Vimeo URL or iframe code"
+              value={videoInput}
+              onChange={(event) => setVideoInput(event.target.value)}
+              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={addVideo}
+              className="rounded bg-[#00337C] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1E4B9E]"
+            >
+              Embed video
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowVideoInput(false);
+                setVideoError("");
+              }}
+              className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">Supported providers: YouTube and Vimeo.</p>
+          {videoError && <p className="mt-2 text-xs text-red-600">{videoError}</p>}
         </div>
       )}
     </div>
@@ -377,59 +543,58 @@ const RichTextEditor = ({
   content,
   onChange,
   onImageUpload,
-  placeholder = 'Start writing your article here...',
+  placeholder = "Start writing your article here...",
 }) => {
-    const editor = useEditor({
-        extensions: [
-          StarterKit.configure({
-            link: false,
-            underline: false,
-          }),
-          Underline,
-          Link.configure({
-            openOnClick: false,
-            HTMLAttributes: {
-              class: 'text-[#00337C] hover:text-[#1E4B9E] underline',
-            },
-          }),
-          Image.configure({
-            inline: false,
-            allowBase64: true,
-            HTMLAttributes: {
-              class: 'rounded-lg max-w-full h-auto',
-            },
-          }),
-          TextAlign.configure({
-            types: ['heading', 'paragraph'],
-          }),
-          Placeholder.configure({
-            placeholder,
-          }),
-          CharacterCount, // ✅ ADD THIS
-        ],
-        content,
-        onUpdate: ({ editor }) => {
-          onChange(editor.getHTML());
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        link: false,
+        underline: false,
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-[#00337C] hover:text-[#1E4B9E] underline",
         },
-        editorProps: {
-          attributes: {
-            class:
-              'rich-editor-content prose prose-lg max-w-none focus:outline-none p-4 min-h-[400px]',
-          },
+      }),
+      Image.configure({
+        inline: false,
+        allowBase64: false,
+        HTMLAttributes: {
+          class: "rounded-lg max-w-full h-auto",
         },
-      });
+      }),
+      VideoEmbed,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      Placeholder.configure({
+        placeholder,
+      }),
+      CharacterCount, // ✅ ADD THIS
+    ],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: "rich-editor-content prose prose-lg max-w-none focus:outline-none p-4 min-h-[400px]",
+      },
+    },
+  });
 
-    useEffect(() => {
-      if (!editor) return;
+  useEffect(() => {
+    if (!editor) return;
 
-      const currentHtml = editor.getHTML();
-      const nextHtml = content || "<p></p>";
+    const currentHtml = editor.getHTML();
+    const nextHtml = content || "<p></p>";
 
-      if (nextHtml !== currentHtml) {
-        editor.commands.setContent(nextHtml, false);
-      }
-    }, [content, editor]);
-      
+    if (nextHtml !== currentHtml) {
+      editor.commands.setContent(nextHtml, false);
+    }
+  }, [content, editor]);
 
   return (
     <div className="flex flex-col">
@@ -469,13 +634,28 @@ const RichTextEditor = ({
           margin: 1.25rem 0;
           border-radius: 0.75rem;
         }
+
+        .rich-editor-content div[data-video-embed] {
+          aspect-ratio: 16 / 9;
+          margin: 1.25rem 0;
+          overflow: hidden;
+          border-radius: 0.75rem;
+          background: #0f172a;
+        }
+
+        .rich-editor-content div[data-video-embed] iframe {
+          display: block;
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
       `}</style>
-      
+
       {/* Character Count */}
       {editor && (
         <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-500">
-          {editor?.storage?.characterCount?.characters?.() ?? 0} characters •{' '}
-            {editor?.storage?.characterCount?.words?.() ?? 0} words
+          {editor?.storage?.characterCount?.characters?.() ?? 0} characters •{" "}
+          {editor?.storage?.characterCount?.words?.() ?? 0} words
         </div>
       )}
     </div>

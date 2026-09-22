@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, CheckCircle } from "lucide-react";
 import api from "../../utils/axios";
@@ -11,11 +11,12 @@ const SubscribeModal = ({ showOnArticles = false }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const closeRef = useRef(null);
 
   useEffect(() => {
     const hasSubscribed = localStorage.getItem("bybs_subscribed");
     const dontShowUntil = localStorage.getItem("bybs_dont_show_until");
-    
+
     if (hasSubscribed || (dontShowUntil && new Date(dontShowUntil) > new Date())) {
       setHidden(true);
       return;
@@ -25,19 +26,23 @@ const SubscribeModal = ({ showOnArticles = false }) => {
     setOpen(false);
     setMinimized(false);
 
-    const timer = setTimeout(() => {
-      if (showOnArticles) {
-        setMinimized(true);
-        return;
-      }
+    const timer = setTimeout(
+      () => {
+        if (showOnArticles) {
+          setMinimized(true);
+          return;
+        }
 
-      setOpen(true);
-    }, showOnArticles ? 5000 : 2500);
+        setOpen(true);
+      },
+      showOnArticles ? 5000 : 2500
+    );
 
     return () => clearTimeout(timer);
   }, [showOnArticles]);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = async (event) => {
+    event?.preventDefault();
     if (!formData.email.trim()) {
       setError("Email is required");
       return;
@@ -54,7 +59,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
       await api.post("/subscribers", formData);
       localStorage.setItem("bybs_subscribed", "true");
       setSuccess(true);
-      
+
       // Auto close after success
       setTimeout(() => {
         setOpen(false);
@@ -62,15 +67,26 @@ const SubscribeModal = ({ showOnArticles = false }) => {
         setHidden(true);
         setSuccess(false);
       }, 2000);
-      
     } catch (error) {
-      setError(error.response?.status === 409 
-        ? "Email already subscribed" 
-        : "Subscription failed");
+      setError(error.response?.status === 409 ? "Email already subscribed" : "Subscription failed");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const previouslyFocused = document.activeElement;
+    window.requestAnimationFrame(() => closeRef.current?.focus());
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      previouslyFocused?.focus?.();
+    };
+  }, [open]);
 
   if (hidden) return null;
 
@@ -95,6 +111,9 @@ const SubscribeModal = ({ showOnArticles = false }) => {
 
   const panel = (
     <Motion.div
+      role="dialog"
+      aria-modal={showOnArticles ? undefined : "true"}
+      aria-labelledby="subscribe-title"
       initial={showOnArticles ? { y: 24, opacity: 0 } : { scale: 0.9, opacity: 0 }}
       animate={showOnArticles ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1 }}
       exit={showOnArticles ? { y: 24, opacity: 0 } : { scale: 0.9, opacity: 0 }}
@@ -103,6 +122,8 @@ const SubscribeModal = ({ showOnArticles = false }) => {
       }`}
     >
       <button
+        ref={closeRef}
+        type="button"
         onClick={() => setOpen(false)}
         className="absolute right-3 top-3 text-gray-400 transition hover:text-gray-600"
         aria-label="Close subscribe form"
@@ -115,7 +136,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
             <CheckCircle className="h-6 w-6 text-green-600" />
           </div>
-          <h3 className="mb-1 text-lg font-medium text-[#00337C]">
+          <h3 id="subscribe-title" className="mb-1 text-lg font-medium text-[#00337C]">
             You are subscribed
           </h3>
           <p className="text-sm text-gray-600">
@@ -124,7 +145,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
         </div>
       ) : (
         <>
-          <h3 className="mb-2 text-xl font-light text-[#00337C]">
+          <h3 id="subscribe-title" className="mb-2 text-xl font-light text-[#00337C]">
             {showOnArticles ? "Enjoying this read?" : "Join Our Community"}
           </h3>
 
@@ -134,12 +155,20 @@ const SubscribeModal = ({ showOnArticles = false }) => {
               : "Get updates on new content and offers."}
           </p>
 
-          {error && <p className="mb-3 text-xs text-red-600">{error}</p>}
+          {error && (
+            <p className="mb-3 text-xs text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-          <div className="space-y-3">
+          <form onSubmit={handleSubscribe} className="space-y-3">
             <div className="relative">
               <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <label htmlFor="subscribe-name" className="sr-only">
+                Name
+              </label>
               <input
+                id="subscribe-name"
                 type="text"
                 placeholder="Your name"
                 value={formData.name}
@@ -150,7 +179,11 @@ const SubscribeModal = ({ showOnArticles = false }) => {
 
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <label htmlFor="subscribe-email" className="sr-only">
+                Email address
+              </label>
               <input
+                id="subscribe-email"
                 type="email"
                 placeholder="Email address"
                 value={formData.email}
@@ -160,7 +193,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
             </div>
 
             <button
-              onClick={handleSubscribe}
+              type="submit"
               disabled={loading}
               className="w-full rounded-lg bg-[#00337C] py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1E4B9E] disabled:opacity-50"
             >
@@ -168,6 +201,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -180,7 +214,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
             >
               Not now
             </button>
-          </div>
+          </form>
         </>
       )}
     </Motion.div>
@@ -188,8 +222,8 @@ const SubscribeModal = ({ showOnArticles = false }) => {
 
   return (
     <AnimatePresence>
-      {open && (
-        showOnArticles ? (
+      {open &&
+        (showOnArticles ? (
           <div className="fixed bottom-5 left-4 right-4 z-50 flex justify-center sm:left-auto sm:right-6 sm:justify-end lg:left-6 lg:right-auto lg:justify-start">
             {panel}
           </div>
@@ -208,8 +242,7 @@ const SubscribeModal = ({ showOnArticles = false }) => {
 
             {panel}
           </div>
-        )
-      )}
+        ))}
     </AnimatePresence>
   );
 };

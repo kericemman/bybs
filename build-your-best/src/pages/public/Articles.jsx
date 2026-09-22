@@ -4,6 +4,7 @@ import { motion as Motion } from "framer-motion";
 import { ArrowRight, BookOpen, Calendar, Clock, Search, X } from "lucide-react";
 import { fetchPublishedArticles } from "../../api/pubclicArticle.api";
 import SEO from "../../components/SEO";
+import BrandLoader from "../../components/public/BrandLoader";
 import { absoluteUrl, breadcrumbSchema } from "../../lib/seo";
 
 const stripHtml = (value = "") =>
@@ -40,6 +41,7 @@ const formatDate = (dateString) => {
 const ArticlesPage = () => {
   const [articles, setArticles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,11 +67,13 @@ const ArticlesPage = () => {
   const filteredArticles = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
 
-    if (!term) return articles;
-
     return articles.filter((article) => {
+      if (selectedCategory !== "All" && article.category !== selectedCategory) return false;
+      if (!term) return true;
       const searchableText = [
         article.title,
+        article.authorName,
+        article.category,
         getExcerpt(article, 320),
         ...(article.tags || []),
       ]
@@ -78,7 +82,15 @@ const ArticlesPage = () => {
 
       return searchableText.includes(term);
     });
-  }, [articles, searchTerm]);
+  }, [articles, searchTerm, selectedCategory]);
+
+  const categories = useMemo(
+    () => [
+      "All",
+      ...Array.from(new Set(articles.map((article) => article.category).filter(Boolean))),
+    ],
+    [articles]
+  );
 
   const featuredArticle = filteredArticles[0];
   const remainingArticles = featuredArticle ? filteredArticles.slice(1) : [];
@@ -86,41 +98,34 @@ const ArticlesPage = () => {
     {
       "@context": "https://schema.org",
       "@type": "ItemList",
-      name: "Build Your Best Self Articles",
+      name: "BYBS Insights",
       itemListElement: articles.slice(0, 20).map((article, index) => ({
         "@type": "ListItem",
         position: index + 1,
-        url: absoluteUrl(`/articles/${article.slug}`),
+        url: absoluteUrl(`/insights/${article.slug}`),
         name: article.title,
       })),
     },
     breadcrumbSchema([
       { name: "Home", path: "/" },
-      { name: "Articles", path: "/articles" },
+      { name: "Insights", path: "/insights" },
     ]),
   ];
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-14 h-14 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mx-auto mb-5" />
-          <p className="text-gray-600">Loading articles...</p>
-        </div>
-      </div>
-    );
+    return <BrandLoader label="Loading insights" size="lg" fullPage className="bg-white" />;
   }
 
   return (
     <main className="bg-white text-slate-950">
       <SEO
-        title="Articles | Build Your Best Self"
-        description="Read BYBS articles on self-discovery, confidence, healing, purpose, boundaries, empowerment, and building a grounded life."
-        canonical={absoluteUrl("/articles")}
+        title="BYBS Insights | Growth, Leadership and Community"
+        description="Read practical BYBS insights on personal growth, career, leadership, wellbeing, professional development, and community."
+        canonical={absoluteUrl("/insights")}
         schema={articleListSchema}
       />
       <section className="bg-[#F7F9FC] border-b border-slate-100">
-        <div className="public-container py-5 md:py-10">
+        <div className="public-container py-5 md:py-10 lg:py-15">
           <Motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -132,10 +137,11 @@ const ArticlesPage = () => {
                 <BookOpen className="w-4 h-4" />
                 Personal growth library
               </p>
-              
-              <p className="public-copy text-lg max-w-2xl">
-                Clear, thoughtful writing on self-discovery, boundaries,
-                healing, empowerment, and building a life from the inside out.
+              <h1 className="text-2xl md:text-3xl lg:text-4xl public-heading">BYBS Insights</h1>
+
+              <p className="public-copy mt-5 text-lg max-w-2xl">
+                Practical ideas and thoughtful perspectives on personal growth, career, leadership,
+                community, wellbeing, and professional development.
               </p>
             </div>
 
@@ -144,7 +150,7 @@ const ArticlesPage = () => {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search articles"
+                  placeholder="Search insights"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-white py-4 pl-12 pr-12 outline-none transition focus:border-[#00337C] focus:ring-4 focus:ring-[#00337C]/10"
@@ -164,13 +170,31 @@ const ArticlesPage = () => {
         </div>
       </section>
 
+      {categories.length > 1 && (
+        <section className="border-b border-slate-100 bg-white">
+          <div
+            className="public-container flex gap-2 overflow-x-auto py-4"
+            aria-label="Insight categories"
+          >
+            {categories.map((item) => (
+              <button
+                type="button"
+                key={item}
+                onClick={() => setSelectedCategory(item)}
+                className={`min-h-10 shrink-0 rounded-lg border px-4 text-sm font-semibold transition ${selectedCategory === item ? "border-[#00337C] bg-[#00337C] text-white" : "border-slate-200 bg-white text-slate-600 hover:border-[#00337C]/40"}`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="public-section">
         <div className="public-container">
           <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl md:text-3xl font-light text-[#00337C]">
-                Latest articles
-              </h2>
+              <h2 className="text-2xl md:text-3xl font-light text-[#00337C]">Latest insights</h2>
             </div>
           </div>
 
@@ -178,11 +202,13 @@ const ArticlesPage = () => {
             <div className="rounded-lg border border-slate-200 bg-[#F7F9FC] px-6 py-16 text-center">
               <BookOpen className="w-14 h-14 text-slate-300 mx-auto mb-5" />
               <h3 className="text-xl font-light text-slate-700 mb-3">
-                {searchTerm ? "No articles found" : "No articles published yet"}
+                {searchTerm || selectedCategory !== "All"
+                  ? "No insights found"
+                  : "BYBS Insights are coming soon"}
               </h3>
               <p className="text-slate-500 max-w-md mx-auto">
-                {searchTerm
-                  ? "Try a different search term or clear the search."
+                {searchTerm || selectedCategory !== "All"
+                  ? "Try a different search term or category."
                   : "Check back soon for new insights and perspectives."}
               </p>
             </div>
@@ -195,7 +221,7 @@ const ArticlesPage = () => {
                   transition={{ duration: 0.5 }}
                 >
                   <Link
-                    to={`/articles/${featuredArticle.slug}`}
+                    to={`/insights/${featuredArticle.slug}`}
                     className="group grid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl lg:grid-cols-[1.05fr_0.95fr]"
                   >
                     <div className="relative min-h-72 overflow-hidden bg-slate-100 lg:min-h-[28rem]">
@@ -203,7 +229,7 @@ const ArticlesPage = () => {
                         <img
                           src={featuredArticle.coverImage.url}
                           alt={featuredArticle.title}
-                          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                          className="h-full w-full object-contain"
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center">
@@ -214,7 +240,7 @@ const ArticlesPage = () => {
 
                     <div className="flex flex-col justify-center p-6 md:p-10">
                       <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#00337C]">
-                        Featured article
+                        {featuredArticle.category || "Featured insight"}
                       </p>
                       <h3 className="mb-4 text-3xl font-light leading-tight text-[#00337C] md:text-4xl">
                         {featuredArticle.title}
@@ -226,7 +252,7 @@ const ArticlesPage = () => {
                       <div className="mb-7 flex flex-wrap items-center gap-4 text-sm text-slate-500">
                         <span className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          {formatDate(featuredArticle.createdAt)}
+                          {formatDate(featuredArticle.publishedAt || featuredArticle.createdAt)}
                         </span>
                         <span className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
@@ -235,7 +261,7 @@ const ArticlesPage = () => {
                       </div>
 
                       <span className="inline-flex items-center font-semibold text-[#00337C]">
-                        Read article
+                        Read insight
                         <ArrowRight className="ml-2 w-4 h-4 transition group-hover:translate-x-1" />
                       </span>
                     </div>
@@ -253,7 +279,7 @@ const ArticlesPage = () => {
                       transition={{ duration: 0.45, delay: index * 0.04 }}
                     >
                       <Link
-                        to={`/articles/${article.slug}`}
+                        to={`/insights/${article.slug}`}
                         className="group flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                       >
                         <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -261,7 +287,7 @@ const ArticlesPage = () => {
                             <img
                               src={article.coverImage.url}
                               alt={article.title}
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                              className="h-full w-full object-contain"
                               loading="lazy"
                             />
                           ) : (
@@ -272,6 +298,9 @@ const ArticlesPage = () => {
                         </div>
 
                         <div className="flex flex-1 flex-col p-5">
+                          <p className="mb-3 text-xs font-semibold uppercase text-[#B96500]">
+                            {article.category || "BYBS Insight"}
+                          </p>
                           <h3 className="mb-3 text-xl font-light leading-tight text-[#00337C]">
                             {article.title}
                           </h3>
@@ -283,17 +312,17 @@ const ArticlesPage = () => {
                             <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {formatDate(article.createdAt)}
+                                {formatDate(article.publishedAt || article.createdAt)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
                                 {getReadingTime(article.content)}
                               </span>
                             </div>
-                            <span className="inline-flex items-center text-sm font-semibold text-[#00337C]">
-                              Read article
+                            {/* <span className="inline-flex items-center text-sm font-semibold text-[#00337C]">
+                              Read insight
                               <ArrowRight className="ml-2 w-4 h-4 transition group-hover:translate-x-1" />
-                            </span>
+                            </span> */}
                           </div>
                         </div>
                       </Link>

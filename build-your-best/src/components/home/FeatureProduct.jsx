@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion as Motion } from "framer-motion";
 import { ArrowRight, BookOpen, Package, ShoppingBag } from "lucide-react";
 import api from "../../utils/axios";
+import BrandLoader from "../public/BrandLoader";
 
 const FeaturedProducts = () => {
   const [featuredMerch, setFeaturedMerch] = useState([]);
@@ -41,8 +42,8 @@ const FeaturedProducts = () => {
   if (loading) {
     return (
       <section className="public-section bg-[#F7F9FC]">
-        <div className="public-container text-center">
-          <div className="w-12 h-12 border-4 border-[#00337C] border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="public-container">
+          <BrandLoader label="Loading featured products" size="sm" />
         </div>
       </section>
     );
@@ -63,14 +64,14 @@ const FeaturedProducts = () => {
           <div className="max-w-2xl">
             <p className="public-eyebrow mb-5">
               <ShoppingBag className="w-4 h-4" />
-              Featured shop
+              Featured products
             </p>
-            <h2 className="public-heading text-3xl md:text-5xl mb-5">
-              Tools and merch that support the mission.
+            <h2 className="text-2xl md:text-3xl lg:text-4xl public-heading mb-5">
+              Resources and merchandise from BYBS.
             </h2>
             <p className="public-copy text-lg">
-              Purchase growth resources and BYBS merch while helping sustain
-              the work.
+              Buy practical growth resources and BYBS merchandise while helping sustain Fellowship,
+              EmpowerHer, youth development, and community outreach.
             </p>
           </div>
 
@@ -126,14 +127,10 @@ const ProductCard = ({ product, index }) => (
       </div>
 
       <div className="p-5">
-        <h3 className="text-lg font-semibold text-[#00337C] mb-2 line-clamp-1">
-          {product.title}
-        </h3>
+        <h3 className="text-lg font-semibold text-[#00337C] mb-2 line-clamp-1">{product.title}</h3>
 
         {product.description && (
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {product.description}
-          </p>
+          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{product.description}</p>
         )}
 
         <div className="flex items-center justify-between gap-3">
@@ -142,11 +139,7 @@ const ProductCard = ({ product, index }) => (
           </span>
 
           {product.type === "merch" && (
-            <span
-              className={`text-xs ${
-                product.stock > 0 ? "text-green-600" : "text-red-500"
-              }`}
-            >
+            <span className={`text-xs ${product.stock > 0 ? "text-green-600" : "text-red-500"}`}>
               {product.stock > 0 ? `${product.stock} left` : "Sold out"}
             </span>
           )}

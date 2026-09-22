@@ -1,149 +1,159 @@
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, MessageSquarePlus, Quote } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { fetchPublicTestimonials } from "../../api/testimonial.api";
+import { FALLBACK_TESTIMONIALS, testimonialCategoryLabel } from "../../config/testimonials";
 
 const Testimonials = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
-
-  const testimonials = [
-    {
-      id: 1,
-      summary: "Transformed through resilience and emotional intelligence",
-      fullText:
-        "The BYBS fellowship provided a safe space for me to learn personal resilience, emotional intelligence, networking techniques and many more others. The mentors were supportive and encouraging, guiding me through exercises that challenged my self-perceptions.",
-      author: "Kajokare Santos Evans",
-    },
-    {
-      id: 2,
-      summary: "Discovering purpose beyond career",
-      fullText:
-        "From the first sessions, I was challenged to reflect on my values, strengths, and purpose. The fellowship helped me realize that a career is not just about earning a living; it is about discovering who you are and aligning your passion with service.",
-      author: "Gabriel Garang Garang",
-    },
-    {
-      id: 3,
-      summary: "Learning persistence through challenges",
-      fullText:
-        "BYBS taught us how to remain persistent even when things get hard. Looking back at all the assignments and different learning styles, I can see how much the process stretched and strengthened me.",
-      author: "Taluga Robin Druku",
-    },
-  ];
+  const [publishedTestimonials, setPublishedTestimonials] = useState([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTestimonial((prev) =>
-        prev === testimonials.length - 1 ? 0 : prev + 1
-      );
-    }, 6000);
+    let active = true;
+    fetchPublicTestimonials()
+      .then(({ data }) => {
+        if (active && Array.isArray(data)) setPublishedTestimonials(data);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
-    return () => clearInterval(interval);
+  const testimonials = useMemo(
+    () => (publishedTestimonials.length ? publishedTestimonials : FALLBACK_TESTIMONIALS),
+    [publishedTestimonials]
+  );
+  const current = testimonials[currentTestimonial] || testimonials[0];
+  const isPartnerLogo = current?.category === "partner";
+
+  useEffect(() => {
+    setCurrentTestimonial(0);
+  }, [testimonials]);
+
+  useEffect(() => {
+    if (testimonials.length < 2) return undefined;
+    const interval = window.setInterval(() => {
+      setCurrentTestimonial((previous) => (previous + 1) % testimonials.length);
+    }, 7000);
+    return () => window.clearInterval(interval);
   }, [testimonials.length]);
 
   const nextTestimonial = () => {
-    setCurrentTestimonial((prev) =>
-      prev === testimonials.length - 1 ? 0 : prev + 1
-    );
+    setCurrentTestimonial((previous) => (previous + 1) % testimonials.length);
   };
 
-  const prevTestimonial = () => {
-    setCurrentTestimonial((prev) =>
-      prev === 0 ? testimonials.length - 1 : prev - 1
-    );
+  const previousTestimonial = () => {
+    setCurrentTestimonial((previous) => (previous === 0 ? testimonials.length - 1 : previous - 1));
   };
+
+  if (!current) return null;
 
   return (
-    <section className="public-section bg-white">
+    <section className="public-section bg-white" aria-labelledby="testimonials-heading">
       <div className="public-container">
-        <Motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto text-center mb-12"
-        >
-          <p className="public-eyebrow mb-5">Transformation stories</p>
-          <h2 className="public-heading text-3xl md:text-5xl mb-5">
-            Real growth, told by the people who lived it.
-          </h2>
-          <p className="public-copy text-lg">
-            Hear from those who have walked the journey of reconnection,
-            healing, and growth.
-          </p>
-        </Motion.div>
-
-        <div className="relative max-w-4xl mx-auto">
-          <AnimatePresence mode="wait">
-            <Motion.div
-              key={currentTestimonial}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.35 }}
-              className="public-card p-7 md:p-10"
+        <div className="flex flex-col gap-6 border-b border-gray-200 pb-7 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="public-eyebrow mb-5">Community voices</p>
+            <h2
+              id="testimonials-heading"
+              className="text-2xl md:text-3xl lg:text-4xl public-heading"
             >
-              <p className="text-5xl text-[#B76E79]/35 leading-none mb-4">
-                “
-              </p>
-              <h3 className="text-2xl font-light text-[#00337C] mb-5">
-                {testimonials[currentTestimonial].summary}
-              </h3>
-              <p className="public-copy text-lg mb-8">
-                {testimonials[currentTestimonial].fullText}
-              </p>
-
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 pt-6 border-t border-gray-100">
-                <div>
-                  <p className="font-semibold text-[#00337C]">
-                    {testimonials[currentTestimonial].author}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    BYBS Fellowship Graduate
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {testimonials.map((testimonial, index) => (
-                    <button
-                      key={testimonial.id}
-                      onClick={() => setCurrentTestimonial(index)}
-                      className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                        index === currentTestimonial
-                          ? "bg-[#00337C]"
-                          : "bg-gray-300 hover:bg-gray-400"
-                      }`}
-                      aria-label={`Show story ${index + 1}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            </Motion.div>
-          </AnimatePresence>
-
-          <div className="flex justify-center gap-3 mt-6">
-            <button
-              onClick={prevTestimonial}
-              className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
-              aria-label="Previous testimonial"
-            >
-              <ArrowLeft className="w-4 h-4 text-gray-600" />
-            </button>
-
-            <button
-              onClick={nextTestimonial}
-              className="w-10 h-10 bg-white border border-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm"
-              aria-label="Next testimonial"
-            >
-              <ArrowRight className="w-4 h-4 text-gray-600" />
-            </button>
+              Growth, in their own words.
+            </h2>
+            <p className="public-copy mt-4 text-lg">
+              Experiences shared by people who have learned, served, partnered, and grown with BYBS.
+            </p>
           </div>
+          <Link
+            to="/community/testimonials/submit"
+            className="public-button-primary shrink-0 px-6 py-3"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            Share your experience
+          </Link>
         </div>
 
-        <div className="text-center mt-12">
-          <Link to="/fellowship" className="public-button-primary px-6 py-3">
-            Join our next cohort
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+        <div className="relative py-7 md:py-10">
+          <AnimatePresence mode="wait">
+            <Motion.article
+              key={current._id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="grid gap-8 lg:grid-cols-[15rem_minmax(0,1fr)] lg:items-center lg:gap-12"
+            >
+              <figure className="mx-auto h-44 w-44 overflow-hidden rounded-full border-2 border-[#00337C]/20 lg:mx-0 lg:h-48 lg:w-48">
+                <div className="h-full w-full overflow-hidden rounded-full">
+                  {current.profilePhoto?.url ? (
+                    <img
+                      src={current.profilePhoto.url}
+                      alt={`${current.name}, ${testimonialCategoryLabel(current.category)}`}
+                      loading="lazy"
+                      decoding="async"
+                      className={`h-full w-full object-center ${isPartnerLogo ? "object-contain p-5" : "object-cover"}`}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-4xl font-light text-[#00337C]">
+                      {current.name?.charAt(0) || "B"}
+                    </div>
+                  )}
+                </div>
+              </figure>
+
+              <div className="max-w-3xl">
+                <Quote className="h-7 w-7 text-[#D67A00]" aria-hidden="true" />
+                <blockquote className="mt-4 max-w-2xl text-base leading-8 text-gray-700 md:text-lg md:leading-8">
+                  {current.testimonial}
+                </blockquote>
+                <div className="mt-6 max-w-2xl border-t border-gray-200 pt-5">
+                  <p className="font-semibold text-[#00337C]">{current.name}</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {[current.roleTitle, testimonialCategoryLabel(current.category)]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+              </div>
+            </Motion.article>
+          </AnimatePresence>
+        </div>
+
+        <div className="flex flex-col gap-5 border-t border-gray-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2" aria-label="Choose a testimonial">
+            {testimonials.map((testimonial, index) => (
+              <button
+                key={testimonial._id}
+                type="button"
+                onClick={() => setCurrentTestimonial(index)}
+                aria-label={`Show testimonial from ${testimonial.name}`}
+                aria-current={index === currentTestimonial ? "true" : undefined}
+                className={`h-2.5 rounded-full transition-all ${index === currentTestimonial ? "w-8 bg-[#00337C]" : "w-2.5 bg-gray-300 hover:bg-gray-400"}`}
+              />
+            ))}
+          </div>
+          {testimonials.length > 1 && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={previousTestimonial}
+                aria-label="Previous testimonial"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={nextTestimonial}
+                aria-label="Next testimonial"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>

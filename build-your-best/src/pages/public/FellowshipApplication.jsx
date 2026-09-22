@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import { submitFellowshipApplication } from "../../api/fellowshipApplication.api";
 import api from "../../utils/axios";
+import BrandLoader from "../../components/public/BrandLoader";
+import { CountrySelectField, PhoneNumberField } from "../../components/forms/ContactFields";
+import { isValidInternationalPhone } from "../../utils/phone";
 
 const initialForm = {
   firstName: "",
@@ -90,7 +93,7 @@ const heardFromOptions = [
   "Other",
 ];
 
-const cohortSchedule = "Saturday and Sunday every week, 2:00 PM - 4:00 PM CAT";
+const defaultCohortSchedule = "Saturday and Sunday every week, 2:00 PM - 4:00 PM CAT";
 const cohortSlugAliases = {
   "cohort-4": "bybs-fellowship-cohort-4",
 };
@@ -105,9 +108,10 @@ export default function FellowshipApplication() {
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const requestedCohortSlug = cohortSlug || "bybs-fellowship-cohort-4";
+  const requestedCohortSlug = cohortSlug || "";
   const activeCohortSlug = cohortSlugAliases[requestedCohortSlug] || requestedCohortSlug;
-  const activeCohortTitle = cohort?.title || "BYBS Fellowship Cohort 4";
+  const activeCohortTitle = cohort?.title || "BYBS Fellowship";
+  const cohortSchedule = cohort?.schedule || defaultCohortSchedule;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -117,6 +121,10 @@ export default function FellowshipApplication() {
     let mounted = true;
 
     const fetchCohort = async () => {
+      if (!activeCohortSlug) {
+        setCohortLoading(false);
+        return;
+      }
       try {
         setCohortLoading(true);
         const { data } = await api.get(`/cohorts/${activeCohortSlug}`);
@@ -168,6 +176,11 @@ export default function FellowshipApplication() {
 
     if (targetStep === 0 && !form.email.includes("@")) {
       setError("Please enter a valid email address.");
+      return false;
+    }
+
+    if (targetStep === 0 && !isValidInternationalPhone(form.phone)) {
+      setError("Please enter a valid international phone number.");
       return false;
     }
 
@@ -228,13 +241,53 @@ export default function FellowshipApplication() {
               <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
-              <h1 className="text-3xl font-light text-[#00337C]">Application received</h1>
+              <h1 className="text-2xl font-light text-[#00337C] md:text-3xl lg:text-4xl">
+                Application received
+              </h1>
               <p className="mx-auto mt-4 max-w-2xl leading-7 text-gray-600">
-                Thank you for applying to {activeCohortTitle}. The team will review your
-                application and follow up with next steps.
+                Thank you for applying to {activeCohortTitle}. The team will review your application
+                and follow up with next steps.
               </p>
-              <Link to="/cohorts" className="public-button-primary mt-7 inline-flex px-6 py-3">
+              <Link
+                to="/programs/fellowship/cohorts"
+                className="public-button-primary mt-7 inline-flex px-6 py-3"
+              >
                 Back to Cohorts
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (cohortLoading) {
+    return (
+      <BrandLoader
+        label="Checking cohort applications"
+        minHeight="min-h-[60vh]"
+        className="bg-[#F7FAFC]"
+      />
+    );
+  }
+
+  if (!cohort || cohort.applicationStatus !== "open") {
+    return (
+      <div className="min-h-[70vh] bg-[#F7FAFC]">
+        <section className="public-section">
+          <div className="public-container">
+            <div className="mx-auto max-w-2xl border-y border-gray-200 py-12 text-center">
+              <p className="public-eyebrow mb-5">Fellowship applications</p>
+              <h1 className="text-2xl font-light text-[#00337C] md:text-3xl lg:text-4xl">
+                Applications are not open for this cohort
+              </h1>
+              <p className="public-copy mx-auto mt-5 max-w-xl">
+                Application forms are available only while the cohort is published with applications
+                open. See the Fellowship page for the current status and next steps.
+              </p>
+              <Link to="/programs/fellowship" className="public-button-primary mt-7 px-6 py-3">
+                View Fellowship status
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
           </div>
@@ -246,8 +299,11 @@ export default function FellowshipApplication() {
   return (
     <div className="min-h-screen bg-[#F7FAFC]">
       <section className="bg-[#061C3D] text-white">
-        <div className="public-container py-12 md:py-16">
-          <Link to="/cohorts" className="mb-8 inline-flex items-center gap-2 text-sm text-white/75 hover:text-white">
+        <div className="public-container py-5 md:py-10 lg:py-15">
+          <Link
+            to="/programs/fellowship/cohorts"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-white/75 hover:text-white"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to Cohorts
           </Link>
@@ -256,7 +312,7 @@ export default function FellowshipApplication() {
               <Sparkles className="h-4 w-4 text-[#FFD166]" />
               {cohortLoading ? "Loading cohort..." : `${activeCohortTitle} Application`}
             </div>
-            <h1 className="text-4xl font-light leading-tight md:text-5xl">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-light leading-tight">
               Complete your application steps
             </h1>
             <p className="mt-5 text-lg leading-8 text-white/75">
@@ -273,11 +329,16 @@ export default function FellowshipApplication() {
             <aside className="lg:sticky lg:top-28">
               <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div className="mb-5 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-[#00337C]">Step {step + 1} of {steps.length}</p>
+                  <p className="text-sm font-semibold text-[#00337C]">
+                    Step {step + 1} of {steps.length}
+                  </p>
                   <p className="text-sm text-gray-500">{progress}%</p>
                 </div>
                 <div className="mb-6 h-2 rounded-full bg-gray-100">
-                  <div className="h-full rounded-full bg-[#00337C] transition-all" style={{ width: `${progress}%` }} />
+                  <div
+                    className="h-full rounded-full bg-[#00337C] transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
                 <div className="space-y-3">
                   {steps.map((item, index) => (
@@ -294,9 +355,11 @@ export default function FellowshipApplication() {
                       }`}
                     >
                       <div className="flex gap-3">
-                        <div className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-semibold ${
-                          index < step ? "bg-emerald-600 text-white" : "bg-[#00337C] text-white"
-                        }`}>
+                        <div
+                          className={`flex h-7 w-7 flex-none items-center justify-center rounded-full text-xs font-semibold ${
+                            index < step ? "bg-emerald-600 text-white" : "bg-[#00337C] text-white"
+                          }`}
+                        >
                           {index < step ? <Check className="h-4 w-4" /> : index + 1}
                         </div>
                         <div>
@@ -320,7 +383,10 @@ export default function FellowshipApplication() {
               </div>
             </aside>
 
-            <form onSubmit={handleSubmit} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-8">
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm md:p-8"
+            >
               <div className="mb-6 border-b border-gray-100 pb-5">
                 <p className="public-eyebrow mb-3">{steps[step].title}</p>
                 <h2 className="text-3xl font-light text-[#00337C]">{steps[step].description}</h2>
@@ -334,13 +400,47 @@ export default function FellowshipApplication() {
 
               {step === 0 && (
                 <div className="grid gap-5 md:grid-cols-2">
-                  <Field label="First name" required value={form.firstName} onChange={(value) => updateField("firstName", value)} />
-                  <Field label="Last name" required value={form.lastName} onChange={(value) => updateField("lastName", value)} />
-                  <Field label="Email" required type="email" value={form.email} onChange={(value) => updateField("email", value)} />
-                  <Field label="Phone / WhatsApp" required value={form.phone} onChange={(value) => updateField("phone", value)} />
-                  <Field label="Country" required value={form.country} onChange={(value) => updateField("country", value)} />
-                  <Field label="City" value={form.city} onChange={(value) => updateField("city", value)} />
-                  <Field label="Professional profile link" value={form.linkedinUrl} onChange={(value) => updateField("linkedinUrl", value)} placeholder="Optional" />
+                  <Field
+                    label="First name"
+                    required
+                    value={form.firstName}
+                    onChange={(value) => updateField("firstName", value)}
+                  />
+                  <Field
+                    label="Last name"
+                    required
+                    value={form.lastName}
+                    onChange={(value) => updateField("lastName", value)}
+                  />
+                  <Field
+                    label="Email"
+                    required
+                    type="email"
+                    value={form.email}
+                    onChange={(value) => updateField("email", value)}
+                  />
+                  <PhoneNumberField
+                    label="Phone / WhatsApp"
+                    required
+                    value={form.phone}
+                    onChange={(value) => updateField("phone", value)}
+                  />
+                  <CountrySelectField
+                    required
+                    value={form.country}
+                    onChange={(value) => updateField("country", value)}
+                  />
+                  <Field
+                    label="City"
+                    value={form.city}
+                    onChange={(value) => updateField("city", value)}
+                  />
+                  <Field
+                    label="Professional profile link"
+                    value={form.linkedinUrl}
+                    onChange={(value) => updateField("linkedinUrl", value)}
+                    placeholder="Optional"
+                  />
                   <SelectField
                     label="Age range"
                     value={form.ageRange}
@@ -354,7 +454,11 @@ export default function FellowshipApplication() {
                       ["41+", "41+"],
                     ]}
                   />
-                  <Field label="Occupation / current role" value={form.occupation} onChange={(value) => updateField("occupation", value)} />
+                  <Field
+                    label="Occupation / current role"
+                    value={form.occupation}
+                    onChange={(value) => updateField("occupation", value)}
+                  />
                   <SelectField
                     label="Current stage of life"
                     value={form.currentStage}
@@ -369,10 +473,29 @@ export default function FellowshipApplication() {
 
               {step === 1 && (
                 <div className="grid gap-5">
-                  <TextArea label={`Why do you want to join ${activeCohortTitle}?`} required value={form.motivation} onChange={(value) => updateField("motivation", value)} />
-                  <TextArea label="What growth goals are you working toward?" required value={form.growthGoals} onChange={(value) => updateField("growthGoals", value)} />
-                  <TextArea label="What challenge do you want support with right now?" required value={form.challenge} onChange={(value) => updateField("challenge", value)} />
-                  <TextArea label="What would you bring to the cohort community?" value={form.contribution} onChange={(value) => updateField("contribution", value)} />
+                  <TextArea
+                    label={`Why do you want to join ${activeCohortTitle}?`}
+                    required
+                    value={form.motivation}
+                    onChange={(value) => updateField("motivation", value)}
+                  />
+                  <TextArea
+                    label="What growth goals are you working toward?"
+                    required
+                    value={form.growthGoals}
+                    onChange={(value) => updateField("growthGoals", value)}
+                  />
+                  <TextArea
+                    label="What challenge do you want support with right now?"
+                    required
+                    value={form.challenge}
+                    onChange={(value) => updateField("challenge", value)}
+                  />
+                  <TextArea
+                    label="What would you bring to the cohort community?"
+                    value={form.contribution}
+                    onChange={(value) => updateField("contribution", value)}
+                  />
                 </div>
               )}
 
@@ -387,8 +510,8 @@ export default function FellowshipApplication() {
                       2:00 PM - 4:00 PM CAT
                     </p>
                     <p className="mt-3 leading-7 text-gray-600">
-                      This is the fixed weekly schedule for the cohort. Please apply only if
-                      you can consistently attend both weekend sessions.
+                      This is the fixed weekly schedule for the cohort. Please apply only if you can
+                      consistently attend both weekend sessions.
                     </p>
                   </div>
 
@@ -427,32 +550,39 @@ export default function FellowshipApplication() {
 
               {step === 3 && (
                 <div className="space-y-5">
-                  <ReviewBlock title="Cohort" items={[
-                    ["Applying for", activeCohortTitle],
-                  ]} />
-                  <ReviewBlock title="Applicant" items={[
-                    ["Name", `${form.firstName} ${form.lastName}`],
-                    ["Email", form.email],
-                    ["Phone", form.phone],
-                    ["Country", form.country],
-                    ["City", form.city],
-                    ["Professional profile link", form.linkedinUrl],
-                    ["Age range", form.ageRange],
-                    ["Occupation / current role", form.occupation],
-                    ["Current stage of life", form.currentStage],
-                  ]} />
-                  <ReviewBlock title="Story" items={[
-                    [`Why ${activeCohortTitle}`, form.motivation],
-                    ["Growth goals", form.growthGoals],
-                    ["Current challenge", form.challenge],
-                    ["Contribution to the cohort community", form.contribution],
-                  ]} />
-                  <ReviewBlock title="Schedule and Focus" items={[
-                    ["Cohort schedule", cohortSchedule],
-                    ["Can commit to the schedule", form.availability],
-                    ["Growth focus areas", form.focusAreas.join(", ")],
-                    ["How did you hear about us?", form.heardFrom],
-                  ]} />
+                  <ReviewBlock title="Cohort" items={[["Applying for", activeCohortTitle]]} />
+                  <ReviewBlock
+                    title="Applicant"
+                    items={[
+                      ["Name", `${form.firstName} ${form.lastName}`],
+                      ["Email", form.email],
+                      ["Phone", form.phone],
+                      ["Country", form.country],
+                      ["City", form.city],
+                      ["Professional profile link", form.linkedinUrl],
+                      ["Age range", form.ageRange],
+                      ["Occupation / current role", form.occupation],
+                      ["Current stage of life", form.currentStage],
+                    ]}
+                  />
+                  <ReviewBlock
+                    title="Story"
+                    items={[
+                      [`Why ${activeCohortTitle}`, form.motivation],
+                      ["Growth goals", form.growthGoals],
+                      ["Current challenge", form.challenge],
+                      ["Contribution to the cohort community", form.contribution],
+                    ]}
+                  />
+                  <ReviewBlock
+                    title="Schedule and Focus"
+                    items={[
+                      ["Cohort schedule", cohortSchedule],
+                      ["Can commit to the schedule", form.availability],
+                      ["Growth focus areas", form.focusAreas.join(", ")],
+                      ["How did you hear about us?", form.heardFrom],
+                    ]}
+                  />
 
                   <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
                     <input
@@ -481,7 +611,11 @@ export default function FellowshipApplication() {
                 </button>
 
                 {step < steps.length - 1 ? (
-                  <button type="button" onClick={goNext} className="public-button-primary justify-center px-6 py-3">
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    className="public-button-primary justify-center px-6 py-3"
+                  >
                     Continue
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -576,7 +710,10 @@ function CheckboxGroup({ label, options, values, onToggle }) {
       <p className="mb-3 text-sm font-medium text-gray-700">{label}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700">
+          <label
+            key={option}
+            className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700"
+          >
             <input
               type="checkbox"
               checked={values.includes(option)}

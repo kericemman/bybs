@@ -1,252 +1,88 @@
-import { useEffect } from 'react';
-import { FaBalanceScale, FaBook, FaGavel, FaExchangeAlt, FaExclamationTriangle, FaQuestionCircle } from 'react-icons/fa';
+import { Link } from "react-router-dom";
+import { SITE } from "../../config/site";
+
+const sections = [
+  [
+    "1. Using this website",
+    "Use the website lawfully and do not attempt to disrupt it, gain unauthorised access, upload harmful material, impersonate another person, or misuse private information.",
+  ],
+  [
+    "2. Programmes and applications",
+    "Submitting an application, waitlist entry, volunteer interest, mentorship interest, or partnership enquiry does not guarantee acceptance, selection, funding, placement, or a particular outcome. Programme requirements and availability may change, and the applicable page or direct communication will provide the current status.",
+  ],
+  [
+    "3. Coaching and mentorship",
+    "Coaching, mentorship, workshops, and personal-development content are educational and supportive services. They are not a substitute for medical, mental-health, legal, or financial advice. Paid and free services should be identified on the relevant page before commitment.",
+  ],
+  [
+    "4. Shop, orders, and payments",
+    "Product availability and listed prices are shown on the relevant page. The website records order requests but does not collect payment. The BYBS admin confirms availability, the final amount, payment instructions, delivery or digital access, and any applicable refund terms directly through the published WhatsApp contact.",
+  ],
+  [
+    "5. Content and intellectual property",
+    "Unless stated otherwise, BYBS owns or is authorised to use the website’s branding, written material, programme material, photographs, and media. Personal, non-commercial use is permitted, but republication, resale, removal of attribution, or misleading reuse requires permission.",
+  ],
+  [
+    "6. Community submissions",
+    "A reflection, story, photograph, application, or other submission remains private unless the person has given suitable publication permission and BYBS has approved it for publication. BYBS may moderate, decline, archive, or remove submitted material where appropriate.",
+  ],
+  [
+    "7. External services and links",
+    "The website may link to WhatsApp, social platforms, scheduling tools, or other external services. Their own terms and privacy practices apply when those services are used.",
+  ],
+  [
+    "8. Availability and responsibility",
+    "BYBS works to keep information accurate and services available but cannot promise uninterrupted access or a particular personal, professional, programme, or commercial result. Nothing in these terms excludes responsibility that cannot legally be excluded.",
+  ],
+  [
+    "9. Changes",
+    "These terms may be updated when the website, programmes, services, or legal requirements change. The current version and update date will be published on this page.",
+  ],
+];
 
 export default function TermsAndConditions() {
-    useEffect(() => {
-        window.scrollTo(0, 0)
-    }, [])
   return (
-    <div className="bg-[#F5EFE7] min-h-screen">
-      {/* Hero Section */}
-      <section className="relative py-16 md:py-24 bg-gradient-to-br from-[#F5F9FF] to-[#FFF0F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center bg-white/90 text-[#B76E79] px-4 py-1 rounded-full mb-4">
-           
-            <span className="text-sm font-medium">LEGAL TERMS</span>
-          </div>
-          <h1 className="bg-clip-text text-transparent bg-gradient-to-r from-[#00337C] to-[#B76E79] text-2xl md:text-4xl lg:text-5xl font-bold">
-            Terms & Conditions
-          </h1>
-          <p className="text-xl text-[#5A5A5A] max-w-3xl mx-auto">
-            The rules governing our coaching services and website use
+    <div className="bg-white">
+      <header className="bg-[#F7F9FC] py-5 md:py-10 lg:py-15">
+        <div className="public-container max-w-4xl">
+          <p className="public-eyebrow mb-4">Website terms</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl public-heading">Terms and Conditions</h1>
+          <p className="public-copy mt-5 text-lg">
+            The basic terms for using the BYBS website, programmes, content, and shop.
           </p>
+          <p className="mt-4 text-sm text-gray-500">Last updated: September 21, 2026</p>
         </div>
-      </section>
-
-      {/* Terms Content */}
-      <section className="relative py-5 md:py-10 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="prose prose-lg text-[#5A5A5A]">
-            <p className="text-lg mb-8">
-              These Terms and Conditions ("Terms") govern your use of BYBS Coaching's 
-              website and services. By accessing our services, you agree to these Terms. 
-              Please read them carefully.
-            </p>
-
-            <div className="space-y-12">
-              {/* Service Description */}
-              <div>
-                <div className="flex items-center mb-6">
-                  
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">1. Service Overview</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    BYBS Coaching provides:
-                  </p>
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>One-on-one coaching sessions (in-person, phone, or video)</li>
-                    <li>Group coaching programs</li>
-                    <li>Digital products (workbooks, courses, etc.)</li>
-                    <li>Educational content via blog, emails, and social media</li>
-                  </ul>
-                  <p>
-                    Coaching is not therapy, counseling, or mental health care. We do not 
-                    diagnose or treat mental health conditions.
-                  </p>
-                </div>
-              </div>
-
-              {/* Client Responsibilities */}
-              <div>
-                <div className="flex items-center mb-6">
-                
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">2. Client Responsibilities</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>As a client, you agree to:</p>
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>Provide accurate information about your background and goals</li>
-                    <li>Attend sessions on time and give 24-hour notice for cancellations</li>
-                    <li>Complete assigned exercises between sessions</li>
-                    <li>Take responsibility for your decisions and progress</li>
-                    <li>Maintain confidentiality of group coaching participants</li>
-                  </ul>
-                  <p>
-                    Coaching requires your active participation. Results depend on your 
-                    commitment to the process.
-                  </p>
-                </div>
-              </div>
-
-              {/* Payments & Refunds */}
-              <div>
-                <div className="flex items-center mb-6">
-                  
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">3. Payments & Refunds</h2>
-                </div>
-                <div className="space-y-4">
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>
-                      <strong>Fees:</strong> All prices are in USD. Coaching packages must be 
-                      paid in full or per agreed payment plan before sessions begin.
-                    </li>
-                    <li>
-                      <strong>Late Payments:</strong> Services may be paused for payments overdue 
-                      by more than 7 days.
-                    </li>
-                    <li>
-                      <strong>Refunds:</strong> Single sessions are non-refundable. Package 
-                      refunds are prorated minus a 10% administrative fee if canceled within 
-                      3 days of purchase. After 3 days, no refunds are given for unused sessions.
-                    </li>
-                    <li>
-                      <strong>Digital Products:</strong> Due to their nature, all digital 
-                      product sales are final.
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Intellectual Property */}
-              <div>
-                <div className="flex items-center mb-6">
-             
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">4. Intellectual Property</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    All materials provided (workbooks, worksheets, videos, etc.) are for 
-                    your personal use only. You agree not to:
-                  </p>
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>Share, reproduce, or distribute materials without permission</li>
-                    <li>Teach or coach others using our proprietary methods</li>
-                    <li>Claim our materials as your own</li>
-                  </ul>
-                  <p>
-                    All website content, logos, and branding are owned by BYBS Coaching 
-                    and protected by copyright laws.
-                  </p>
-                </div>
-              </div>
-
-              {/* Limitations */}
-              <div>
-                <div className="flex items-center mb-6">
-                 
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">5. Limitations of Liability</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    BYBS Coaching makes no guarantees about specific results. Coaching 
-                    success depends on your participation and effort.
-                  </p>
-                  <p>
-                    We are not liable for:
-                  </p>
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>Indirect, incidental, or consequential damages</li>
-                    <li>Decisions or actions you take based on coaching</li>
-                    <li>Technical issues beyond our control (e.g., internet outages)</li>
-                    <li>Any unauthorized access to your data despite our security measures</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Termination */}
-              <div>
-                <div className="flex items-center mb-6">
-                 
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">6. Termination</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    We reserve the right to terminate services if:
-                  </p>
-                  <ul className="list-disc pl-6 space-y-2">
-                    <li>You violate these Terms</li>
-                    <li>There is abusive behavior or harassment</li>
-                    <li>Payment obligations are not met</li>
-                  </ul>
-                  <p>
-                    You may terminate services at any time, subject to our refund policy.
-                  </p>
-                </div>
-              </div>
-
-              {/* Governing Law */}
-              <div>
-                <div className="flex items-center mb-6">
-                  
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">7. Governing Law</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    These Terms are governed by California law. Any disputes will be 
-                    resolved in San Francisco County courts.
-                  </p>
-                  <p>
-                    If any provision is found invalid, the remaining provisions remain 
-                    in full effect.
-                  </p>
-                </div>
-              </div>
-
-              {/* Changes */}
-              <div>
-                <div className="flex items-center mb-6">
-                  
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">8. Changes to Terms</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    We may update these Terms periodically. The current version will always 
-                    be posted here with the effective date. Continued use after changes 
-                    constitutes acceptance.
-                  </p>
-                  <p>
-                    <strong>Last Updated:</strong> July 15, 2023
-                  </p>
-                </div>
-              </div>
-
-              {/* Contact */}
-              <div>
-                <div className="flex items-center mb-6">
-                  
-                  <h2 className="text-2xl font-bold text-[#3A3A3A]">9. Contact Us</h2>
-                </div>
-                <div className="space-y-4">
-                  <p>
-                    For questions about these Terms:
-                  </p>
-                  <p>
-                    <strong>Email:</strong> legal@buildyourbestself.com<br />
-                    
-                  </p>
-                </div>
-              </div>
-            </div>
+      </header>
+      <main className="public-section">
+        <div className="public-container max-w-4xl">
+          <div className="bg-[#FFF7E8] p-5 text-sm leading-6 text-gray-700">
+            <strong>Legal review:</strong> BYBS should confirm its registered operating entity,
+            jurisdiction, refund terms, and any programme-specific conditions with qualified counsel
+            before treating this as a final legal document.
           </div>
-        </div>
-      </section>
-
-      {/* Final Note */}
-      <section className="py-12 bg-[#F5EFE7]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-white rounded-xl p-8 shadow-sm">
-            <FaBalanceScale className="text-4xl mx-auto text-[#B76E79] mb-4" />
-            <h3 className="text-xl font-bold text-[#3A3A3A] mb-2">
-              Clear Understanding
-            </h3>
-            <p className="text-[#5A5A5A]">
-              These Terms exist to protect both parties and ensure a positive coaching 
-              experience. We're happy to clarify any points before you begin working with us.
-            </p>
+          <div className="mt-10 space-y-10">
+            {sections.map(([title, body]) => (
+              <section key={title}>
+                <h2 className="text-2xl font-semibold text-[#00337C]">{title}</h2>
+                <p className="public-copy mt-4 text-lg">{body}</p>
+              </section>
+            ))}
           </div>
+          <section className="mt-10 border-t border-gray-200 pt-8">
+            <h2 className="text-2xl font-semibold text-[#00337C]">10. Contact</h2>
+            <p className="public-copy mt-4">
+              Questions about these terms can be sent to{" "}
+              <a href={`mailto:${SITE.email}`} className="font-semibold text-[#00337C]">
+                {SITE.email}
+              </a>
+              .
+            </p>
+            <Link to="/contact" className="public-button-secondary mt-6 px-6 py-3">
+              Contact BYBS
+            </Link>
+          </section>
         </div>
-      </section>
+      </main>
     </div>
   );
 }

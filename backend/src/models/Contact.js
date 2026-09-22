@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
 const contactSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  subject: String,
-  message: String,
+  name: { type: String, required: true, trim: true, maxlength: 120 },
+  email: { type: String, required: true, trim: true, lowercase: true, maxlength: 254 },
+  subject: { type: String, trim: true, maxlength: 180 },
+  message: { type: String, required: true, trim: true, maxlength: 5000 },
   submittedAt: { type: Date, default: Date.now },
 });
 

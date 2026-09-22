@@ -1,171 +1,161 @@
 # Hostinger VPS Production Deployment
 
-This project has two deployable parts:
+The production layout is:
 
-- `backend`: Node/Express API, usually kept running with PM2.
-- `build-your-best`: Vite React public/admin frontend, built once and served as static files by Nginx.
+- Nginx serves `build-your-best/dist`.
+- Nginx proxies `/api/*` to Express on `127.0.0.1:5002`.
+- PM2 keeps one API process running from `ecosystem.config.cjs`.
+- MongoDB, Cloudinary, and Resend remain external services.
 
-## 1. Server Prerequisites
+The API intentionally binds to localhost. Do not expose port `5002` through the VPS firewall.
 
-Install Node.js 20+, Nginx, PM2, and Git on the VPS.
+## 1. Prerequisites
+
+Use Node.js 22 LTS, Nginx, Git, Certbot, and PM2:
 
 ```bash
-node -v
-npm -v
-sudo npm install -g pm2
+node --version
+npm --version
+sudo npm install --global pm2
 ```
 
-## 2. Backend Environment
+The repository is expected at `/var/www/bybs/bybs`. If it lives elsewhere, update the `root` path in `deploy/nginx/buildyourbestself.org.conf`.
 
-Copy the backend env template and fill in production values:
+## 2. Environment Files
+
+Create the backend environment file once. Never commit it:
 
 ```bash
-cd /var/www/bybs/backend
+cd /var/www/bybs/bybs/backend
 cp .env.example .env
 nano .env
+chmod 600 .env
 ```
 
-Required production values:
-
-- `NODE_ENV=production`
-- `MONGO_URI`
-- `FRONTEND_URL=https://yourdomain.com`
-- `CORS_ORIGINS=https://yourdomain.com,https://www.yourdomain.com`
-- `JWT_SECRET` with a long random value
-- `PAYSTACK_PUBLIC_KEY` and `PAYSTACK_SECRET_KEY`
-- `RESEND_API_KEY`, `FROM_EMAIL`, and `ADMIN_EMAIL`
-- Cloudinary keys if uploads are used
-
-## 3. Frontend Environment
-
-Copy the frontend env template and fill in production values before building:
+Generate a production JWT secret with:
 
 ```bash
-cd /var/www/bybs/build-your-best
+openssl rand -hex 48
+```
+
+Replace every placeholder in `.env`. Production startup now fails early when MongoDB, authentication, Cloudinary, Resend, the sender address, the admin address, or HTTPS origin configuration is missing.
+
+Create the frontend build environment:
+
+```bash
+cd /var/www/bybs/bybs/build-your-best
 cp .env.example .env
 nano .env
+chmod 600 .env
 ```
 
-Use the public site API path when Nginx proxies `/api` to the backend:
+Keep `VITE_API_URL=/api` so admin cookies remain same-origin. `SITEMAP_API_URL` points the build-time sitemap generator at the localhost API and is never included in the browser bundle. `SITEMAP_STRICT=true` makes a production build fail instead of silently publishing a sitemap without dynamic articles, cohorts, products, reflections, or impact stories.
+
+## 3. First Deployment
+
+Install the API with production dependencies and start it:
 
 ```bash
-VITE_API_URL=https://yourdomain.com/api
-VITE_PAYSTACK_PUBLIC_KEY=pk_live_or_test_key
-```
-
-## 4. Install And Build
-
-Backend:
-
-```bash
-cd /var/www/bybs/backend
+cd /var/www/bybs/bybs/backend
 npm ci --omit=dev
-pm2 start src/server.js --name bybs-api
+cd ..
+pm2 startOrReload ecosystem.config.cjs --env production
 pm2 save
 pm2 startup
 ```
 
-Frontend:
+Install and build the frontend:
 
 ```bash
-cd /var/www/bybs/build-your-best
+cd /var/www/bybs/bybs/build-your-best
 npm ci
 npm run build
 ```
 
-The static frontend output will be in:
+The build writes the generated sitemap only to `dist/sitemap.xml`, so deployment no longer modifies tracked source files.
+
+## 4. TLS And Nginx
+
+The supplied Nginx file expects an existing Certbot certificate. On a first deployment, obtain it before enabling the site. If Nginx is already using port 80, stop it briefly or use Hostinger's SSL setup instead:
 
 ```bash
-/var/www/bybs/build-your-best/dist
+sudo systemctl stop nginx
+sudo certbot certonly --standalone -d buildyourbestself.org -d www.buildyourbestself.org
+sudo systemctl start nginx
 ```
 
-## 5. Nginx Site Config
-
-Create an Nginx config for the domain:
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com www.yourdomain.com;
-
-    root /var/www/bybs/build-your-best/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:5002/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /uploads/ {
-        proxy_pass http://127.0.0.1:5002/uploads/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Enable the site and reload Nginx:
+Then copy the provided site file, enable it, and validate Nginx:
 
 ```bash
+sudo cp /var/www/bybs/bybs/deploy/nginx/buildyourbestself.org.conf /etc/nginx/sites-available/buildyourbestself.org
+sudo ln -s /etc/nginx/sites-available/buildyourbestself.org /etc/nginx/sites-enabled/buildyourbestself.org
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Add SSL from Hostinger's panel or Certbot, then confirm the site redirects to HTTPS.
+The HTTPS block expects the certificate at `/etc/letsencrypt/live/buildyourbestself.org/`. Confirm Certbot renewal with `sudo certbot renew --dry-run`.
 
-## 6. Paystack Webhook
+Keep MongoDB restricted to the required network addresses, keep SSH key-only where possible, and expose only ports `22`, `80`, and `443` through the VPS firewall.
 
-Set the Paystack webhook URL to:
+## 5. Verification
 
-```text
-https://yourdomain.com/api/payments/webhook
-```
-
-Use matching live keys when switching from test mode to live payments.
-
-## 7. Production Checks
-
-After deployment, check:
+Run these after every deployment:
 
 ```bash
-curl https://yourdomain.com/api/health
-curl https://yourdomain.com/api/articles
-pm2 logs bybs-api
+curl --fail --silent --show-error https://buildyourbestself.org/api/health
+curl --fail --silent --show-error https://buildyourbestself.org/api/articles
+curl --head https://buildyourbestself.org
+pm2 status
+pm2 logs bybs-api --lines 100
 ```
 
-Then test the public flows in the browser:
+Then verify in a private browser window:
 
-- Home page
-- Charity merch page
-- Ebook checkout
-- Merch checkout
-- Contact form
-- Admin login
+- Public home, programmes, insights, cohort, contact, shop, and support pages.
+- Contact, waitlist, testimonial, and application submissions.
+- Admin login, logout, password change, article editing, and image upload.
+- Product and ebook upload. Ebook files are stored as authenticated Cloudinary assets and are not returned by public product APIs.
+- `robots.txt` and `sitemap.xml`.
 
-## 8. Updating The Site
+## 6. Routine Updates
 
-Pull the latest code, rebuild the frontend, and restart the API:
+The working tree should be clean before pulling:
 
 ```bash
-cd /var/www/bybs
-git pull
+cd /var/www/bybs/bybs
+git status --short
+git pull --ff-only origin main
+```
 
-cd backend
+Older releases wrote generated sitemap dates into the tracked source file. If that is the only local change blocking the first pull, preserve it in a stash before updating:
+
+```bash
+git stash push -m "legacy generated sitemap" -- build-your-best/public/sitemap.xml
+git pull --ff-only origin main
+```
+
+Do not discard other VPS changes without reviewing them first. New builds write only to ignored `dist` output and will not recreate this conflict.
+
+Install exact locked packages, restart the API, and rebuild:
+
+```bash
+cd /var/www/bybs/bybs/backend
 npm ci --omit=dev
-pm2 restart bybs-api
+cd ..
+pm2 startOrReload ecosystem.config.cjs --env production
 
-cd ../build-your-best
+cd build-your-best
 npm ci
 npm run build
+
+sudo nginx -t
+sudo systemctl reload nginx
 ```
+
+Do not run the Vite development server or expose the Node API port publicly in production.
+
+## 7. Backups And Rollback
+
+Before a release, confirm a recent MongoDB backup and preserve the previous frontend `dist` directory or deployment revision. If a release fails, check out the prior known-good commit, run both `npm ci` steps again, rebuild, and use `pm2 startOrReload`.
+
+Cloudinary media and MongoDB data are not stored in this repository and need their own retention policies.
