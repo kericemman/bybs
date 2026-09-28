@@ -102,7 +102,7 @@ const AdminSubscribers = () => {
     // Confirm before sending
     if (
       !window.confirm(
-        `Send email to ${selectedSubscribers.length || subscribers.length} subscribers?`
+        `Send email to ${selectedSubscribers.length || activeSubscribers.length} subscribers?`
       )
     ) {
       return;
@@ -117,7 +117,7 @@ const AdminSubscribers = () => {
         message,
         recipients: selectedSubscribers.length
           ? selectedSubscribers
-          : subscribers.map((s) => s.email),
+          : activeSubscribers.map((s) => s.email),
       });
 
       setCampaignSuccess(true);
@@ -153,7 +153,7 @@ const AdminSubscribers = () => {
     if (selectAll) {
       setSelectedSubscribers([]);
     } else {
-      setSelectedSubscribers(filteredSubscribers.map((s) => s.email));
+      setSelectedSubscribers(filteredSubscribers.filter((s) => s.isActive).map((s) => s.email));
     }
     setSelectAll(!selectAll);
   };
@@ -173,8 +173,14 @@ const AdminSubscribers = () => {
   };
 
   const handleExportCSV = () => {
-    const headers = ["Email", "Subscribed Date"];
-    const csvData = subscribers.map((s) => [s.email, new Date(s.createdAt).toLocaleDateString()]);
+    const headers = ["Email", "Name", "Email Status", "Sources", "Added Date"];
+    const csvData = subscribers.map((s) => [
+      s.email,
+      s.name || "",
+      s.isActive ? "Subscribed" : "Customer contact",
+      (s.sources || []).join("; "),
+      new Date(s.createdAt).toLocaleDateString(),
+    ]);
 
     const csv = [headers, ...csvData].map((row) => row.join(",")).join("\n");
 
@@ -190,6 +196,7 @@ const AdminSubscribers = () => {
   const filteredSubscribers = subscribers.filter((s) =>
     s.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const activeSubscribers = subscribers.filter((subscriber) => subscriber.isActive);
 
   if (loading) {
     return (
@@ -230,7 +237,7 @@ const AdminSubscribers = () => {
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Total Subscribers</p>
+                <p className="text-sm text-gray-600 mb-1">Email Contacts</p>
                 <p className="text-3xl font-light text-[#00337C]">{subscribers.length}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -242,14 +249,8 @@ const AdminSubscribers = () => {
           <div className="bg-white rounded-xl border border-gray-100 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">This Month</p>
-                <p className="text-3xl font-light text-[#00337C]">
-                  {
-                    subscribers.filter(
-                      (s) => new Date(s.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                    ).length
-                  }
-                </p>
+                <p className="text-sm text-gray-600 mb-1">Active Subscribers</p>
+                <p className="text-3xl font-light text-[#00337C]">{activeSubscribers.length}</p>
               </div>
               <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-green-600" />
@@ -368,8 +369,8 @@ const AdminSubscribers = () => {
             {/* Recipient Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-700">
-                <strong>{selectedSubscribers.length || subscribers.length}</strong> recipient(s)
-                selected
+                <strong>{selectedSubscribers.length || activeSubscribers.length}</strong> active
+                recipient(s) selected
               </p>
             </div>
 
@@ -433,8 +434,8 @@ const AdminSubscribers = () => {
           ) : subscribers.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-light text-gray-700 mb-2">No subscribers yet</h3>
-              <p className="text-gray-500">Subscribers will appear here when people sign up.</p>
+              <h3 className="text-xl font-light text-gray-700 mb-2">No email contacts yet</h3>
+              <p className="text-gray-500">Subscribers and customer emails will appear here.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -446,6 +447,7 @@ const AdminSubscribers = () => {
                         type="checkbox"
                         checked={selectAll}
                         onChange={handleSelectAll}
+                        disabled={activeSubscribers.length === 0}
                         className="w-4 h-4 text-[#00337C] border-gray-300 rounded focus:ring-[#00337C]"
                       />
                     </th>
@@ -453,7 +455,7 @@ const AdminSubscribers = () => {
                       Email
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Subscribed Date
+                      Email Status
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -473,6 +475,7 @@ const AdminSubscribers = () => {
                           type="checkbox"
                           checked={selectedSubscribers.includes(subscriber.email)}
                           onChange={() => handleSelectSubscriber(subscriber.email)}
+                          disabled={!subscriber.isActive}
                           className="w-4 h-4 text-[#00337C] border-gray-300 rounded focus:ring-[#00337C]"
                         />
                       </td>
@@ -483,13 +486,19 @@ const AdminSubscribers = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                          {new Date(subscriber.createdAt).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
+                        <div className="flex flex-col items-start gap-1">
+                          <span
+                            className={`rounded-full px-2 py-1 text-xs font-medium ${
+                              subscriber.isActive
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {subscriber.isActive ? "Subscribed" : "Customer contact"}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {(subscriber.sources || []).join(", ") || "website"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -537,7 +546,7 @@ const AdminSubscribers = () => {
           {subscribers.length > 0 && (
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
               <p className="text-sm text-gray-600">
-                Showing {filteredSubscribers.length} of {subscribers.length} subscribers
+                Showing {filteredSubscribers.length} of {subscribers.length} email contacts
               </p>
             </div>
           )}

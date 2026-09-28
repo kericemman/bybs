@@ -6,6 +6,12 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
+    ebookDownload: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "EbookDownload",
+      unique: true,
+      sparse: true,
+    },
     items: [
       {
         product: {
@@ -29,7 +35,7 @@ const orderSchema = new mongoose.Schema(
 
     email: { type: String, required: true, trim: true, lowercase: true, maxlength: 254 },
     name: { type: String, required: true, trim: true, maxlength: 120 },
-    phone: { type: String, required: true, trim: true, maxlength: 40 },
+    phone: { type: String, trim: true, maxlength: 40 },
 
     country: { type: String, trim: true, maxlength: 120 },
     shippingAddress: { type: String, trim: true, maxlength: 500 },
@@ -37,8 +43,19 @@ const orderSchema = new mongoose.Schema(
     amount: Number,
     status: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "fulfilled", "failed"],
       default: "pending",
+    },
+
+    source: {
+      type: String,
+      enum: ["checkout", "free-ebook"],
+      default: "checkout",
+    },
+
+    marketingConsent: {
+      type: Boolean,
+      default: false,
     },
 
     reference: { type: String, required: true, unique: true },

@@ -2,10 +2,12 @@ const crypto = require("crypto");
 
 const Product = require("../models/Product");
 const EbookDownload = require("../models/EbookDownload");
+const Order = require("../models/Order");
 const cloudinary = require("../config/cloudinary");
 const resend = require("../utils/resendClient");
 const { config } = require("../config/env");
 const { cleanText, escapeHtml, isValidEmail, normalizeEmail } = require("../utils/inputValidation");
+const syncCustomerEmail = require("../utils/syncCustomerEmail");
 
 const FROM_EMAIL = process.env.FROM_EMAIL || "BYBS <no-reply@updates.buildyourbestself.org>";
 const DOWNLOAD_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -85,6 +87,46 @@ exports.requestFreeEbook = async (req, res) => {
     download.emailStatus = "sent";
     download.emailProviderId = result.data?.id;
     await download.save();
+
+    try {
+      const reference = `BYBS-FREE-${crypto.randomUUID()}`;
+      await Order.findOneAndUpdate(
+        { ebookDownload: download._id },
+        {
+          $setOnInsert: {
+            ebookDownload: download._id,
+            product: product._id,
+            items: [
+              {
+                product: product._id,
+                title: product.title,
+                type: product.type,
+                quantity: 1,
+                price: 0,
+              },
+            ],
+            name,
+            email,
+            amount: 0,
+            reference,
+            status: "fulfilled",
+            source: "free-ebook",
+            delivered: true,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (orderError) {
+      console.error("Free ebook order recording error:", orderError.message);
+    }
+    await syncCustomerEmail({
+      email,
+      name,
+      source: "free-ebook",
+      marketingConsent: false,
+    }).catch((subscriberError) => {
+      console.error("Free ebook customer email sync error:", subscriberError.message);
+    });
 
     return res.status(201).json({
       message: "Your download link has been emailed to you.",

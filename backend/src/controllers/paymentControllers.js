@@ -3,10 +3,11 @@ const Product = require("../models/Product");
 const mongoose = require("mongoose");
 const { randomUUID } = require("crypto");
 const { cleanText, isValidEmail, normalizeEmail } = require("../utils/inputValidation");
+const syncCustomerEmail = require("../utils/syncCustomerEmail");
 
 exports.createCartOrder = async (req, res) => {
   try {
-    const { customer = {}, items = [] } = req.body || {};
+    const { customer = {}, items = [], marketingConsent = false } = req.body || {};
     const name = cleanText(customer.name, 120);
     const email = normalizeEmail(customer.email);
     const phone = cleanText(customer.phone, 40);
@@ -76,7 +77,7 @@ exports.createCartOrder = async (req, res) => {
 
     const reference = `BYBS-REQ-${randomUUID()}`;
 
-    await Order.create({
+    const order = await Order.create({
       product: orderItems[0].product,
       items: orderItems,
       name,
@@ -87,9 +88,21 @@ exports.createCartOrder = async (req, res) => {
       amount,
       reference,
       status: "pending",
+      source: "checkout",
+      marketingConsent: marketingConsent === true,
+    });
+
+    await syncCustomerEmail({
+      email,
+      name,
+      source: "customer-checkout",
+      marketingConsent: marketingConsent === true,
+    }).catch((subscriberError) => {
+      console.error("Order customer email sync error:", subscriberError.message);
     });
 
     res.status(201).json({
+      orderId: order._id,
       reference,
       amount,
       message: "Order request saved. Continue with the BYBS team on WhatsApp.",
@@ -120,8 +133,9 @@ exports.markDelivered = async (req, res) => {
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     order.delivered = true;
+    order.status = "fulfilled";
     await order.save();
-    res.json({ message: "Order marked as delivered" });
+    res.json({ message: "Order marked as fulfilled", order });
   } catch (error) {
     res.status(500).json({ message: "Error updating order" });
   }

@@ -19,6 +19,15 @@ import {
 } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 
+const orderStatusDetails = {
+  paid: { label: "Paid", className: "bg-green-100 text-green-700" },
+  fulfilled: { label: "Fulfilled", className: "bg-emerald-100 text-emerald-700" },
+  failed: { label: "Failed", className: "bg-red-100 text-red-700" },
+  pending: { label: "Awaiting follow-up", className: "bg-yellow-100 text-yellow-700" },
+};
+
+const getOrderStatus = (status) => orderStatusDetails[status] || orderStatusDetails.pending;
+
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +39,9 @@ const AdminOrders = () => {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const { data } = await getOrders();
       setOrders(data || []);
@@ -47,6 +56,15 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+
+    const refreshOrders = () => fetchOrders({ silent: true });
+    const interval = window.setInterval(refreshOrders, 30_000);
+    window.addEventListener("focus", refreshOrders);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshOrders);
+    };
   }, []);
 
   const handleMarkDelivered = async (id) => {
@@ -55,7 +73,7 @@ const AdminOrders = () => {
       await markDelivered(id);
       fetchOrders();
       if (selectedOrder?._id === id) {
-        setSelectedOrder({ ...selectedOrder, delivered: true });
+        setSelectedOrder({ ...selectedOrder, delivered: true, status: "fulfilled" });
       }
     } catch (error) {
       console.error("Error marking order delivered:", error);
@@ -282,13 +300,9 @@ const AdminOrders = () => {
 
                         <td className="px-6 py-4">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              order.status === "paid"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatus(order.status).className}`}
                           >
-                            {order.status === "pending" ? "Awaiting follow-up" : order.status}
+                            {getOrderStatus(order.status).label}
                           </span>
                         </td>
 
@@ -355,13 +369,9 @@ const AdminOrders = () => {
                         <p className="text-sm text-gray-500">{order.email || "N/A"}</p>
                       </div>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          order.status === "paid"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatus(order.status).className}`}
                       >
-                        {order.status === "pending" ? "Awaiting follow-up" : order.status}
+                        {getOrderStatus(order.status).label}
                       </span>
                     </div>
 
@@ -568,15 +578,17 @@ const AdminOrders = () => {
                           <div className="flex justify-between">
                             <span className="text-gray-600">Status:</span>
                             <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                selectedOrder.status === "paid"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-yellow-100 text-yellow-700"
-                              }`}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatus(selectedOrder.status).className}`}
                             >
-                              {selectedOrder.status === "pending"
-                                ? "Awaiting follow-up"
-                                : selectedOrder.status}
+                              {getOrderStatus(selectedOrder.status).label}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Source:</span>
+                            <span className="text-gray-900">
+                              {selectedOrder.source === "free-ebook"
+                                ? "Free ebook download"
+                                : "Shop checkout"}
                             </span>
                           </div>
                         </div>

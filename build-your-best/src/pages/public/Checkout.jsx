@@ -28,6 +28,7 @@ const Checkout = () => {
     phone: "",
     country: "",
     shippingAddress: "",
+    marketingConsent: false,
   });
   const [loading, setLoading] = useState(false);
 
@@ -62,6 +63,7 @@ const Checkout = () => {
           productId: item._id,
           quantity: item.quantity,
         })),
+        marketingConsent: form.marketingConsent,
       });
       window.location.assign(
         buildOrderWhatsAppUrl({
@@ -228,6 +230,23 @@ const Checkout = () => {
                 youth development, and community outreach.
               </p>
             </div>
+
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-gray-200 bg-white p-4">
+              <input
+                type="checkbox"
+                checked={form.marketingConsent}
+                onChange={(event) => setForm({ ...form, marketingConsent: event.target.checked })}
+                className="mt-0.5 h-5 w-5 rounded border-gray-300 text-[#00337C] focus:ring-[#00337C]"
+              />
+              <span>
+                <span className="block text-sm font-medium text-gray-800">
+                  Send me BYBS news and resources
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-gray-500">
+                  Optional. Order updates are sent regardless, and you can unsubscribe at any time.
+                </span>
+              </span>
+            </label>
 
             <button
               disabled={loading}

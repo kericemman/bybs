@@ -4,6 +4,8 @@ const crypto = require("node:crypto");
 
 const Product = require("../src/models/Product");
 const EbookDownload = require("../src/models/EbookDownload");
+const Order = require("../src/models/Order");
+const Subscriber = require("../src/models/Subscriber");
 const cloudinary = require("../src/config/cloudinary");
 const resend = require("../src/utils/resendClient");
 const {
@@ -103,6 +105,16 @@ test("free ebook requests store the reader and email a private link", async (t) 
     savedPayload = payload;
     return download;
   });
+  let orderUpdate;
+  t.mock.method(Order, "findOneAndUpdate", async (_query, update) => {
+    orderUpdate = update;
+    return { _id: "order-1" };
+  });
+  let subscriberUpdate;
+  t.mock.method(Subscriber, "findOneAndUpdate", async (_query, update) => {
+    subscriberUpdate = update;
+    return { _id: "subscriber-1" };
+  });
 
   let emailPayload;
   t.mock.method(resend.emails, "send", async (payload) => {
@@ -122,6 +134,11 @@ test("free ebook requests store the reader and email a private link", async (t) 
   assert.match(emailPayload.html, /\/api\/products\/download\//);
   assert.equal(download.emailStatus, "sent");
   assert.equal(download.emailProviderId, "email-1");
+  assert.equal(orderUpdate.$setOnInsert.email, "reader@example.com");
+  assert.equal(orderUpdate.$setOnInsert.status, "fulfilled");
+  assert.equal(orderUpdate.$setOnInsert.source, "free-ebook");
+  assert.deepEqual(subscriberUpdate.$addToSet, { sources: "free-ebook" });
+  assert.equal(subscriberUpdate.$set?.isActive, undefined);
 });
 
 test("active ebook tokens redirect to a short-lived private file URL", async (t) => {

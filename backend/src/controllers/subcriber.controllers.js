@@ -1,7 +1,9 @@
 const Subscriber = require("../models/Subscriber");
+const mongoose = require("mongoose");
 const { Resend } = require("resend");
 const { cleanText, isValidEmail, normalizeEmail } = require("../utils/inputValidation");
 const sanitizeEmailContent = require("../utils/sanitizeEmailContent");
+const syncCustomerEmail = require("../utils/syncCustomerEmail");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const BATCH_SIZE = 100;
@@ -26,13 +28,12 @@ exports.subscribe = async (req, res) => {
       return res.status(400).json({ message: "A valid email is required" });
     }
 
-    const existing = await Subscriber.findOne({ email });
-
-    if (existing) {
-      return res.status(200).json({ message: "Subscribed successfully" });
-    }
-
-    await Subscriber.create({ email, name });
+    await syncCustomerEmail({
+      email,
+      name,
+      source: cleanText(req.body?.source, 80) || "website-subscribe",
+      marketingConsent: true,
+    });
 
     res.json({ message: "Subscribed successfully" });
   } catch (error) {
@@ -59,7 +60,7 @@ exports.getSubscribers = async (req, res) => {
 // =======================
 exports.sendCampaign = async (req, res) => {
   try {
-    const { subject, message } = req.body;
+    const { subject, message, recipients } = req.body;
     const cleanSubject = cleanText(subject, 180);
     const cleanMessage = sanitizeEmailContent(message);
 
@@ -67,7 +68,16 @@ exports.sendCampaign = async (req, res) => {
       return res.status(400).json({ message: "Subject and message are required" });
     }
 
-    const subscribers = await Subscriber.find({ isActive: true });
+    const requestedRecipients = Array.isArray(recipients)
+      ? [...new Set(recipients.map(normalizeEmail).filter(isValidEmail))]
+      : [];
+    const subscriberQuery = { isActive: true };
+
+    if (requestedRecipients.length) {
+      subscriberQuery.email = mongoose.trusted({ $in: requestedRecipients });
+    }
+
+    const subscribers = await Subscriber.find(subscriberQuery);
 
     if (!subscribers.length) {
       return res.status(400).json({ message: "There are no active subscribers." });
@@ -102,5 +112,20 @@ exports.sendCampaign = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Campaign failed" });
+  }
+};
+
+exports.deleteSubscriber = async (req, res) => {
+  try {
+    const subscriber = await Subscriber.findByIdAndDelete(req.params.id);
+
+    if (!subscriber) {
+      return res.status(404).json({ message: "Email contact not found" });
+    }
+
+    return res.json({ message: "Email contact removed" });
+  } catch (error) {
+    console.error("Delete email contact error:", error);
+    return res.status(500).json({ message: "Could not remove email contact" });
   }
 };

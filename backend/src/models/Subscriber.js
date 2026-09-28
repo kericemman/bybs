@@ -11,10 +11,15 @@ const subscriberSchema = new mongoose.Schema(
       maxlength: 254,
     },
     name: { type: String, trim: true, maxlength: 120 },
+    sources: {
+      type: [String],
+      default: [],
+    },
     isActive: {
       type: Boolean,
-      default: true,
+      default: false,
     },
+    consentAt: Date,
   },
   { timestamps: true }
 );

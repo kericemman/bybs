@@ -6,6 +6,7 @@ const {
   subscribe,
   getSubscribers,
   sendCampaign,
+  deleteSubscriber,
 } = require("../../controllers/subcriber.controllers");
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.post("/", subscribe);
 // Admin
 router.get("/admin", protect, requireAdmin, getSubscribers);
 router.post("/admin/send", protect, requireAdmin, sendCampaign);
+router.delete("/admin/:id", protect, requireAdmin, deleteSubscriber);
 
 module.exports = router;
