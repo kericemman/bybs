@@ -1,10 +1,15 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 
 const Product = require("../src/models/Product");
 const EbookDownload = require("../src/models/EbookDownload");
+const cloudinary = require("../src/config/cloudinary");
 const resend = require("../src/utils/resendClient");
-const { requestFreeEbook } = require("../src/controllers/ebookDownload.controllers");
+const {
+  downloadFreeEbook,
+  requestFreeEbook,
+} = require("../src/controllers/ebookDownload.controllers");
 
 const responseRecorder = () => {
   const result = { statusCode: 200, body: undefined };
@@ -27,6 +32,30 @@ const request = (body = {}) => ({
   protocol: "https",
   get: () => "buildyourbestself.org",
 });
+
+const downloadResponseRecorder = () => {
+  const result = { statusCode: 200, body: undefined, headers: {}, redirectUrl: undefined };
+  return {
+    result,
+    status(code) {
+      result.statusCode = code;
+      return this;
+    },
+    send(body) {
+      result.body = body;
+      return this;
+    },
+    set(name, value) {
+      result.headers[name] = value;
+      return this;
+    },
+    redirect(code, url) {
+      result.statusCode = code;
+      result.redirectUrl = url;
+      return this;
+    },
+  };
+};
 
 test("paid ebooks cannot use the free delivery endpoint", async (t) => {
   t.mock.method(Product, "findOne", () => ({
@@ -93,4 +122,62 @@ test("free ebook requests store the reader and email a private link", async (t) 
   assert.match(emailPayload.html, /\/api\/products\/download\//);
   assert.equal(download.emailStatus, "sent");
   assert.equal(download.emailProviderId, "email-1");
+});
+
+test("active ebook tokens redirect to a short-lived private file URL", async (t) => {
+  const token = "valid-download-token";
+  const expectedHash = crypto.createHash("sha256").update(token).digest("hex");
+  const download = {
+    product: "product-2",
+    expiresAt: new Date(Date.now() + 60_000),
+    downloadCount: 0,
+    save: async () => download,
+  };
+  let downloadQuery;
+
+  t.mock.method(EbookDownload, "findOne", (query) => {
+    downloadQuery = query;
+    return { select: async () => download };
+  });
+  t.mock.method(Product, "findById", () => ({
+    select: async () => ({
+      _id: "product-2",
+      title: "Free growth guide",
+      type: "ebook",
+      price: 0,
+      filePublicId: "bybs/ebooks/free-guide.pdf",
+    }),
+  }));
+  t.mock.method(
+    cloudinary.utils,
+    "private_download_url",
+    () => "https://res.cloudinary.com/private-download"
+  );
+  const res = downloadResponseRecorder();
+
+  await downloadFreeEbook({ params: { token } }, res);
+
+  assert.deepEqual(downloadQuery, { tokenHash: expectedHash });
+  assert.equal(res.result.statusCode, 302);
+  assert.equal(res.result.redirectUrl, "https://res.cloudinary.com/private-download");
+  assert.equal(res.result.headers["Cache-Control"], "no-store");
+  assert.equal(download.downloadCount, 1);
+});
+
+test("expired ebook tokens are rejected before loading the product", async (t) => {
+  const download = {
+    product: "product-2",
+    expiresAt: new Date(Date.now() - 1_000),
+  };
+  t.mock.method(EbookDownload, "findOne", () => ({ select: async () => download }));
+  const findProduct = t.mock.method(Product, "findById", () => {
+    throw new Error("Expired downloads must not load the product");
+  });
+  const res = downloadResponseRecorder();
+
+  await downloadFreeEbook({ params: { token: "expired-token" } }, res);
+
+  assert.equal(res.result.statusCode, 404);
+  assert.match(res.result.body, /no longer available/i);
+  assert.equal(findProduct.mock.callCount(), 0);
 });

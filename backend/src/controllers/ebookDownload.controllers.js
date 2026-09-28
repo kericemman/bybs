@@ -107,17 +107,15 @@ exports.requestFreeEbook = async (req, res) => {
 exports.downloadFreeEbook = async (req, res) => {
   try {
     const tokenHash = hashDownloadToken(req.params.token || "");
-    const download = await EbookDownload.findOne({
-      tokenHash,
-      expiresAt: { $gt: new Date() },
-    }).select("+tokenHash");
-    const product = download
+    const download = await EbookDownload.findOne({ tokenHash }).select("+tokenHash");
+    const downloadIsActive = download && download.expiresAt.getTime() > Date.now();
+    const product = downloadIsActive
       ? await Product.findById(download.product).select("title type price filePublicId")
       : null;
 
     if (
       !product ||
-      !download ||
+      !downloadIsActive ||
       String(download.product) !== String(product._id) ||
       product.type !== "ebook" ||
       Number(product.price) !== 0 ||
