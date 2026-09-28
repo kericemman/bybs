@@ -473,7 +473,7 @@ const Shop = () => {
                   key={product._id}
                   className="group bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
-                  <div className="relative bg-gray-50 h-56 overflow-hidden">
+                  <div className="relative h-56 overflow-hidden bg-white">
                     {product.coverImage?.url ? (
                       <img
                         src={product.coverImage.url}
@@ -481,7 +481,7 @@ const Shop = () => {
                         className="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                      <div className="flex h-full w-full items-center justify-center bg-white">
                         {product.type === "ebook" ? (
                           <BookOpen className="w-16 h-16 text-gray-300" />
                         ) : (

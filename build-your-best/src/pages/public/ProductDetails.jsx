@@ -187,7 +187,7 @@ const ProductDetails = () => {
           {/* Product Image */}
           <div className="relative">
             <div className="sticky top-24">
-              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-50">
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-white">
                 {selectedImage ? (
                   <img
                     src={selectedImage}
@@ -195,7 +195,7 @@ const ProductDetails = () => {
                     className="h-full w-full object-contain p-4"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                  <div className="flex h-full w-full items-center justify-center bg-white">
                     {product.type === "ebook" ? (
                       <BookOpen className="w-24 h-24 text-gray-300" />
                     ) : (
@@ -228,7 +228,7 @@ const ProductDetails = () => {
                       onClick={() => setSelectedImage(image.url)}
                       aria-label={`View product image ${index + 1}`}
                       aria-pressed={selectedImage === image.url}
-                      className={`aspect-square overflow-hidden rounded-lg border bg-gray-50 p-1 transition ${
+                      className={`aspect-square overflow-hidden rounded-lg border bg-white p-1 transition ${
                         selectedImage === image.url
                           ? "border-[#00337C] ring-2 ring-[#00337C]/15"
                           : "border-gray-200 hover:border-[#00337C]/50"
@@ -303,7 +303,7 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-8 border border-gray-100">
+            <div className="mb-8 rounded-xl border border-gray-100 bg-white p-6">
               <h3 className="text-lg font-light text-[#00337C] mb-4">
                 {product.type === "ebook" ? "What You'll Get" : "Product Details"}
               </h3>
