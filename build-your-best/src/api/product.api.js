@@ -13,3 +13,6 @@ export const updateProduct = (id, data) =>
   });
 
 export const deleteProduct = (id) => api.delete(`/products/admin/${id}`);
+
+export const requestFreeEbook = (slug, reader) =>
+  api.post(`/products/${encodeURIComponent(slug)}/free-download`, reader);

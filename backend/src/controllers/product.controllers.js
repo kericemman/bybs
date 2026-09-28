@@ -4,17 +4,20 @@ const slugify = require("slugify");
 
 const PRODUCT_TYPES = ["ebook", "merch"];
 
-const parsePositiveNumber = (value) => {
+const parseNonNegativeNumber = (value) => {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
   const number = Number(value);
-  return Number.isFinite(number) && number > 0 ? number : null;
+  return Number.isFinite(number) && number >= 0 ? number : null;
 };
 
 const parseStock = (value) => {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
   const number = Number(value);
   return Number.isInteger(number) && number >= 0 ? number : null;
 };
 
 const getUpload = (req, fieldName) => req.files?.[fieldName]?.[0] || null;
+const getUploads = (req, fieldName) => req.files?.[fieldName] || [];
 
 const buildCoverImage = (file) => ({
   url: file.path,
@@ -26,6 +29,21 @@ const destroyCoverImage = async (publicId) => {
     await cloudinary.uploader.destroy(publicId);
   }
 };
+
+const parseStringArray = (value) => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+};
+
+const publicProductSelect =
+  "-fileUrl -filePublicId -fileName -createdBy -coverImage.public_id -images.public_id";
 
 const destroyEbookFile = async (publicId) => {
   if (publicId) {
@@ -68,13 +86,14 @@ exports.createProduct = async (req, res) => {
 
     const cleanTitle = title?.trim();
     const cleanDescription = description?.trim();
-    const parsedPrice = parsePositiveNumber(price);
+    const parsedPrice = parseNonNegativeNumber(price);
     const coverUpload = getUpload(req, "coverImage");
+    const productImages = getUploads(req, "productImages");
     const ebookUpload = getUpload(req, "ebookFile");
 
-    if (!cleanTitle || !cleanDescription || !type || !parsedPrice) {
+    if (!cleanTitle || !cleanDescription || !type || parsedPrice === null) {
       return res.status(400).json({
-        message: "Title, description, type and a valid price are required.",
+        message: "Title, description, type and a price of 0 or more are required.",
       });
     }
 
@@ -110,8 +129,10 @@ exports.createProduct = async (req, res) => {
       price: parsedPrice,
       stock: type === "merch" ? parsedStock : undefined,
       coverImage: buildCoverImage(coverUpload),
+      images: productImages.map(buildCoverImage),
       fileUrl: type === "ebook" ? ebookUpload.path : undefined,
       filePublicId: type === "ebook" ? ebookUpload.filename : undefined,
+      fileName: type === "ebook" ? ebookUpload.originalname : undefined,
       createdBy: req.admin._id,
     });
 
@@ -132,7 +153,7 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const { title, description, type, price, stock } = req.body;
+    const { title, description, type, price, stock, removeImageIds } = req.body;
 
     const nextType = type || product.type;
 
@@ -150,9 +171,9 @@ exports.updateProduct = async (req, res) => {
     }
 
     if (price !== undefined) {
-      const parsedPrice = parsePositiveNumber(price);
-      if (!parsedPrice) {
-        return res.status(400).json({ message: "Price must be greater than 0." });
+      const parsedPrice = parseNonNegativeNumber(price);
+      if (parsedPrice === null) {
+        return res.status(400).json({ message: "Price must be 0 or more." });
       }
       product.price = parsedPrice;
     }
@@ -183,6 +204,23 @@ exports.updateProduct = async (req, res) => {
       product.coverImage = buildCoverImage(coverUpload);
     }
 
+    const removedImageIds = new Set(parseStringArray(removeImageIds));
+    const currentImages = product.images || [];
+    const imagesToRemove = currentImages.filter((image) => removedImageIds.has(image.public_id));
+    const retainedImages = currentImages.filter((image) => !removedImageIds.has(image.public_id));
+    const newImages = getUploads(req, "productImages");
+
+    if (retainedImages.length + newImages.length > 6) {
+      await Promise.all(newImages.map((image) => destroyCoverImage(image.filename)));
+      return res.status(400).json({ message: "A product can have up to 6 additional images." });
+    }
+
+    await Promise.all(imagesToRemove.map((image) => destroyCoverImage(image.public_id)));
+    product.images = [
+      ...retainedImages.map((image) => ({ url: image.url, public_id: image.public_id })),
+      ...newImages.map(buildCoverImage),
+    ];
+
     // Replace ebook file
     const ebookUpload = getUpload(req, "ebookFile");
     if (nextType === "ebook") {
@@ -190,6 +228,7 @@ exports.updateProduct = async (req, res) => {
         await destroyEbookFile(product.filePublicId);
         product.fileUrl = ebookUpload.path;
         product.filePublicId = ebookUpload.filename;
+        product.fileName = ebookUpload.originalname;
       } else if (!product.fileUrl) {
         return res.status(400).json({ message: "Ebook PDF file is required." });
       }
@@ -197,6 +236,7 @@ exports.updateProduct = async (req, res) => {
       await destroyEbookFile(product.filePublicId);
       product.fileUrl = undefined;
       product.filePublicId = undefined;
+      product.fileName = undefined;
     }
 
     await product.save();
@@ -220,6 +260,7 @@ exports.deleteProduct = async (req, res) => {
 
     // Delete cover image from Cloudinary
     await destroyCoverImage(product.coverImage?.public_id);
+    await Promise.all((product.images || []).map((image) => destroyCoverImage(image.public_id)));
     await destroyEbookFile(product.filePublicId);
 
     await product.deleteOne();
@@ -249,9 +290,7 @@ exports.getAllProducts = async (req, res) => {
 // ========================================
 exports.getPublicProducts = async (req, res) => {
   try {
-    const products = await Product.find()
-      .select("-fileUrl -filePublicId -createdBy")
-      .sort({ createdAt: -1 });
+    const products = await Product.find().select(publicProductSelect).sort({ createdAt: -1 });
 
     res.json(products);
   } catch (error) {
@@ -266,7 +305,7 @@ exports.getProductBySlug = async (req, res) => {
   try {
     const product = await Product.findOne({
       slug: req.params.slug,
-    }).select("-fileUrl -filePublicId -createdBy");
+    }).select(publicProductSelect);
 
     if (!product) {
       return res.status(404).json({

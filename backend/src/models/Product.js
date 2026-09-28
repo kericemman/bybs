@@ -13,7 +13,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    price: { type: Number, required: true },
+    price: { type: Number, required: true, min: 0 },
 
     stock: Number, // only for merch
 
@@ -22,8 +22,17 @@ const productSchema = new mongoose.Schema(
       public_id: String,
     },
 
+    images: [
+      {
+        url: String,
+        public_id: String,
+        _id: false,
+      },
+    ],
+
     fileUrl: String, // ebook download URL
     filePublicId: String,
+    fileName: String,
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

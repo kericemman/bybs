@@ -10,6 +10,8 @@ const {
   isValidEmail,
   normalizeEmail,
 } = require("../src/utils/inputValidation");
+const Product = require("../src/models/Product");
+const EbookDownload = require("../src/models/EbookDownload");
 
 test("article HTML keeps supported content and removes executable markup", () => {
   const result = sanitizeRichText(`
@@ -40,6 +42,21 @@ test("public input helpers normalize bounded text and email addresses", () => {
   assert.equal(isValidEmail("not-an-email"), false);
   assert.equal(cleanText("a\u0000b", 2), "ab");
   assert.equal(escapeHtml('<a href="x">'), "&lt;a href=&quot;x&quot;&gt;");
+});
+
+test("products accept zero as a valid free price", () => {
+  const product = new Product({
+    title: "Free guide",
+    type: "ebook",
+    price: 0,
+  });
+
+  assert.equal(product.validateSync()?.errors?.price, undefined);
+});
+
+test("ebook delivery tokens are private model fields", () => {
+  assert.equal(EbookDownload.schema.path("tokenHash").options.select, false);
+  assert.equal(EbookDownload.schema.path("expiresAt").options.required, true);
 });
 
 test("SEO HTML uses page metadata and escapes database content", () => {

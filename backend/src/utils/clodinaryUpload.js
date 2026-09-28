@@ -65,6 +65,13 @@ const uploadParams = (req, file) => {
     };
   }
 
+  if (route.includes("/products")) {
+    return {
+      folder: file.fieldname === "productImages" ? "bybs/products/gallery" : "bybs/products/covers",
+      resource_type: "image",
+    };
+  }
+
   return { folder: "bybs/products", resource_type: "image" };
 };
 
@@ -77,6 +84,7 @@ class CloudinaryStorage {
       return callback(null, {
         path: result.secure_url,
         filename: result.public_id,
+        originalname: file.originalname,
         size: result.bytes,
         resourceType: options.resource_type,
         deliveryType: options.type || "upload",

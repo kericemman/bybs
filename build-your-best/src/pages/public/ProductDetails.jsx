@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../../utils/axios";
 import SEO from "../../components/SEO";
 import BrandLoader from "../../components/public/BrandLoader";
+import { requestFreeEbook } from "../../api/product.api";
 import { absoluteUrl, breadcrumbSchema, truncate } from "../../lib/seo";
 import {
   BookOpen,
@@ -13,6 +14,10 @@ import {
   ChevronRight,
   HeartHandshake,
   MessageCircle,
+  Download,
+  Mail,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 
 const ProductDetails = () => {
@@ -26,15 +31,25 @@ const ProductDetails = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState("");
+  const [reader, setReader] = useState({ name: "", email: "" });
+  const [downloadState, setDownloadState] = useState("idle");
+  const [downloadError, setDownloadError] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState("");
 
   useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
         setError(null);
+        setReader({ name: "", email: "" });
+        setDownloadState("idle");
+        setDownloadError("");
+        setDownloadUrl("");
 
         const { data } = await api.get(`/products/${slug}`);
         setProduct(data);
+        setSelectedImage(data.coverImage?.url || data.images?.[0]?.url || "");
       } catch (error) {
         console.error("Error loading product:", error);
         setError(error.response?.data?.message || "Failed to load product");
@@ -48,6 +63,24 @@ const ProductDetails = () => {
       loadProduct();
     }
   }, [slug]);
+
+  const submitFreeDownload = async (event) => {
+    event.preventDefault();
+    setDownloadState("sending");
+    setDownloadError("");
+
+    try {
+      const { data } = await requestFreeEbook(product.slug || slug, reader);
+      setDownloadUrl(data.downloadUrl);
+      setDownloadState("sent");
+    } catch (requestError) {
+      setDownloadError(
+        requestError.response?.data?.message ||
+          "We could not prepare your ebook right now. Please try again."
+      );
+      setDownloadState("idle");
+    }
+  };
 
   if (loading) {
     return <BrandLoader label="Loading product details" size="lg" fullPage className="bg-white" />;
@@ -90,13 +123,17 @@ const ProductDetails = () => {
   const productUrl = absoluteUrl(`/shop/${product.slug || slug}`);
   const productDescription = truncate(product.description, 155);
   const productImage = product.coverImage?.url;
+  const isFreeEbook = product.type === "ebook" && Number(product.price) === 0;
+  const productImages = [product.coverImage, ...(product.images || [])]
+    .filter((image) => image?.url)
+    .filter((image, index, images) => images.findIndex((item) => item.url === image.url) === index);
   const productSchema = [
     {
       "@context": "https://schema.org",
       "@type": "Product",
       name: product.title,
       description: productDescription,
-      image: productImage ? [productImage] : undefined,
+      image: productImages.length ? productImages.map((image) => image.url) : undefined,
       sku: product._id,
       category: product.type === "ebook" ? "Digital product" : "Merchandise",
       brand: {
@@ -150,12 +187,12 @@ const ProductDetails = () => {
           {/* Product Image */}
           <div className="relative">
             <div className="sticky top-24">
-              <div className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square">
-                {product.coverImage?.url ? (
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-50">
+                {selectedImage ? (
                   <img
-                    src={product.coverImage.url}
+                    src={selectedImage}
                     alt={product.title}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-contain p-4"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -179,6 +216,34 @@ const ProductDetails = () => {
                   </span>
                 </div>
               </div>
+              {productImages.length > 1 && (
+                <div
+                  className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-5"
+                  aria-label="Product images"
+                >
+                  {productImages.map((image, index) => (
+                    <button
+                      key={image.url}
+                      type="button"
+                      onClick={() => setSelectedImage(image.url)}
+                      aria-label={`View product image ${index + 1}`}
+                      aria-pressed={selectedImage === image.url}
+                      className={`aspect-square overflow-hidden rounded-lg border bg-gray-50 p-1 transition ${
+                        selectedImage === image.url
+                          ? "border-[#00337C] ring-2 ring-[#00337C]/15"
+                          : "border-gray-200 hover:border-[#00337C]/50"
+                      }`}
+                    >
+                      <img
+                        src={image.url}
+                        alt=""
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -203,11 +268,13 @@ const ProductDetails = () => {
 
             <div className="flex items-baseline gap-4 mb-8">
               <span className="text-4xl font-light text-[#B76E79]">
-                ${Number(product.price || 0).toFixed(2)}
+                {Number(product.price) === 0 ? "Free" : `$${Number(product.price).toFixed(2)}`}
               </span>
 
               {product.type === "ebook" && (
-                <span className="text-sm text-gray-500">Digital access confirmed by BYBS</span>
+                <span className="text-sm text-gray-500">
+                  {isFreeEbook ? "PDF delivered by email" : "Order directly with BYBS"}
+                </span>
               )}
             </div>
 
@@ -223,10 +290,15 @@ const ProductDetails = () => {
                 aria-hidden="true"
               />
               <div>
-                <h2 className="font-semibold text-[#00337C]">Your purchase helps power BYBS</h2>
+                <h2 className="font-semibold text-[#00337C]">
+                  {isFreeEbook
+                    ? "Your learning supports the BYBS mission"
+                    : "Your purchase helps power BYBS"}
+                </h2>
                 <p className="mt-2 text-sm leading-6 text-gray-600">
-                  Shop revenue helps BYBS run its work and reach more women and young people through
-                  Fellowship, EmpowerHer, mentorship, and community outreach.
+                  {isFreeEbook
+                    ? "Use this resource, share what you learn, and stay connected to work that helps more women and young people grow."
+                    : "Shop revenue helps BYBS run its work and reach more women and young people through Fellowship, EmpowerHer, mentorship, and community outreach."}
                 </p>
               </div>
             </div>
@@ -241,12 +313,20 @@ const ProductDetails = () => {
                   <>
                     <div className="flex items-center text-gray-700">
                       <BookOpen className="w-5 h-5 text-[#00337C] mr-3" />
-                      <span>PDF Format • Instant Download</span>
+                      <span>
+                        {isFreeEbook
+                          ? "PDF format • Download immediately"
+                          : "PDF format • Sent after order confirmation"}
+                      </span>
                     </div>
 
                     <div className="flex items-center text-gray-700">
                       <ShoppingBag className="w-5 h-5 text-[#00337C] mr-3" />
-                      <span>Lifetime Access • Free Updates</span>
+                      <span>
+                        {isFreeEbook
+                          ? "Private link also sent to your email"
+                          : "Personal order support on WhatsApp"}
+                      </span>
                     </div>
                   </>
                 ) : (
@@ -287,31 +367,136 @@ const ProductDetails = () => {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/order-request", {
-                  state: { cart: [{ ...product, quantity: 1 }] },
-                })
-              }
-              disabled={product.type === "merch" && product.stock <= 0}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00337C] px-8 py-4 font-medium text-white transition-colors hover:bg-[#1E4B9E] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <MessageCircle className="h-5 w-5" />
-              Request through WhatsApp
-            </button>
+            {isFreeEbook ? (
+              <section className="rounded-lg border border-[#00337C]/15 bg-[#F5F9FF] p-5 sm:p-6">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-[#00337C] shadow-sm">
+                    <Mail className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-semibold text-[#00337C]">Get the free ebook</h2>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      Enter your details and we will email your private download link.
+                    </p>
+                  </div>
+                </div>
+
+                {downloadState === "sent" ? (
+                  <div
+                    className="mt-5 rounded-lg border border-emerald-200 bg-white p-5"
+                    role="status"
+                  >
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                      <div>
+                        <p className="font-semibold text-gray-900">Check your inbox</p>
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                          We sent the link to {reader.email}. You can also download it now.
+                        </p>
+                      </div>
+                    </div>
+                    <a href={downloadUrl} className="public-button-primary mt-4 w-full px-6 py-3">
+                      <Download className="h-5 w-5" aria-hidden="true" />
+                      Download ebook
+                    </a>
+                  </div>
+                ) : (
+                  <form onSubmit={submitFreeDownload} className="mt-5 space-y-4">
+                    <div>
+                      <label
+                        htmlFor="ebook-reader-name"
+                        className="block text-sm font-semibold text-gray-800"
+                      >
+                        Full name
+                      </label>
+                      <input
+                        id="ebook-reader-name"
+                        required
+                        autoComplete="name"
+                        maxLength={120}
+                        value={reader.name}
+                        onChange={(event) =>
+                          setReader((current) => ({ ...current, name: event.target.value }))
+                        }
+                        className="mt-2 min-h-12 w-full rounded-lg border border-gray-300 bg-white px-4 outline-none transition focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="ebook-reader-email"
+                        className="block text-sm font-semibold text-gray-800"
+                      >
+                        Email address
+                      </label>
+                      <input
+                        id="ebook-reader-email"
+                        type="email"
+                        required
+                        autoComplete="email"
+                        maxLength={254}
+                        value={reader.email}
+                        onChange={(event) =>
+                          setReader((current) => ({ ...current, email: event.target.value }))
+                        }
+                        className="mt-2 min-h-12 w-full rounded-lg border border-gray-300 bg-white px-4 outline-none transition focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/15"
+                      />
+                    </div>
+                    <p className="text-xs leading-5 text-gray-500">
+                      We use these details to deliver this ebook. This does not subscribe you to
+                      marketing emails.
+                    </p>
+                    {downloadError && (
+                      <p
+                        role="alert"
+                        className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                      >
+                        {downloadError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={downloadState === "sending"}
+                      className="public-button-primary w-full px-6 py-3 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {downloadState === "sending" ? (
+                        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Download className="h-5 w-5" aria-hidden="true" />
+                      )}
+                      {downloadState === "sending"
+                        ? "Sending your ebook..."
+                        : "Email my free ebook"}
+                    </button>
+                  </form>
+                )}
+              </section>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/order-request", {
+                    state: { cart: [{ ...product, quantity: 1 }] },
+                  })
+                }
+                disabled={product.type === "merch" && product.stock <= 0}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#00337C] px-8 py-4 font-medium text-white transition-colors hover:bg-[#1E4B9E] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <MessageCircle className="h-5 w-5" />
+                Order through WhatsApp
+              </button>
+            )}
 
             <div className="flex items-center justify-center mt-8 pt-8 border-t border-gray-100">
               <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span>No online payment</span>
+                  <span>{isFreeEbook ? "No payment required" : "No online payment"}</span>
                 </div>
 
                 {product.type === "ebook" ? (
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span>Access confirmed by BYBS</span>
+                    <span>{isFreeEbook ? "Email delivery" : "Access confirmed by BYBS"}</span>
                   </div>
                 ) : (
                   <div className="flex items-center">
@@ -322,7 +507,7 @@ const ProductDetails = () => {
 
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  <span>Order Confirmation</span>
+                  <span>{isFreeEbook ? "Private download" : "Order confirmation"}</span>
                 </div>
               </div>
             </div>

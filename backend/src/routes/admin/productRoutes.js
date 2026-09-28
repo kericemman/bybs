@@ -10,12 +10,17 @@ const {
   getPublicProducts,
   getProductBySlug,
 } = require("../../controllers/product.controllers");
+const {
+  requestFreeEbook,
+  downloadFreeEbook,
+} = require("../../controllers/ebookDownload.controllers");
 
 const router = express.Router();
 
 const productUpload = (req, res, next) => {
   upload.fields([
     { name: "coverImage", maxCount: 1 },
+    { name: "productImages", maxCount: 6 },
     { name: "ebookFile", maxCount: 1 },
   ])(req, res, (error) => {
     if (!error) return next();
@@ -31,6 +36,8 @@ const productUpload = (req, res, next) => {
 
 // Public
 router.get("/", getPublicProducts);
+router.post("/:slug/free-download", requestFreeEbook);
+router.get("/download/:token", downloadFreeEbook);
 
 // Admin routes first
 router.get("/admin/all", protect, requireAdmin, getAllProducts);

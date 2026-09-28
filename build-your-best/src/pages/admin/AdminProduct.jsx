@@ -130,7 +130,7 @@ const AdminProducts = () => {
                     <img
                       src={product.coverImage.url}
                       alt={product.title}
-                      className="w-full h-48 object-cover"
+                      className="h-48 w-full bg-gray-50 object-contain p-3"
                     />
                   ) : (
                     <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
@@ -155,7 +155,11 @@ const AdminProducts = () => {
                     <p className="text-sm text-gray-500 mb-2 line-clamp-2">{product.description}</p>
 
                     <div className="flex items-center justify-between mb-4">
-                      <span className="text-lg font-light text-[#B76E79]">${product.price}</span>
+                      <span className="text-lg font-light text-[#B76E79]">
+                        {Number(product.price) === 0
+                          ? "Free"
+                          : `$${Number(product.price).toFixed(2)}`}
+                      </span>
                       {product.type === "merch" && (
                         <span className="text-sm text-gray-500">Stock: {product.stock || 0}</span>
                       )}

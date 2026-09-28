@@ -102,7 +102,10 @@ app.use(
 app.use(compression());
 app.use(
   morgan(config.isProduction ? "combined" : "dev", {
-    skip: (req) => req.path === "/health" || req.path === "/api/health",
+    skip: (req) =>
+      req.path === "/health" ||
+      req.path === "/api/health" ||
+      req.path.startsWith("/api/products/download/"),
   })
 );
 app.use("/api/seo/page", seoPageLimiter, seoPageRoutes);
@@ -116,6 +119,7 @@ app.post("/api/waitlist", publicSubmissionLimiter);
 app.post("/api/fellowship-applications", publicSubmissionLimiter);
 app.post("/api/order-requests/request", publicSubmissionLimiter);
 app.post("/api/subscribers", publicSubmissionLimiter);
+app.post("/api/products/:slug/free-download", publicSubmissionLimiter);
 
 // Routes
 app.use("/", seoRoutes);

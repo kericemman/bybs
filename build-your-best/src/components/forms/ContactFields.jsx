@@ -5,9 +5,9 @@ import countryList from "react-select-country-list";
 
 const labelClass = "block text-sm font-semibold text-gray-800";
 const selectClass =
-  "mt-2 min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 font-normal text-gray-900 outline-none transition focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/10";
+  "mt-2 min-h-11 w-full min-w-0 max-w-full rounded-lg border border-gray-300 bg-white px-3 font-normal text-gray-900 outline-none transition focus:border-[#00337C] focus:ring-2 focus:ring-[#00337C]/10";
 const phoneClass =
-  "mt-2 flex min-h-11 w-full overflow-hidden rounded-lg border border-gray-300 bg-white font-normal text-gray-900 transition focus-within:border-[#00337C] focus-within:ring-2 focus-within:ring-[#00337C]/10";
+  "mt-2 flex min-h-11 w-full min-w-0 max-w-full overflow-hidden rounded-lg border border-gray-300 bg-white font-normal text-gray-900 transition focus-within:border-[#00337C] focus-within:ring-2 focus-within:ring-[#00337C]/10";
 
 const normalizePartialPhone = (input, country) => {
   const raw = String(input || "").trim();
@@ -32,7 +32,7 @@ export function CountrySelectField({
   const countries = useMemo(() => countryList().getLabels(), []);
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 max-w-full ${className}`}>
       <label htmlFor={fieldId} className={labelClass}>
         {label}
         {required && <span className="ml-1 text-red-600">*</span>}
@@ -91,7 +91,7 @@ export function PhoneNumberField({
   };
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 max-w-full ${className}`}>
       <label htmlFor={fieldId} className={labelClass}>
         {label}
         {required && <span className="ml-1 text-red-600">*</span>}
@@ -101,7 +101,7 @@ export function PhoneNumberField({
           value={selectedCountry}
           onChange={(event) => changeCountry(event.target.value)}
           aria-label={`${label} country calling code`}
-          className="w-28 shrink-0 cursor-pointer border-0 border-r border-gray-200 bg-gray-50 px-2 text-sm text-[#00337C] outline-none sm:w-36"
+          className="w-[6.75rem] min-w-0 max-w-[42%] shrink-0 cursor-pointer border-0 border-r border-gray-200 bg-gray-50 px-2 text-sm text-[#00337C] outline-none sm:w-36"
         >
           {phoneCountries.map((country) => (
             <option key={country} value={country}>

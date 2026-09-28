@@ -20,6 +20,7 @@ import {
   Trash2,
   UsersRound,
   MessageCircle,
+  Download,
 } from "lucide-react";
 import { motion as Motion } from "framer-motion";
 
@@ -477,7 +478,7 @@ const Shop = () => {
                       <img
                         src={product.coverImage.url}
                         alt={product.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="h-full w-full object-contain p-3 transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
@@ -518,12 +519,16 @@ const Shop = () => {
                         className="mt-0.5 h-4 w-4 shrink-0 text-[#B96500]"
                         aria-hidden="true"
                       />
-                      Your purchase helps sustain BYBS programmes for women and youth.
+                      {Number(product.price) === 0
+                        ? "A practical resource to support your growth and learning."
+                        : "Your purchase helps sustain BYBS programmes for women and youth."}
                     </p>
 
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-light text-[#B76E79]">
-                        ${Number(product.price || 0).toFixed(2)}
+                        {Number(product.price) === 0
+                          ? "Free"
+                          : `$${Number(product.price).toFixed(2)}`}
                       </span>
 
                       {product.type === "merch" && (
@@ -545,14 +550,22 @@ const Shop = () => {
                         View
                       </Link>
 
-                      {product.type === "ebook" ? (
+                      {product.type === "ebook" && Number(product.price) === 0 ? (
+                        <Link
+                          to={`/shop/${product.slug || product._id}`}
+                          className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-[#00337C] px-3 py-2 text-sm text-white transition-colors hover:bg-[#1E4B9E]"
+                        >
+                          <Download className="h-4 w-4" />
+                          Get free
+                        </Link>
+                      ) : product.type === "ebook" ? (
                         <Link
                           to="/order-request"
                           state={{ cart: [{ ...product, quantity: 1 }] }}
-                          className="flex-1 bg-[#00337C] text-white py-2 rounded-lg text-sm hover:bg-[#1E4B9E] transition-colors flex items-center justify-center gap-1"
+                          className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg bg-[#00337C] px-3 py-2 text-sm text-white transition-colors hover:bg-[#1E4B9E]"
                         >
                           <MessageCircle className="w-4 h-4" />
-                          Request
+                          Order
                         </Link>
                       ) : (
                         <button
