@@ -3,11 +3,11 @@
 The production layout is:
 
 - Nginx serves `build-your-best/dist`.
-- Nginx proxies `/api/*` to Express on `127.0.0.1:5002`.
+- Nginx proxies `/api/*` to Express on `127.0.0.1:5006`.
 - PM2 keeps one API process running from `ecosystem.config.cjs`.
 - MongoDB, Cloudinary, and Resend remain external services.
 
-The API intentionally binds to localhost. Do not expose port `5002` through the VPS firewall.
+The API intentionally binds to localhost. Do not expose port `5006` through the VPS firewall.
 
 ## 1. Prerequisites
 
