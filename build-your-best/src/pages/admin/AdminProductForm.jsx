@@ -3,7 +3,8 @@ import { createProduct, updateProduct } from "../../api/product.api";
 import { X, Upload, Loader, Images } from "lucide-react";
 import { compressImageFile } from "../../utils/imageCompression";
 
-const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
+const MAX_FILE_UPLOAD_SIZE = 20 * 1024 * 1024;
+const MAX_FORM_UPLOAD_SIZE = 60 * 1024 * 1024;
 
 const AdminProductForm = ({ product, onClose, onSaved }) => {
   const isEdit = Boolean(product);
@@ -79,7 +80,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
 
     try {
       const compressedFile = await compressImageFile(file);
-      if (compressedFile.size > MAX_UPLOAD_SIZE) {
+      if (compressedFile.size > MAX_FILE_UPLOAD_SIZE) {
         setError("The cover image is too large. Please upload an image under 20MB.");
         return;
       }
@@ -109,7 +110,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
       return;
     }
 
-    if (file.size > MAX_UPLOAD_SIZE) {
+    if (file.size > MAX_FILE_UPLOAD_SIZE) {
       setError("The ebook PDF is too large. Please upload a file under 20MB.");
       return;
     }
@@ -146,7 +147,7 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
           compressImageFile(file, { maxWidth: 1800, maxHeight: 1800, quality: 0.82 })
         )
       );
-      if (compressedFiles.some((file) => file.size > MAX_UPLOAD_SIZE)) {
+      if (compressedFiles.some((file) => file.size > MAX_FILE_UPLOAD_SIZE)) {
         setError("One or more images are too large. Please keep each image under 20MB.");
         return;
       }
@@ -200,6 +201,16 @@ const AdminProductForm = ({ product, onClose, onSaved }) => {
       setError("Ebook file is required");
       return false;
     }
+
+    const uploadSize = [coverImage, ebookFile, ...productImages]
+      .filter(Boolean)
+      .reduce((total, file) => total + file.size, 0);
+
+    if (uploadSize > MAX_FORM_UPLOAD_SIZE) {
+      setError("The cover, gallery images, and ebook file must total less than 60MB.");
+      return false;
+    }
+
     return true;
   };
 

@@ -150,6 +150,7 @@ cd build-your-best
 npm ci
 npm run build
 
+sudo cp /var/www/bybs/bybs/deploy/nginx/buildyourbestself.org.conf /etc/nginx/sites-available/buildyourbestself.org
 sudo nginx -t
 sudo systemctl reload nginx
 ```
