@@ -150,7 +150,8 @@ cd build-your-best
 npm ci
 npm run build
 
-sudo cp /var/www/bybs/bybs/deploy/nginx/buildyourbestself.org.conf /etc/nginx/sites-available/buildyourbestself.org
+ACTIVE_NGINX_SITE="$(readlink -f /etc/nginx/sites-enabled/bybs-frontend)"
+sudo install -m 644 /var/www/bybs/bybs/deploy/nginx/buildyourbestself.org.conf "$ACTIVE_NGINX_SITE"
 sudo nginx -t
 sudo systemctl reload nginx
 ```
